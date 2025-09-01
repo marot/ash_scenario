@@ -19,7 +19,7 @@ defmodule AshScenario.SimpleScenarioTest do
       assert length(resources) == 2
 
       example_post = AshScenario.resource(Post, :example_post)
-      assert example_post.name == :example_post
+      assert example_post.ref == :example_post
       assert example_post.attributes[:title] == "A post title"
       assert example_post.attributes[:blog_id] == :example_blog
     end

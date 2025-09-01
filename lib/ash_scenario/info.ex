@@ -7,7 +7,12 @@ defmodule AshScenario.Info do
   Get all resources defined in a resource.
   """
   def resources(resource) do
-    Spark.Dsl.Extension.get_entities(resource, [:resources]) || []
+    entities = Spark.Dsl.Extension.get_entities(resource, [:resources]) || []
+
+    Enum.filter(entities, fn
+      %AshScenario.Dsl.Resource{} -> true
+      _ -> false
+    end)
   end
 
   @doc """
@@ -60,4 +65,21 @@ defmodule AshScenario.Info do
   
   @doc "Deprecated: Use resource_names/1 instead"
   def scenario_names(resource), do: resource_names(resource)
+
+  @doc """
+  Get the creation configuration for a resource module.
+
+  Returns `%AshScenario.Dsl.Create{}` if defined, otherwise a default with action `:create`.
+  """
+  def create(resource) do
+    Spark.Dsl.Extension.get_entities(resource, [:resources])
+    |> Enum.find(fn
+      %AshScenario.Dsl.Create{} -> true
+      _ -> false
+    end)
+    |> case do
+      %AshScenario.Dsl.Create{} = create -> create
+      _ -> %AshScenario.Dsl.Create{action: :create}
+    end
+  end
 end

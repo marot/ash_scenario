@@ -1,48 +1,72 @@
 defmodule AshScenario.Dsl do
   @moduledoc """
   DSL extension for defining resources in Ash resources.
-  
+
   This extension allows resources to define named test data resources with dynamic
   attribute and relationship values based on the resource's schema.
   """
+
+  @attr %Spark.Dsl.Entity{
+    name: :attr,
+    target: AshScenario.Dsl.Attr,
+    args: [:name, :value],
+    identifier: nil,
+    schema: [
+      name: [type: :atom, required: true],
+      value: [type: :any, required: true]
+    ]
+  }
 
   @resource %Spark.Dsl.Entity{
     name: :resource,
     target: AshScenario.Dsl.Resource,
     args: [:ref],
     identifier: :ref,
-    no_depend_modules: [:function],
+    no_depend_modules: [],
     transform: {__MODULE__, :transform_resource, []},
+    schema: [
+      ref: [type: :atom, required: true]
+    ],
+    entities: [
+      values: [@attr]
+    ]
+  }
+
+  @create %Spark.Dsl.Entity{
+    name: :create,
+    target: AshScenario.Dsl.Create,
     schema: [
       function: [
         type: {:or, [:mfa, {:fun, 2}]},
         required: false,
         default: nil,
-        doc: "Optional custom function for creating the resource. Can be {module, function, extra_args} or a 2-arity function"
+        doc: "Optional custom function for creating this resource module's records"
+      ],
+      action: [
+        type: :atom,
+        required: false,
+        default: :create,
+        doc: "Create action name to use when no function is provided"
       ]
     ]
   }
 
   @resources %Spark.Dsl.Section{
     name: :resources,
-    describe: "Define named resources for creating test data", 
-    entities: [@resource],
+    describe: "Define named resources for creating test data",
+    entities: [@create, @resource],
     schema: []
   }
 
   def transform_resource(resource) do
-    # Extract all fields except ref, function, and internal fields as attributes
-    reserved_keys = [:ref, :function, :__identifier__, :attributes]
-    struct_map = Map.from_struct(resource)
-    
-    # Get all fields that should be attributes
-    attributes = 
-      struct_map
-      |> Map.drop(reserved_keys)
-      |> Enum.filter(fn {_key, value} -> value != nil end)
-      |> Enum.to_list()
-    
-    %{resource | attributes: attributes}
+    nested_values =
+      (resource.values || resource.attrs || resource.attr || [])
+      |> Enum.map(fn %AshScenario.Dsl.Attr{name: name, value: value} -> {name, value} end)
+
+    base_attributes = resource.attributes || []
+    attributes = Keyword.merge(base_attributes, nested_values)
+
+    {:ok, %{resource | attributes: attributes}}
   end
 
   use Spark.Dsl.Extension,

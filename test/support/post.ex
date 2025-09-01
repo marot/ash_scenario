@@ -5,12 +5,15 @@ defmodule Post do
 
   attributes do
     uuid_primary_key :id
+
     attribute :title, :string do
       public? true
     end
+
     attribute :content, :string do
       public? true
     end
+
     attribute :status, :string do
       public? true
       default "draft"
@@ -25,16 +28,28 @@ defmodule Post do
 
   actions do
     defaults [:read]
+
     create :create do
       accept [:title, :content, :blog_id]
     end
+
     create :publish do
       accept [:title, :content, :blog_id]
       change set_attribute(:status, "published")
     end
   end
 
-  # Empty resources section to avoid DSL errors for now
   resources do
+    resource :example_post do
+      attr :title, "A post title"
+      attr :content, "The content of the example post"
+      attr :blog_id, :example_blog
+    end
+
+    resource :another_post do
+      attr :title, "Another post title"
+      attr :content, "Different content"
+      attr :blog_id, :example_blog
+    end
   end
 end

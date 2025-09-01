@@ -304,6 +304,12 @@ resources.example_post.title
 resources.example_blog.id
 ```
 
+### Identifiers
+
+- Resource definition metadata uses `ref` as the identifier (e.g., `example_post.ref == :example_post`).
+- Earlier examples or code using a metadata field named `name` should be updated to use `ref`.
+- This does not affect your domain resource attributes (like a blog's `:name` string); those remain unchanged and are still accessed as struct fields (e.g., `blog.name`).
+
 ## API Reference
 
 ### Resource Management

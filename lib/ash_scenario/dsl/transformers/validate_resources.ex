@@ -10,7 +10,12 @@ defmodule AshScenario.Dsl.Transformers.ValidateResources do
 
   @impl true
   def transform(dsl_state) do
-    resources = Transformer.get_entities(dsl_state, [:resources])
+    resources =
+      Transformer.get_entities(dsl_state, [:resources])
+      |> Enum.filter(fn
+        %AshScenario.Dsl.Resource{} -> true
+        _ -> false
+      end)
     
     case process_resources(dsl_state, resources) do
       :ok -> 
@@ -38,7 +43,7 @@ defmodule AshScenario.Dsl.Transformers.ValidateResources do
     # The attributes are already in the right format from the DSL
     # Just validate them if we can
     if MapSet.size(valid_keys) > 0 do
-      validate_resource_attributes(resource.attributes || [], valid_keys, resource.name, resource_module)
+      validate_resource_attributes(resource.attributes || [], valid_keys, resource.ref, resource_module)
     else
       :ok
     end

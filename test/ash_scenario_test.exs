@@ -17,7 +17,7 @@ defmodule AshScenarioTest do
       assert length(scenarios) == 2
 
       example_post = AshScenario.scenario(Post, :example_post)
-      assert example_post.name == :example_post
+      assert example_post.ref == :example_post
       assert example_post.attributes[:title] == "A post title"
       assert example_post.attributes[:content] == "The content of the example post"
       assert example_post.attributes[:blog_id] == :example_blog
@@ -58,7 +58,7 @@ defmodule AshScenarioTest do
       AshScenario.register_resources(Post)
 
       scenario = AshScenario.Scenario.Registry.get_scenario({Post, :example_post})
-      assert scenario.name == :example_post
+      assert scenario.ref == :example_post
       assert scenario.resource == Post
     end
   end

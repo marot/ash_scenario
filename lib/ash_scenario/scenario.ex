@@ -278,7 +278,7 @@ defmodule AshScenario.Scenario do
     else
       case search_for_resource_in_registry(resource_name) do
         {:ok, {module, resource_definition}} ->
-          deps = extract_direct_dependencies(resource_definition)
+          deps = extract_direct_dependencies(resource_definition, module)
           resource_info = %{module: module, definition: resource_definition, dependencies: deps}
           
           new_resource_map = Map.put(resource_map, resource_name, resource_info)
@@ -298,8 +298,8 @@ defmodule AshScenario.Scenario do
       resource_names
       |> Enum.map(fn name ->
         case search_for_resource_in_registry(name) do
-          {:ok, {_, resource_definition}} ->
-            deps = extract_direct_dependencies(resource_definition)
+          {:ok, {mod, resource_definition}} ->
+            deps = extract_direct_dependencies(resource_definition, mod)
             {name, length(deps)}
           :not_found ->
             {name, 0}
@@ -311,16 +311,26 @@ defmodule AshScenario.Scenario do
     {:ok, sorted}
   end
 
-  defp extract_direct_dependencies(resource_definition) do
-    # Simple dependency extraction without circular calls
+  defp extract_direct_dependencies(resource_definition, module) do
+    # Only treat atoms on relationship source attributes as dependencies
+    relationships =
+      try do
+        Ash.Resource.Info.relationships(module)
+      rescue
+        _ -> []
+      end
+
+    relationship_source_attributes = MapSet.new(Enum.map(relationships, & &1.source_attribute))
+
     resource_definition.attributes
-    |> Enum.filter(fn {_key, value} -> is_atom(value) end)
-    |> Enum.map(fn {_key, value} -> value end)
-    |> Enum.filter(fn value ->
-      # Only keep values that look like resource names (not built-in atoms)
-      value_str = Atom.to_string(value)
-      String.match?(value_str, ~r/^[a-z][a-z0-9_]*$/) and value not in [:id, :true, :false, :nil]
+    |> Enum.reduce([], fn {key, value}, acc ->
+      if MapSet.member?(relationship_source_attributes, key) and is_atom(value) do
+        [value | acc]
+      else
+        acc
+      end
     end)
+    |> Enum.reverse()
   end
 
   defp search_for_resource_in_registry(resource_name) do
@@ -394,11 +404,13 @@ defmodule AshScenario.Scenario do
         # 3. Resolve any resource references to actual IDs
         case resolve_resource_references(merged_attributes, module, created_resources) do
           {:ok, resolved_attributes} ->
-            # 4. Check if resource definition has custom function
-            if resource_definition.function do
-              execute_custom_function(resource_definition.function, resolved_attributes, opts)
+            # 4. Use module-level create configuration (custom function or action)
+            create_cfg = AshScenario.Info.create(module)
+
+            if create_cfg.function do
+              execute_custom_function(create_cfg.function, resolved_attributes, opts)
             else
-              create_ash_resource(module, resolved_attributes, opts)
+              create_ash_resource(module, resolved_attributes, opts, create_cfg.action || :create)
             end
           error -> error
         end
@@ -468,10 +480,10 @@ defmodule AshScenario.Scenario do
     {:error, "Invalid custom function. Must be {module, function, args} or a 2-arity function, got: #{inspect(fun)}"}
   end
 
-  defp create_ash_resource(module, attributes, opts) do
+  defp create_ash_resource(module, attributes, opts, preferred_action \\ :create) do
     domain = Keyword.get(opts, :domain) || infer_domain(module)
     
-    with {:ok, create_action} <- get_create_action(module),
+    with {:ok, create_action} <- get_create_action(module, preferred_action),
          {:ok, changeset} <- build_changeset(module, create_action, attributes) do
       
       case Ash.create(changeset, domain: domain) do
@@ -493,11 +505,15 @@ defmodule AshScenario.Scenario do
     end
   end
 
-  defp get_create_action(resource_module) do
+  defp get_create_action(resource_module, preferred_action \\ :create) do
     actions = Ash.Resource.Info.actions(resource_module)
     
-    case Enum.find(actions, fn action -> action.type == :create end) do
-      nil -> {:error, "No create action found for #{inspect(resource_module)}"}
+    case Enum.find(actions, fn action -> action.type == :create and action.name == preferred_action end) do
+      nil ->
+        case Enum.find(actions, fn action -> action.type == :create end) do
+          nil -> {:error, "No create action found for #{inspect(resource_module)}"}
+          action -> {:ok, action.name}
+        end
       action -> {:ok, action.name}
     end
   end

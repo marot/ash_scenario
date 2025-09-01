@@ -5,6 +5,7 @@ defmodule Blog do
 
   attributes do
     uuid_primary_key :id
+
     attribute :name, :string do
       public? true
     end
@@ -12,12 +13,19 @@ defmodule Blog do
 
   actions do
     defaults [:read]
+
     create :create do
       accept [:name]
     end
   end
 
-  # Empty resources section to avoid DSL errors for now
   resources do
+    resource :example_blog do
+      attr :name, "Example name"
+    end
+
+    resource :tech_blog do
+      attr :name, "Tech Blog"
+    end
   end
 end

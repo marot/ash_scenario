@@ -44,8 +44,11 @@ defmodule AshScenario.BasicCustomFunctionTest do
     end
 
     resources do
-      # This syntax works with the current DSL implementation
-      resource :factory_blog, name: "Factory Blog", function: {TestFactory, :create_blog, []}
+      create function: {TestFactory, :create_blog, []}
+
+      resource :factory_blog do
+        attr :name, "Factory Blog"
+      end
     end
   end
 
@@ -82,12 +85,14 @@ defmodule AshScenario.BasicCustomFunctionTest do
     end
 
     resources do
-      resource :factory_post, 
-        title: "Factory Post", 
-        content: "Factory Content", 
-        status: "published",
-        blog_id: :factory_blog,
-        function: {TestFactory, :create_post, []}
+      create function: {TestFactory, :create_post, []}
+
+      resource :factory_post do
+        attr :title, "Factory Post"
+        attr :content, "Factory Content"
+        attr :status, "published"
+        attr :blog_id, :factory_blog
+      end
     end
   end
 
