@@ -8,7 +8,7 @@ defmodule AshScenario.Scenario.Registry do
 
   @type resource_ref :: {module(), atom()}
   @type resource_data :: %{
-    name: atom(),
+    ref: atom(),
     resource: module(),
     attributes: map(),
     dependencies: [resource_ref()]
@@ -72,7 +72,7 @@ defmodule AshScenario.Scenario.Registry do
       resources
       |> Enum.reduce(state, fn resource, acc ->
         resource_data = %{
-          name: resource.name,
+          ref: resource.ref,
           resource: resource_module,
           attributes: resource.attributes,
           dependencies: extract_dependencies(resource.attributes)
@@ -80,7 +80,7 @@ defmodule AshScenario.Scenario.Registry do
         
         acc
         |> Map.put_new(resource_module, %{})
-        |> put_in([resource_module, resource.name], resource_data)
+        |> put_in([resource_module, resource.ref], resource_data)
       end)
 
     {:reply, :ok, updated_state}
@@ -125,7 +125,7 @@ defmodule AshScenario.Scenario.Registry do
   defp build_dependency_graph(resource_refs, state) do
     resources = 
       resource_refs
-      |> Enum.map(fn {resource, name} -> get_in(state, [resource, name]) end)
+      |> Enum.map(fn {resource, ref} -> get_in(state, [resource, ref]) end)
       |> Enum.reject(&is_nil/1)
 
     # Simple topological sort - this is a basic implementation

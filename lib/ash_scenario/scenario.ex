@@ -392,9 +392,14 @@ defmodule AshScenario.Scenario do
         merged_attributes = Map.merge(base_attrs, override_attrs)
         
         # 3. Resolve any resource references to actual IDs
-        case resolve_resource_references(merged_attributes, created_resources) do
+        case resolve_resource_references(merged_attributes, module, created_resources) do
           {:ok, resolved_attributes} ->
-            create_ash_resource(module, resolved_attributes, opts)
+            # 4. Check if resource definition has custom function
+            if resource_definition.function do
+              execute_custom_function(resource_definition.function, resolved_attributes, opts)
+            else
+              create_ash_resource(module, resolved_attributes, opts)
+            end
           error -> error
         end
         
@@ -403,12 +408,12 @@ defmodule AshScenario.Scenario do
     end
   end
 
-  defp resolve_resource_references(attributes, created_resources) do
+  defp resolve_resource_references(attributes, module, created_resources) do
     # Resolve any :resource_name references to actual created resource IDs
     resolved = 
       attributes
       |> Enum.map(fn {key, value} ->
-        {:ok, resolved_value} = resolve_single_reference(value, created_resources)
+        {:ok, resolved_value} = resolve_single_reference(value, key, module, created_resources)
         {key, resolved_value}
       end)
       |> Map.new()
@@ -416,14 +421,52 @@ defmodule AshScenario.Scenario do
     {:ok, resolved}
   end
 
-  defp resolve_single_reference(value, created_resources) when is_atom(value) do
-    case created_resources[value] do
-      nil -> {:ok, value}  # Not a reference, return as-is
-      resource -> {:ok, resource.id}
+  defp resolve_single_reference(value, attr_name, module, created_resources) when is_atom(value) do
+    # Only resolve atoms that correspond to relationship attributes
+    if is_relationship_attribute?(module, attr_name) do
+      case created_resources[value] do
+        nil -> {:ok, value}  # Not a reference, return as-is
+        resource -> {:ok, resource.id}
+      end
+    else
+      # Not a relationship attribute, keep the atom value as-is
+      {:ok, value}
     end
   end
 
-  defp resolve_single_reference(value, _created_resources), do: {:ok, value}
+  defp resolve_single_reference(value, _attr_name, _module, _created_resources), do: {:ok, value}
+
+  defp is_relationship_attribute?(resource_module, attr_name) do
+    try do
+      resource_module
+      |> Ash.Resource.Info.relationships()
+      |> Enum.any?(fn rel -> 
+        rel.source_attribute == attr_name
+      end)
+    rescue
+      _ -> false
+    end
+  end
+
+  defp execute_custom_function({module, function, extra_args}, resolved_attributes, opts) do
+    try do
+      apply(module, function, [resolved_attributes, opts] ++ extra_args)
+    rescue
+      error -> {:error, "Custom function failed: #{inspect(error)}"}
+    end
+  end
+
+  defp execute_custom_function(fun, resolved_attributes, opts) when is_function(fun, 2) do
+    try do
+      fun.(resolved_attributes, opts)
+    rescue
+      error -> {:error, "Custom function failed: #{inspect(error)}"}
+    end
+  end
+
+  defp execute_custom_function(fun, _resolved_attributes, _opts) do
+    {:error, "Invalid custom function. Must be {module, function, args} or a 2-arity function, got: #{inspect(fun)}"}
+  end
 
   defp create_ash_resource(module, attributes, opts) do
     domain = Keyword.get(opts, :domain) || infer_domain(module)

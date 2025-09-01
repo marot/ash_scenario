@@ -18,8 +18,8 @@ defmodule AshScenario.Info do
     |> Enum.find(fn resource_def -> 
       # Handle both our Resource struct and potential other structs
       case resource_def do
-        %AshScenario.Dsl.Resource{name: ^name} -> true
-        %{name: ^name} -> true
+        %AshScenario.Dsl.Resource{ref: ^name} -> true
+        %{ref: ^name} -> true
         _ -> false
       end
     end)
@@ -40,8 +40,8 @@ defmodule AshScenario.Info do
     |> Enum.map(fn resource_def ->
       # Handle both our Resource struct and potential other structs
       case resource_def do
-        %AshScenario.Dsl.Resource{name: name} -> name
-        %{name: name} -> name
+        %AshScenario.Dsl.Resource{ref: ref} -> ref
+        %{ref: ref} -> ref
         _ -> nil
       end
     end)

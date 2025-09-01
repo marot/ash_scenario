@@ -5,14 +5,16 @@ defmodule AshScenario.Dsl.Resource do
   """
 
   defstruct [
-    :name,
+    :ref,
     :attributes,
+    :function,
     :__identifier__
   ]
 
   @type t :: %__MODULE__{
-    name: atom(),
+    ref: atom(),
     attributes: keyword() | map(),
+    function: {module(), atom(), list()} | nil,
     __identifier__: atom()
   }
 end

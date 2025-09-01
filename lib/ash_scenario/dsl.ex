@@ -9,19 +9,16 @@ defmodule AshScenario.Dsl do
   @resource %Spark.Dsl.Entity{
     name: :resource,
     target: AshScenario.Dsl.Resource,
-    args: [:name, {:optional, :attributes}],
-    identifier: :name,
+    args: [:ref],
+    identifier: :ref,
+    no_depend_modules: [:function],
+    transform: {__MODULE__, :transform_resource, []},
     schema: [
-      name: [
-        type: :atom,
-        required: true,
-        doc: "The name of the resource"
-      ],
-      attributes: [
-        type: :keyword_list,
+      function: [
+        type: {:or, [:mfa, {:fun, 2}]},
         required: false,
-        default: [],
-        doc: "Attributes and relationships for the resource"
+        default: nil,
+        doc: "Optional custom function for creating the resource. Can be {module, function, extra_args} or a 2-arity function"
       ]
     ]
   }
@@ -32,6 +29,21 @@ defmodule AshScenario.Dsl do
     entities: [@resource],
     schema: []
   }
+
+  def transform_resource(resource) do
+    # Extract all fields except ref, function, and internal fields as attributes
+    reserved_keys = [:ref, :function, :__identifier__, :attributes]
+    struct_map = Map.from_struct(resource)
+    
+    # Get all fields that should be attributes
+    attributes = 
+      struct_map
+      |> Map.drop(reserved_keys)
+      |> Enum.filter(fn {_key, value} -> value != nil end)
+      |> Enum.to_list()
+    
+    %{resource | attributes: attributes}
+  end
 
   use Spark.Dsl.Extension,
     sections: [@resources],

@@ -2,10 +2,10 @@ defmodule AshScenario.MixProject do
   use Mix.Project
 
   @description """
-  Test data generation for your Ash application.
+  Reusable test data generation for Ash applications with dependency resolution and scenario composition.
   """
 
-  @version "0.0.1"
+  @version "0.1.0"
 
   @source_url "https://github.com/marot/ash_scenario"
 
@@ -71,7 +71,14 @@ defmodule AshScenario.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ash, ash_version("~> 3.5 and >= 3.5.5")}
+      {:usage_rules, "~> 0.1", only: [:dev]},
+      {:claude, "~> 0.5", only: [:dev], runtime: false},
+      {:ash, ash_version("~> 3.5 and >= 3.5.5")},
+      # Dev/test dependencies
+      {:ex_doc, "~> 0.34", only: [:dev], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false}
     ]
   end
 

@@ -145,10 +145,131 @@ defmodule MyTest do
 end
 ```
 
-You can also pass a specific `:domain` if you don’t want it inferred from the resource modules:
+You can also pass a specific `:domain` if you don't want it inferred from the resource modules:
 
 ```elixir
 {:ok, resources} = AshScenario.Scenario.run(MyTest, :basic_setup, domain: MyApp.Domain)
+```
+
+### 4. Custom Functions
+
+You can specify a custom function to create resources instead of using the default `Ash.create` action. This is useful for complex setup logic, factory functions, or integration with existing test data builders:
+
+```elixir
+defmodule MyFactory do
+  def create_blog(attributes, _opts) do
+    # Custom creation logic
+    blog = %Blog{
+      id: Ash.UUID.generate(),
+      name: attributes[:name] || "Default Blog"
+    }
+    {:ok, blog}
+  end
+
+  def create_post_with_tags(attributes, _opts) do
+    # More complex creation with additional setup
+    post = %Post{
+      id: Ash.UUID.generate(),
+      title: attributes[:title],
+      blog_id: attributes[:blog_id],
+      status: attributes[:status] || :draft
+    }
+    
+    # Custom logic here - add tags, send notifications, etc.
+    {:ok, post}
+  end
+end
+
+defmodule Blog do
+  use Ash.Resource,
+    domain: Domain,
+    extensions: [AshScenario.Dsl]
+
+  # ... attributes, actions, etc. ...
+
+  resources do
+    resource :factory_blog,
+      name: "Factory Blog",
+      function: {MyFactory, :create_blog, []}
+
+    resource :custom_post,
+      title: "Custom Post",
+      status: :published,     # Preserved as atom (not resolved)
+      blog_id: :factory_blog, # Resolved to actual blog ID
+      function: {MyFactory, :create_post_with_tags, []}
+  end
+end
+```
+
+#### Custom Function Requirements
+
+Your custom function must:
+- Accept `(resolved_attributes, opts)` as parameters
+- Return `{:ok, created_resource}` or `{:error, reason}`
+- Handle the resolved attributes where relationship references are already converted to IDs
+
+```elixir
+def my_custom_function(resolved_attributes, opts) do
+  # resolved_attributes example:
+  # %{
+  #   name: "Factory Blog",
+  #   status: :published,           # Non-relationship atoms preserved
+  #   blog_id: "uuid-string-here"   # Relationship references resolved to IDs
+  # }
+  
+  # Your custom creation logic here
+  {:ok, created_resource}
+end
+```
+
+### Scenario Extension (Inheritance)
+
+Scenarios can extend other scenarios using the `extends` option, allowing you to build hierarchical test setups:
+
+```elixir
+defmodule MyTest do
+  use ExUnit.Case
+  use AshScenario.Scenario
+
+  # Base scenario
+  scenario :base_setup do
+    example_blog do
+      name "Base Blog"
+    end
+    
+    example_post do
+      title "Base Post"
+      content "Base content"
+    end
+  end
+
+  # Extended scenario - inherits from base and adds/overrides
+  scenario :extended_setup, extends: :base_setup do
+    example_post do
+      title "Extended Post"  # Override title
+      # content is inherited as "Base content"
+    end
+    
+    another_post do  # Add new resource
+      title "Additional post"
+      content "More content"
+    end
+  end
+
+  test "extended scenario" do
+    {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :extended_setup)
+    
+    # Has inherited resources
+    assert resources.example_blog.name == "Base Blog"
+    assert resources.example_post.content == "Base content"  # Inherited
+    
+    # Has overridden attributes  
+    assert resources.example_post.title == "Extended Post"  # Overridden
+    
+    # Has new resources from extension
+    assert resources.another_post.title == "Additional post"
+  end
+end
 ```
 
 ## Key Features
@@ -157,6 +278,9 @@ You can also pass a specific `:domain` if you don’t want it inferred from the 
 - **Reference Resolution**: `:resource_name` references are automatically resolved to actual IDs
 - **Reusable Definitions**: Define resources once, use them in multiple contexts
 - **Override Support**: Test scenarios can override specific attributes while keeping defaults
+- **Scenario Extension**: Build hierarchical scenarios using `extends: :base_scenario`
+- **Custom Functions**: Use any function as an alternative to the default create action
+- **Hardened Resolution**: Only relationship attributes are resolved; other atoms are preserved
 - **Backward Compatibility**: Old "scenario" terminology still works via aliases
 
 ## Scenario API
