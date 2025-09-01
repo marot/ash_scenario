@@ -73,7 +73,7 @@ defmodule AshScenario.SimpleScenarioTest do
       # For now, we'll use the existing resource-based approach
 
       # 1. Create blog dependency first
-      {:ok, blog_resources} = AshScenario.run_resource(Blog, :example_blog, domain: Domain)
+      {:ok, _blog_resources} = AshScenario.run_resource(Blog, :example_blog, domain: Domain)
       
       # 2. Create post that references the blog
       {:ok, post_resources} = AshScenario.run_resources([

@@ -35,7 +35,6 @@ defmodule AshScenario.Scenario do
       end
   """
 
-  alias AshScenario.Scenario.{Registry, Runner}
 
   @doc """
   Use this macro to add scenario support to your test modules.
@@ -78,7 +77,7 @@ defmodule AshScenario.Scenario do
       scenarios
       |> Enum.reverse()
       |> Enum.map(fn {name, block} ->
-        overrides = extract_overrides_from_block(block)
+        overrides = extract_overrides_from_ast(block)
         {name, overrides}
       end)
 
@@ -88,6 +87,58 @@ defmodule AshScenario.Scenario do
       end
     end
   end
+
+  # Compile-time version of extract_overrides_from_block for macro expansion
+  defp extract_overrides_from_ast({:__block__, _, statements}) do
+    statements
+    |> Enum.map(&extract_override_from_ast/1)
+    |> Enum.reject(&is_nil/1)
+    |> Map.new()
+  end
+
+  defp extract_overrides_from_ast(single_statement) do
+    case extract_override_from_ast(single_statement) do
+      nil -> %{}
+      override -> Map.new([override])
+    end
+  end
+
+  defp extract_override_from_ast({resource_name, _meta, [[do: block]]}) when is_atom(resource_name) do
+    overrides = extract_attributes_from_ast(block)
+    {resource_name, overrides}
+  end
+
+  defp extract_override_from_ast({resource_name, _meta, [block]}) when is_atom(resource_name) do
+    overrides = extract_attributes_from_ast(block)
+    {resource_name, overrides}
+  end
+
+  defp extract_override_from_ast(_), do: nil
+
+  defp extract_attributes_from_ast({:__block__, _, statements}) do
+    statements
+    |> Enum.map(&extract_attribute_from_ast/1)
+    |> Enum.reject(&is_nil/1)
+    |> Map.new()
+  end
+
+  defp extract_attributes_from_ast(single_statement) do
+    case extract_attribute_from_ast(single_statement) do
+      nil -> %{}
+      attr -> Map.new([attr])
+    end
+  end
+
+  defp extract_attribute_from_ast({attr_name, _meta, [value]}) when is_atom(attr_name) do
+    {attr_name, value}
+  end
+
+  # Handle do-block syntax: attr_name(do: block) becomes attr_name: value  
+  defp extract_attribute_from_ast({attr_name, _meta, [[do: value]]}) when is_atom(attr_name) do
+    {attr_name, value}
+  end
+
+  defp extract_attribute_from_ast(_), do: nil
 
   @doc """
   Run a named scenario from a test module.
@@ -102,100 +153,109 @@ defmodule AshScenario.Scenario do
       {:ok, resources} = AshScenario.Scenario.run(MyTest, :basic_setup, domain: MyApp.Domain)
   """
   def run(test_module, scenario_name, opts \\ []) do
-    case get_scenario(test_module, scenario_name) do
-      nil ->
-        {:error, "Scenario #{scenario_name} not found in #{inspect(test_module)}"}
-      
-      overrides ->
-        execute_scenario(overrides, opts)
+    with {:ok, overrides} <- get_scenario_with_validation(test_module, scenario_name),
+         {:ok, _} <- validate_resources_exist(overrides) do
+      execute_scenario(overrides, opts)
     end
   end
 
   # Private Functions
 
-  defp get_scenario(test_module, scenario_name) do
-    if function_exported?(test_module, :__scenarios__, 0) do
-      scenarios = test_module.__scenarios__()
-      case Enum.find(scenarios, fn {name, _overrides} -> name == scenario_name end) do
-        {_name, overrides} -> overrides
-        nil -> nil
-      end
-    else
-      nil
+  defp get_scenario_with_validation(test_module, scenario_name) do
+    cond do
+      not function_exported?(test_module, :__scenarios__, 0) ->
+        {:error, "Module #{inspect(test_module)} does not define any scenarios. Did you forget to add `use AshScenario.Scenario`?"}
+      
+      true ->
+        scenarios = test_module.__scenarios__()
+        case Enum.find(scenarios, fn {name, _overrides} -> name == scenario_name end) do
+          {_name, overrides} -> 
+            {:ok, overrides}
+          nil -> 
+            available_scenarios = scenarios |> Enum.map(fn {name, _} -> name end) |> Enum.join(", ")
+            {:error, "Scenario #{scenario_name} not found in #{inspect(test_module)}. Available scenarios: #{available_scenarios}"}
+        end
     end
   end
 
+  defp validate_resources_exist(overrides) do
+    # Check that all referenced resources actually exist
+    missing_resources = 
+      overrides
+      |> Map.keys()
+      |> Enum.filter(fn resource_name ->
+        case search_for_resource_in_registry(resource_name) do
+          {:ok, _} -> false
+          :not_found -> true
+        end
+      end)
+    
+    if missing_resources == [] do
+      {:ok, :valid}
+    else
+      {:error, "Unknown resources referenced in scenario: #{Enum.join(missing_resources, ", ")}. Make sure these resources are defined in your Ash resource modules."}
+    end
+  end
+
+
   defp execute_scenario(overrides, opts) do
-    # 1. Extract all resource references from overrides and their dependencies
-    with {:ok, all_resource_refs} <- extract_all_required_resources(overrides),
-         {:ok, resource_definitions} <- load_resource_definitions(all_resource_refs),
-         {:ok, ordered_resources} <- resolve_execution_order(resource_definitions) do
+    # 1. Extract explicitly referenced resources
+    explicitly_referenced = Map.keys(overrides)
+    
+    # 2. Find all dependencies and build complete resource list
+    with {:ok, all_resource_names} <- find_all_dependencies_for_overrides(explicitly_referenced, %{}),
+         {:ok, ordered_resources} <- resolve_dependency_order(all_resource_names) do
       
-      # 2. Create resources in dependency order with overrides applied
+      # 3. Create resources in dependency order with overrides applied
       create_resources_in_order(ordered_resources, overrides, opts)
     end
   end
 
-  defp extract_all_required_resources(overrides) do
-    # Extract explicitly referenced resources and their dependencies
-    explicitly_referenced = Enum.map(overrides, fn {resource_name, _attrs} -> resource_name end)
-    
-    # Find all dependencies by examining the base resource definitions
-    with {:ok, dependencies} <- find_all_dependencies(explicitly_referenced) do
-      {:ok, (explicitly_referenced ++ dependencies) |> Enum.uniq()}
+  defp find_all_dependencies_for_overrides(resource_names, resource_map) do
+    # Recursively build resource map with dependencies
+    case build_complete_resource_map(resource_names, resource_map, MapSet.new()) do
+      {:ok, complete_map} ->
+        all_names = Map.keys(complete_map)
+        {:ok, all_names}
+      error -> error
     end
   end
 
-  defp find_all_dependencies(resource_names) do
-    # Recursively find all dependencies for the given resource names
-    find_dependencies_recursive(resource_names, [])
-  end
+  defp build_complete_resource_map([], resource_map, _visited), do: {:ok, resource_map}
   
-  defp find_dependencies_recursive([], acc), do: {:ok, acc}
-  
-  defp find_dependencies_recursive([resource_name | rest], acc) do
-    case search_for_resource_in_registry(resource_name) do
-      {:ok, {_module, resource_definition}} ->
-        deps = extract_dependencies_from_definition(resource_definition)
-        new_deps = deps -- acc  # Only new dependencies
-        find_dependencies_recursive(rest ++ new_deps, acc ++ new_deps)
-      :not_found ->
-        {:error, "Resource #{resource_name} not found in any loaded resource modules"}
+  defp build_complete_resource_map([resource_name | rest], resource_map, visited) do
+    if MapSet.member?(visited, resource_name) do
+      # Skip if already processed
+      build_complete_resource_map(rest, resource_map, visited)
+    else
+      case search_for_resource_in_registry(resource_name) do
+        {:ok, {module, resource_definition}} ->
+          deps = extract_direct_dependencies(resource_definition)
+          resource_info = %{module: module, definition: resource_definition, dependencies: deps}
+          
+          new_resource_map = Map.put(resource_map, resource_name, resource_info)
+          new_visited = MapSet.put(visited, resource_name)
+          
+          # Add dependencies to the list to process
+          build_complete_resource_map(rest ++ deps, new_resource_map, new_visited)
+        :not_found ->
+          {:error, "Resource #{resource_name} not found in any loaded resource modules. Available resources: #{list_available_resources()}"}
+      end
     end
   end
-  
-  defp load_resource_definitions(resource_refs) do
-    # Load all resource definitions
-    loaded = 
-      resource_refs
-      |> Enum.reduce_while({:ok, %{}}, fn resource_ref, {:ok, acc} ->
-        case search_for_resource_in_registry(resource_ref) do
-          {:ok, {module, resource_definition}} -> 
-            resource_info = %{
-              name: resource_ref,
-              module: module,
-              definition: resource_definition,
-              dependencies: extract_dependencies_from_definition(resource_definition)
-            }
-            {:cont, {:ok, Map.put(acc, resource_ref, resource_info)}}
-          :not_found -> 
-            {:halt, {:error, "Resource #{resource_ref} not found in any loaded resource modules"}}
-        end
-      end)
-    
-    loaded
-  end
 
-  defp resolve_execution_order(resource_definitions) do
-    # Simple topological sort based on dependencies
-    resource_names = Map.keys(resource_definitions)
-    
-    # Sort by dependency count (fewer dependencies first)
+  defp resolve_dependency_order(resource_names) do
+    # Simple topological sort by dependency count
     sorted = 
       resource_names
-      |> Enum.map(fn name -> 
-        deps = resource_definitions[name].dependencies
-        {name, length(deps)}
+      |> Enum.map(fn name ->
+        case search_for_resource_in_registry(name) do
+          {:ok, {_, resource_definition}} ->
+            deps = extract_direct_dependencies(resource_definition)
+            {name, length(deps)}
+          :not_found ->
+            {name, 0}
+        end
       end)
       |> Enum.sort_by(fn {_name, dep_count} -> dep_count end)
       |> Enum.map(fn {name, _dep_count} -> name end)
@@ -203,33 +263,63 @@ defmodule AshScenario.Scenario do
     {:ok, sorted}
   end
 
-  defp search_for_resource_in_registry(resource_name) do
-    # This would typically iterate through all modules that use AshScenario.Dsl
-    # and check if they define the given resource
-    # For now, we'll check our test support modules directly
-    modules_to_check = [Blog, Post]
-    
-    Enum.reduce_while(modules_to_check, :not_found, fn module, :not_found ->
-      resource_def = AshScenario.Info.resource(module, resource_name)
-      if resource_def do
-        {:halt, {:ok, {module, resource_def}}}
-      else
-        {:cont, :not_found}
-      end
+  defp extract_direct_dependencies(resource_definition) do
+    # Simple dependency extraction without circular calls
+    resource_definition.attributes
+    |> Enum.filter(fn {_key, value} -> is_atom(value) end)
+    |> Enum.map(fn {_key, value} -> value end)
+    |> Enum.filter(fn value ->
+      # Only keep values that look like resource names (not built-in atoms)
+      value_str = Atom.to_string(value)
+      String.match?(value_str, ~r/^[a-z][a-z0-9_]*$/) and value not in [:id, :true, :false, :nil]
     end)
   end
 
-  defp extract_dependencies_from_definition(resource_definition) do
-    # Extract resource references from the resource definition's attributes
-    resource_definition.attributes
-    |> Enum.filter(fn {_key, value} -> 
-      is_atom(value) && String.starts_with?(Atom.to_string(value), ":")
-    end)
-    |> Enum.map(fn {_key, value} -> 
-      # Convert :example_blog back to example_blog
-      value
-    end)
+  defp search_for_resource_in_registry(resource_name) do
+    # Dynamic discovery of modules that use AshScenario.Dsl
+    case discover_resource_modules() do
+      [] -> :not_found
+      modules ->
+        Enum.reduce_while(modules, :not_found, fn module, :not_found ->
+          resource_def = AshScenario.Info.resource(module, resource_name)
+          if resource_def do
+            {:halt, {:ok, {module, resource_def}}}
+          else
+            {:cont, :not_found}
+          end
+        end)
+    end
   end
+
+  defp discover_resource_modules do
+    # Get all loaded modules and filter for those using AshScenario.Dsl
+    :code.all_loaded()
+    |> Enum.map(fn {module, _path} -> module end)
+    |> Enum.filter(&module_uses_ash_scenario_dsl?/1)
+  end
+
+  defp module_uses_ash_scenario_dsl?(module) do
+    try do
+      # Check if the module has resources defined (which means it uses our DSL)
+      AshScenario.Info.has_resources?(module)
+    rescue
+      _ -> false
+    end
+  end
+
+  defp list_available_resources do
+    discover_resource_modules()
+    |> Enum.flat_map(fn module ->
+      try do
+        AshScenario.Info.resource_names(module)
+        |> Enum.map(fn name -> "#{name} (in #{module})" end)
+      rescue
+        _ -> []
+      end
+    end)
+    |> Enum.join(", ")
+  end
+
 
   defp create_resources_in_order(ordered_resource_names, overrides, opts) do
     # Create each resource in dependency order, applying overrides as needed
@@ -270,10 +360,8 @@ defmodule AshScenario.Scenario do
     resolved = 
       attributes
       |> Enum.map(fn {key, value} ->
-        case resolve_single_reference(value, created_resources) do
-          {:ok, resolved_value} -> {key, resolved_value}
-          {:error, _reason} -> {key, value}  # Keep original value if can't resolve
-        end
+        {:ok, resolved_value} = resolve_single_reference(value, created_resources)
+        {key, resolved_value}
       end)
       |> Map.new()
     
@@ -335,45 +423,4 @@ defmodule AshScenario.Scenario do
     end
   end
 
-  # Helper function to extract overrides from the macro block at compile time
-  defp extract_overrides_from_block({:__block__, _, statements}) do
-    statements
-    |> Enum.map(&extract_override_from_statement/1)
-    |> Enum.reject(&is_nil/1)
-    |> Map.new()
-  end
-
-  defp extract_overrides_from_block(single_statement) do
-    case extract_override_from_statement(single_statement) do
-      nil -> %{}
-      override -> Map.new([override])
-    end
-  end
-
-  defp extract_override_from_statement({resource_name, _meta, [block]}) when is_atom(resource_name) do
-    overrides = extract_attributes_from_block(block)
-    {resource_name, overrides}
-  end
-
-  defp extract_override_from_statement(_), do: nil
-
-  defp extract_attributes_from_block({:__block__, _, statements}) do
-    statements
-    |> Enum.map(&extract_attribute_from_statement/1)
-    |> Enum.reject(&is_nil/1)
-    |> Map.new()
-  end
-
-  defp extract_attributes_from_block(single_statement) do
-    case extract_attribute_from_statement(single_statement) do
-      nil -> %{}
-      attr -> Map.new([attr])
-    end
-  end
-
-  defp extract_attribute_from_statement({attr_name, _meta, [value]}) when is_atom(attr_name) do
-    {attr_name, value}
-  end
-
-  defp extract_attribute_from_statement(_), do: nil
 end

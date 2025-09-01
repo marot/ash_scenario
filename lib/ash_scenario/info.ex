@@ -15,7 +15,14 @@ defmodule AshScenario.Info do
   """
   def resource(resource, name) do
     resources(resource)
-    |> Enum.find(fn resource -> resource.name == name end)
+    |> Enum.find(fn resource_def -> 
+      # Handle both our Resource struct and potential other structs
+      case resource_def do
+        %AshScenario.Dsl.Resource{name: ^name} -> true
+        %{name: ^name} -> true
+        _ -> false
+      end
+    end)
   end
 
   @doc """
@@ -30,7 +37,15 @@ defmodule AshScenario.Info do
   """
   def resource_names(resource) do
     resources(resource)
-    |> Enum.map(& &1.name)
+    |> Enum.map(fn resource_def ->
+      # Handle both our Resource struct and potential other structs
+      case resource_def do
+        %AshScenario.Dsl.Resource{name: name} -> name
+        %{name: name} -> name
+        _ -> nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
   end
 
   # Backward compatibility functions

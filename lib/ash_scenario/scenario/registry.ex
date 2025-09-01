@@ -100,10 +100,8 @@ defmodule AshScenario.Scenario.Registry do
 
   @impl true
   def handle_call({:resolve_dependencies, resource_refs}, _from, state) do
-    case build_dependency_graph(resource_refs, state) do
-      {:ok, ordered_resources} -> {:reply, {:ok, ordered_resources}, state}
-      {:error, reason} -> {:reply, {:error, reason}, state}
-    end
+    {:ok, ordered_resources} = build_dependency_graph(resource_refs, state)
+    {:reply, {:ok, ordered_resources}, state}
   end
 
   @impl true
@@ -132,10 +130,8 @@ defmodule AshScenario.Scenario.Registry do
 
     # Simple topological sort - this is a basic implementation
     # In practice, you'd want more robust cycle detection and ordering
-    case topological_sort(resources) do
-      {:ok, sorted} -> {:ok, sorted}
-      {:error, :cycle} -> {:error, "Circular dependency detected in resources"}
-    end
+    {:ok, sorted} = topological_sort(resources)
+    {:ok, sorted}
   end
 
   defp topological_sort(resources) do

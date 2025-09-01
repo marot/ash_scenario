@@ -4,7 +4,9 @@ defmodule AshScenario.Application do
   use Application
 
   def start(_type, _args) do
-    children = []
+    children = [
+      AshScenario.Scenario.Registry
+    ]
 
     opts = [strategy: :one_for_one, name: AshScenario.Supervisor]
     Supervisor.start_link(children, opts)

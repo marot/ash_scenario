@@ -69,19 +69,14 @@ defmodule AshScenario.Scenario.Runner do
 
   defp resolve_attributes(attributes, created_resources) do
     resolved = 
-      Enum.reduce_while(attributes, {:ok, %{}}, fn {key, value}, {:ok, acc} ->
-        case resolve_attribute_value(value, created_resources) do
-          {:ok, resolved_value} -> 
-            {:cont, {:ok, Map.put(acc, key, resolved_value)}}
-          {:error, reason} -> 
-            {:halt, {:error, reason}}
-        end
+      attributes
+      |> Enum.map(fn {key, value} ->
+        {:ok, resolved_value} = resolve_attribute_value(value, created_resources)
+        {key, resolved_value}
       end)
+      |> Map.new()
     
-    case resolved do
-      {:ok, resolved_attrs} -> {:ok, resolved_attrs}
-      error -> error
-    end
+    {:ok, resolved}
   end
 
   defp resolve_attribute_value(value, created_resources) when is_atom(value) do
