@@ -300,7 +300,7 @@ defmodule AshScenario.Scenario.Runner do
     end
   end
 
-  defp get_create_action(resource_module, preferred_action \\ :create) do
+  defp get_create_action(resource_module, preferred_action) do
     actions = Ash.Resource.Info.actions(resource_module)
     
     case Enum.find(actions, fn action -> action.type == :create and action.name == preferred_action end) do

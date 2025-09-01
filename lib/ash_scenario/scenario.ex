@@ -480,7 +480,7 @@ defmodule AshScenario.Scenario do
     {:error, "Invalid custom function. Must be {module, function, args} or a 2-arity function, got: #{inspect(fun)}"}
   end
 
-  defp create_ash_resource(module, attributes, opts, preferred_action \\ :create) do
+  defp create_ash_resource(module, attributes, opts, preferred_action) do
     domain = Keyword.get(opts, :domain) || infer_domain(module)
     
     with {:ok, create_action} <- get_create_action(module, preferred_action),
@@ -505,7 +505,7 @@ defmodule AshScenario.Scenario do
     end
   end
 
-  defp get_create_action(resource_module, preferred_action \\ :create) do
+  defp get_create_action(resource_module, preferred_action) do
     actions = Ash.Resource.Info.actions(resource_module)
     
     case Enum.find(actions, fn action -> action.type == :create and action.name == preferred_action end) do
