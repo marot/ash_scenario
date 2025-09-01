@@ -46,17 +46,44 @@ defmodule AshScenario.ScenarioDslTest do
     end
   end
 
+  # Test scenarios for new features
+  scenario :base_scenario do
+    example_blog do
+      name "Base Blog"
+    end
+    
+    example_post do
+      title "Base Post"
+      content "Base content"
+    end
+  end
+
+  scenario :extended_scenario, extends: :base_scenario do
+    example_post do
+      title "Extended Post"  # Override title
+      # content is inherited from base
+    end
+    
+    another_post do  # Add new resource
+      title "Additional post in extended scenario"
+      content "More content"
+    end
+  end
+
+
   describe "scenario DSL functionality" do
     test "can define and access scenarios" do
       # Test that the scenario definition macro works
       scenarios = __scenarios__()
-      assert length(scenarios) == 4
+      assert length(scenarios) == 6
       
       scenario_names = scenarios |> Enum.map(fn {name, _} -> name end)
       assert :basic_setup in scenario_names
       assert :with_custom_blog in scenario_names
       assert :multiple_posts in scenario_names
       assert :single_blog_only in scenario_names
+      assert :base_scenario in scenario_names
+      assert :extended_scenario in scenario_names
     end
 
     test "basic scenario creates resources with overrides" do
@@ -169,6 +196,43 @@ defmodule AshScenario.ScenarioDslTest do
       assert Map.has_key?(resources, :another_post)
     end
   end
+
+  describe "scenario extension (extends)" do
+    test "extended scenario merges with base scenario" do
+      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :extended_scenario, domain: Domain)
+      
+      # Should have base resources
+      assert Map.has_key?(resources, :example_blog)
+      assert Map.has_key?(resources, :example_post)
+      # And extended resources
+      assert Map.has_key?(resources, :another_post)
+      
+      # Base blog should have the base name
+      assert resources.example_blog.name == "Base Blog"
+      
+      # Post title should be overridden from extended scenario
+      assert resources.example_post.title == "Extended Post"
+      # But content should be inherited from base
+      assert resources.example_post.content == "Base content"
+      
+      # New resource from extended scenario
+      assert resources.another_post.title == "Additional post in extended scenario"
+      assert resources.another_post.content == "More content"
+    end
+
+    test "base scenario works independently" do
+      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :base_scenario, domain: Domain)
+      
+      assert Map.has_key?(resources, :example_blog)
+      assert Map.has_key?(resources, :example_post)
+      assert not Map.has_key?(resources, :another_post)  # Extended resource not present
+      
+      assert resources.example_blog.name == "Base Blog"
+      assert resources.example_post.title == "Base Post"
+      assert resources.example_post.content == "Base content"
+    end
+  end
+
 
   describe "integration with existing resource API" do
     test "scenario DSL works alongside resource definitions" do

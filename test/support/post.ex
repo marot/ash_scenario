@@ -13,6 +13,11 @@ defmodule Post do
     attribute :content, :string do
       public? true
     end
+
+    attribute :status, :string do
+      public? true
+      default "draft"
+    end
   end
 
   relationships do
@@ -26,6 +31,11 @@ defmodule Post do
 
     create :create do
       accept [:title, :content, :blog_id]
+    end
+
+    create :publish do
+      accept [:title, :content, :blog_id]
+      change set_attribute(:status, "published")
     end
   end
 

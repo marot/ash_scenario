@@ -112,14 +112,14 @@ post = resources[{Post, :example_post}]
 assert post.blog_id == blog.id
 ```
 
-### 3. Test Scenarios (Future Enhancement)
+### 3. Test Scenarios
 
-Test scenarios allow you to override specific attributes while maintaining dependency resolution:
+Test scenarios let you override specific attributes while maintaining dependency resolution. They are fully implemented and ready to use:
 
 ```elixir
 defmodule MyTest do
   use ExUnit.Case
-  use AshScenario.Scenario  # Future enhancement
+  use AshScenario.Scenario
 
   scenario :basic_setup do
     another_post do
@@ -145,6 +145,12 @@ defmodule MyTest do
 end
 ```
 
+You can also pass a specific `:domain` if you don’t want it inferred from the resource modules:
+
+```elixir
+{:ok, resources} = AshScenario.Scenario.run(MyTest, :basic_setup, domain: MyApp.Domain)
+```
+
 ## Key Features
 
 - **Automatic Dependency Resolution**: Resources are created in the correct order based on relationships
@@ -152,6 +158,27 @@ end
 - **Reusable Definitions**: Define resources once, use them in multiple contexts
 - **Override Support**: Test scenarios can override specific attributes while keeping defaults
 - **Backward Compatibility**: Old "scenario" terminology still works via aliases
+
+## Scenario API
+
+```elixir
+# Enable the Scenario DSL in a test module
+use AshScenario.Scenario
+
+# Define scenarios
+scenario :my_setup do
+  example_post do
+    title "Overridden title"
+  end
+end
+
+# Run a scenario
+{:ok, resources} = AshScenario.Scenario.run(__MODULE__, :my_setup, domain: MyApp.Domain)
+
+# Access created resources by their resource names (atoms)
+resources.example_post.title
+resources.example_blog.id
+```
 
 ## API Reference
 

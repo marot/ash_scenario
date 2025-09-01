@@ -41,7 +41,7 @@ defmodule AshScenario.Scenario do
   """
   defmacro __using__(_opts) do
     quote do
-      import AshScenario.Scenario, only: [scenario: 2]
+      import AshScenario.Scenario, only: [scenario: 2, scenario: 3]
       Module.register_attribute(__MODULE__, :scenarios, accumulate: true)
       @before_compile AshScenario.Scenario
     end
@@ -63,9 +63,11 @@ defmodule AshScenario.Scenario do
         end
       end
   """
-  defmacro scenario(name, do: block) do
+  defmacro scenario(name, opts \\ [], do: block) do
+    base_scenario = Keyword.get(opts, :extends)
+    
     quote do
-      @scenarios {unquote(name), unquote(Macro.escape(block))}
+      @scenarios {unquote(name), unquote(Macro.escape(block)), unquote(base_scenario)}
     end
   end
 
@@ -76,9 +78,17 @@ defmodule AshScenario.Scenario do
     scenario_definitions = 
       scenarios
       |> Enum.reverse()
-      |> Enum.map(fn {name, block} ->
-        overrides = extract_overrides_from_ast(block)
-        {name, overrides}
+      |> Enum.map(fn scenario_data ->
+        case scenario_data do
+          {name, block, base_scenario} ->
+            overrides = extract_overrides_from_ast(block)
+            resolved_overrides = merge_with_base_scenario(overrides, base_scenario, scenarios)
+            {name, resolved_overrides}
+          {name, block} ->
+            # Backward compatibility for scenarios without extends
+            overrides = extract_overrides_from_ast(block)
+            {name, overrides}
+        end
       end)
 
     quote do
@@ -139,6 +149,44 @@ defmodule AshScenario.Scenario do
   end
 
   defp extract_attribute_from_ast(_), do: nil
+
+  # Scenario merging logic for extension support
+  defp merge_with_base_scenario(overrides, nil, _all_scenarios), do: overrides
+  
+  defp merge_with_base_scenario(overrides, base_scenario_name, all_scenarios) do
+    case find_base_scenario(base_scenario_name, all_scenarios) do
+      nil -> 
+        # Base scenario not found, return original overrides
+        # In practice, this could be an error, but we'll be lenient
+        overrides
+      base_overrides ->
+        deep_merge_scenarios(base_overrides, overrides)
+    end
+  end
+
+  defp find_base_scenario(base_name, all_scenarios) do
+    case Enum.find(all_scenarios, fn scenario_data ->
+      case scenario_data do
+        {^base_name, _block} -> true
+        {^base_name, _block, _base} -> true
+        _ -> false
+      end
+    end) do
+      nil -> nil
+      {_name, block} -> extract_overrides_from_ast(block)
+      {_name, block, base} -> 
+        # Recursively resolve base scenarios
+        base_overrides = extract_overrides_from_ast(block)
+        merge_with_base_scenario(base_overrides, base, all_scenarios)
+    end
+  end
+
+  defp deep_merge_scenarios(base, extension) do
+    Map.merge(base, extension, fn _resource_name, base_attrs, ext_attrs ->
+      # Merge attributes for the same resource - extension overrides base
+      Map.merge(base_attrs, ext_attrs)
+    end)
+  end
 
   @doc """
   Run a named scenario from a test module.
@@ -410,6 +458,7 @@ defmodule AshScenario.Scenario do
       action -> {:ok, action.name}
     end
   end
+
 
   defp build_changeset(resource_module, action_name, attributes) do
     try do
