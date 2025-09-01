@@ -1,6 +1,7 @@
 defmodule Post do
   use Ash.Resource,
-    domain: Domain
+    domain: Domain,
+    extensions: [AshScenario.Dsl]
 
   attributes do
     uuid_primary_key :id
@@ -18,5 +19,25 @@ defmodule Post do
     belongs_to :blog, Blog do
       public? true
     end
+  end
+
+  actions do
+    defaults [:read]
+
+    create :create do
+      accept [:title, :content, :blog_id]
+    end
+  end
+
+  resources do
+    resource :example_post,
+      title: "A post title",
+      content: "The content of the example post",
+      blog_id: :example_blog
+
+    resource :another_post,
+      title: "Another post title",
+      content: "Different content",
+      blog_id: :example_blog
   end
 end

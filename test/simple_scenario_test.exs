@@ -1,0 +1,100 @@
+defmodule AshScenario.SimpleScenarioTest do
+  use ExUnit.Case
+
+  setup do
+    case AshScenario.start_registry() do
+      {:ok, _pid} -> :ok
+      {:error, {:already_started, _pid}} -> :ok
+    end
+    AshScenario.clear_resources()
+    AshScenario.register_resources(Post)
+    AshScenario.register_resources(Blog)
+    :ok
+  end
+
+  describe "resource DSL (renamed from scenarios)" do
+    test "resources are defined with new DSL syntax" do
+      # Test that we can access resources using new terminology
+      resources = AshScenario.resources(Post)
+      assert length(resources) == 2
+
+      example_post = AshScenario.resource(Post, :example_post)
+      assert example_post.name == :example_post
+      assert example_post.attributes[:title] == "A post title"
+      assert example_post.attributes[:blog_id] == :example_blog
+    end
+
+    test "resources can be created with dependency resolution" do
+      # Test that the existing runner works with new terminology
+      {:ok, resources} = AshScenario.run_resources([
+        {Blog, :example_blog},
+        {Post, :example_post}
+      ], domain: Domain)
+
+      assert Map.has_key?(resources, {Blog, :example_blog})
+      assert Map.has_key?(resources, {Post, :example_post})
+
+      blog = resources[{Blog, :example_blog}]
+      post = resources[{Post, :example_post}]
+
+      assert blog.name == "Example name"
+      assert post.title == "A post title"
+      assert post.blog_id == blog.id  # Reference resolved correctly
+    end
+
+    test "backward compatibility with scenario names" do
+      # Test that old API still works
+      {:ok, resources} = AshScenario.run_scenarios([
+        {Blog, :example_blog},
+        {Post, :example_post}
+      ], domain: Domain)
+
+      assert Map.has_key?(resources, {Blog, :example_blog})
+      assert Map.has_key?(resources, {Post, :example_post})
+    end
+
+    test "all resources for a resource module can be created" do
+      {:ok, resources} = AshScenario.run_all_resources(Blog, domain: Domain)
+      
+      assert Map.has_key?(resources, {Blog, :example_blog})
+      assert Map.has_key?(resources, {Blog, :tech_blog})
+      
+      example_blog = resources[{Blog, :example_blog}]
+      tech_blog = resources[{Blog, :tech_blog}]
+      
+      assert example_blog.name == "Example name"
+      assert tech_blog.name == "Tech Blog"
+    end
+  end
+
+  describe "new scenario DSL concept" do
+    test "demonstrates the intended usage pattern" do
+      # This test shows how the scenario DSL would work once fully implemented
+      # For now, we'll use the existing resource-based approach
+
+      # 1. Create blog dependency first
+      {:ok, blog_resources} = AshScenario.run_resource(Blog, :example_blog, domain: Domain)
+      
+      # 2. Create post that references the blog
+      {:ok, post_resources} = AshScenario.run_resources([
+        {Blog, :example_blog},
+        {Post, :another_post}
+      ], domain: Domain)
+      
+      # This shows that we can override the title by creating a custom resource definition
+      # In the future scenario DSL, this would be:
+      # scenario :basic_test do
+      #   another_post do
+      #     title "Override title"
+      #   end
+      # end
+      
+      blog = post_resources[{Blog, :example_blog}]
+      post = post_resources[{Post, :another_post}]
+      
+      assert blog.name == "Example name"
+      assert post.title == "Another post title"  # From resource definition
+      assert post.blog_id == blog.id
+    end
+  end
+end
