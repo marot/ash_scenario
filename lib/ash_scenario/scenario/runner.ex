@@ -9,7 +9,7 @@ defmodule AshScenario.Scenario.Runner do
 
   @doc """
   Run a single prototype by name from an Ash resource module.
-  
+
   Note: This function automatically resolves and creates all dependencies.
   """
   def run_prototype(resource_module, prototype_name, opts \\ []) do
@@ -33,24 +33,37 @@ defmodule AshScenario.Scenario.Runner do
     {normalized_refs, overrides_map} = normalize_refs_and_overrides(prototype_refs, opts)
 
     debug_refs = Enum.map(normalized_refs, fn {m, r} -> {m, r} end)
+
     Log.debug(
-      fn -> "run_prototypes start refs=#{inspect(debug_refs)} overrides=#{inspect(overrides_map)} opts=#{inspect(Keyword.drop(opts, [:__overrides_map__]))}" end,
-      component: :runner, trace_id: trace
+      fn ->
+        "run_prototypes start refs=#{inspect(debug_refs)} overrides=#{inspect(overrides_map)} opts=#{inspect(Keyword.drop(opts, [:__overrides_map__]))}"
+      end,
+      component: :runner,
+      trace_id: trace
     )
 
     with {:ok, ordered_prototypes} <- Registry.resolve_dependencies(normalized_refs) do
       Log.debug(
-        fn -> "dependency_order=#{Enum.map(ordered_prototypes, &{&1.resource, &1.ref}) |> inspect()}" end,
-        component: :runner, trace_id: trace
+        fn ->
+          "dependency_order=#{Enum.map(ordered_prototypes, &{&1.resource, &1.ref}) |> inspect()}"
+        end,
+        component: :runner,
+        trace_id: trace
       )
+
       Enum.reduce_while(ordered_prototypes, {:ok, %{}}, fn prototype, {:ok, created_resources} ->
-        case execute_prototype(prototype, Keyword.put(opts, :__overrides_map__, overrides_map), created_resources) do
-          {:ok, created_resource} -> 
+        case execute_prototype(
+               prototype,
+               Keyword.put(opts, :__overrides_map__, overrides_map),
+               created_resources
+             ) do
+          {:ok, created_resource} ->
             key = {prototype.resource, prototype.ref}
             created_resources = Map.put(created_resources, key, created_resource)
 
             # Also index by the actual struct module returned, to support custom functions
             struct_mod = created_resource.__struct__
+
             created_resources =
               if struct_mod != prototype.resource do
                 Map.put(created_resources, {struct_mod, prototype.ref}, created_resource)
@@ -59,19 +72,28 @@ defmodule AshScenario.Scenario.Runner do
               end
 
             {:cont, {:ok, created_resources}}
-          {:error, reason} -> 
+
+          {:error, reason} ->
             Log.error(
               fn ->
                 "run_prototypes halted module=#{inspect(prototype.resource)} ref=#{prototype.ref} reason=#{inspect(reason)}"
               end,
-              component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+              component: :runner,
+              resource: prototype.resource,
+              ref: prototype.ref,
+              trace_id: trace
             )
+
             {:halt, {:error, reason}}
         end
       end)
       |> tap(fn _ ->
         duration = System.monotonic_time(:millisecond) - started_at
-        Log.info(fn -> "run_prototypes finished duration_ms=#{duration}" end, component: :runner, trace_id: trace)
+
+        Log.info(fn -> "run_prototypes finished duration_ms=#{duration}" end,
+          component: :runner,
+          trace_id: trace
+        )
       end)
     end
   end
@@ -92,12 +114,20 @@ defmodule AshScenario.Scenario.Runner do
   defp execute_prototype(prototype, opts, created_resources) do
     {opts, trace} = Log.ensure_trace(opts)
     domain = Keyword.get(opts, :domain) || infer_domain(prototype.resource)
+
     Log.debug(
-      fn -> "execute_prototype start module=#{inspect(prototype.resource)} ref=#{prototype.ref} domain=#{inspect(domain)}" end,
-      component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+      fn ->
+        "execute_prototype start module=#{inspect(prototype.resource)} ref=#{prototype.ref} domain=#{inspect(domain)}"
+      end,
+      component: :runner,
+      resource: prototype.resource,
+      ref: prototype.ref,
+      trace_id: trace
     )
+
     overrides_map = Keyword.get(opts, :__overrides_map__, %{})
     per_ref_overrides = Map.get(overrides_map, {prototype.resource, prototype.ref}, %{})
+
     base_attributes =
       cond do
         is_map(prototype.attributes) -> prototype.attributes
@@ -107,8 +137,14 @@ defmodule AshScenario.Scenario.Runner do
       end
 
     merged_attributes = Map.merge(base_attributes, per_ref_overrides)
+    # Track which keys were explicitly set to nil in overrides
+    explicit_nil_keys =
+      per_ref_overrides
+      |> Enum.filter(fn {_k, v} -> is_nil(v) end)
+      |> Enum.map(&elem(&1, 0))
 
-    with {:ok, resolved_attributes} <- resolve_attributes(merged_attributes, prototype.resource, created_resources) do
+    with {:ok, resolved_attributes} <-
+           resolve_attributes(merged_attributes, prototype.resource, created_resources) do
       module_cfg = AshScenario.Info.create(prototype.resource)
       res_fn = Map.get(prototype, :function)
       res_action = Map.get(prototype, :action)
@@ -117,46 +153,93 @@ defmodule AshScenario.Scenario.Runner do
         # Per-resource custom function override
         res_fn != nil ->
           Log.debug(
-            fn -> "using_custom_function (prototype override) module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(res_fn)}" end,
-            component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+            fn ->
+              "using_custom_function (prototype override) module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(res_fn)}"
+            end,
+            component: :runner,
+            resource: prototype.resource,
+            ref: prototype.ref,
+            trace_id: trace
           )
+
           case execute_custom_function(res_fn, resolved_attributes, opts) do
             {:ok, created_resource} ->
               track_created_resource(created_resource, prototype)
+
               Log.info(
-                fn -> "custom_function_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} id=#{Map.get(created_resource, :id)}" end,
-                component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+                fn ->
+                  "custom_function_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} id=#{Map.get(created_resource, :id)}"
+                end,
+                component: :runner,
+                resource: prototype.resource,
+                ref: prototype.ref,
+                trace_id: trace
               )
+
               {:ok, created_resource}
+
             {:error, error} ->
               Log.error(
-                fn -> "custom_function_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} error=#{inspect(error)}" end,
-                component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+                fn ->
+                  "custom_function_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} error=#{inspect(error)}"
+                end,
+                component: :runner,
+                resource: prototype.resource,
+                ref: prototype.ref,
+                trace_id: trace
               )
-              {:error, "Failed to create #{inspect(prototype.resource)} with custom function: #{inspect(error)}"}
+
+              {:error,
+               "Failed to create #{inspect(prototype.resource)} with custom function: #{inspect(error)}"}
           end
 
         # Per-resource action override (takes precedence over module-level function)
         res_action != nil ->
           Log.debug(
-            fn -> "using_action (prototype override) module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{inspect(res_action)}" end,
-            component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+            fn ->
+              "using_action (prototype override) module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{inspect(res_action)}"
+            end,
+            component: :runner,
+            resource: prototype.resource,
+            ref: prototype.ref,
+            trace_id: trace
           )
+
           with {:ok, create_action} <- get_create_action(prototype.resource, res_action),
-               {:ok, changeset} <- build_changeset(prototype.resource, create_action, resolved_attributes) do
+               {:ok, changeset} <-
+                 build_changeset(
+                   prototype.resource,
+                   create_action,
+                   resolved_attributes,
+                   Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys)
+                 ) do
             case Ash.create(changeset, domain: domain) do
               {:ok, created_resource} ->
                 track_created_resource(created_resource, prototype)
+
                 Log.info(
-                  fn -> "create_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} id=#{Map.get(created_resource, :id)}" end,
-                  component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+                  fn ->
+                    "create_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} id=#{Map.get(created_resource, :id)}"
+                  end,
+                  component: :runner,
+                  resource: prototype.resource,
+                  ref: prototype.ref,
+                  trace_id: trace
                 )
+
                 {:ok, created_resource}
+
               {:error, error} ->
                 Log.error(
-                  fn -> "create_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} error=#{inspect(error)}" end,
-                  component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+                  fn ->
+                    "create_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} error=#{inspect(error)}"
+                  end,
+                  component: :runner,
+                  resource: prototype.resource,
+                  ref: prototype.ref,
+                  trace_id: trace
                 )
+
                 {:error, "Failed to create #{inspect(prototype.resource)}: #{inspect(error)}"}
             end
           end
@@ -164,47 +247,95 @@ defmodule AshScenario.Scenario.Runner do
         # Module-level custom function
         module_cfg.function != nil ->
           Log.debug(
-            fn -> "using_custom_function (module-level) module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(module_cfg.function)}" end,
-            component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+            fn ->
+              "using_custom_function (module-level) module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(module_cfg.function)}"
+            end,
+            component: :runner,
+            resource: prototype.resource,
+            ref: prototype.ref,
+            trace_id: trace
           )
+
           case execute_custom_function(module_cfg.function, resolved_attributes, opts) do
             {:ok, created_resource} ->
               track_created_resource(created_resource, prototype)
+
               Log.info(
-                fn -> "custom_function_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} id=#{Map.get(created_resource, :id)}" end,
-                component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+                fn ->
+                  "custom_function_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} id=#{Map.get(created_resource, :id)}"
+                end,
+                component: :runner,
+                resource: prototype.resource,
+                ref: prototype.ref,
+                trace_id: trace
               )
+
               {:ok, created_resource}
+
             {:error, error} ->
               Log.error(
-                fn -> "custom_function_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} error=#{inspect(error)}" end,
-                component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+                fn ->
+                  "custom_function_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} error=#{inspect(error)}"
+                end,
+                component: :runner,
+                resource: prototype.resource,
+                ref: prototype.ref,
+                trace_id: trace
               )
-              {:error, "Failed to create #{inspect(prototype.resource)} with custom function: #{inspect(error)}"}
+
+              {:error,
+               "Failed to create #{inspect(prototype.resource)} with custom function: #{inspect(error)}"}
           end
 
         true ->
           # Default Ash.create, using module-level preferred action or :create
           action = module_cfg.action || :create
+
           Log.debug(
-            fn -> "using_default_create module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{inspect(action)}" end,
-            component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+            fn ->
+              "using_default_create module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{inspect(action)}"
+            end,
+            component: :runner,
+            resource: prototype.resource,
+            ref: prototype.ref,
+            trace_id: trace
           )
+
           with {:ok, create_action} <- get_create_action(prototype.resource, action),
-               {:ok, changeset} <- build_changeset(prototype.resource, create_action, resolved_attributes) do
+               {:ok, changeset} <-
+                 build_changeset(
+                   prototype.resource,
+                   create_action,
+                   resolved_attributes,
+                   Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys)
+                 ) do
             case Ash.create(changeset, domain: domain) do
               {:ok, created_resource} ->
                 track_created_resource(created_resource, prototype)
+
                 Log.info(
-                  fn -> "create_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} id=#{Map.get(created_resource, :id)}" end,
-                  component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+                  fn ->
+                    "create_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} id=#{Map.get(created_resource, :id)}"
+                  end,
+                  component: :runner,
+                  resource: prototype.resource,
+                  ref: prototype.ref,
+                  trace_id: trace
                 )
+
                 {:ok, created_resource}
+
               {:error, error} ->
                 Log.error(
-                  fn -> "create_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} error=#{inspect(error)}" end,
-                  component: :runner, resource: prototype.resource, ref: prototype.ref, trace_id: trace
+                  fn ->
+                    "create_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} error=#{inspect(error)}"
+                  end,
+                  component: :runner,
+                  resource: prototype.resource,
+                  ref: prototype.ref,
+                  trace_id: trace
                 )
+
                 {:error, "Failed to create #{inspect(prototype.resource)}: #{inspect(error)}"}
             end
           end
@@ -218,8 +349,10 @@ defmodule AshScenario.Scenario.Runner do
       Enum.reduce(prototype_refs, {[], %{}}, fn
         {mod, ref, overrides}, {refs, acc} when is_map(overrides) ->
           {[{mod, ref} | refs], Map.put(acc, {mod, ref}, overrides)}
+
         {mod, ref}, {refs, acc} ->
           {[{mod, ref} | refs], acc}
+
         other, acc ->
           # Keep behavior predictable: ignore malformed entries but log in debug
           Logger.debug("Ignoring malformed prototype ref: #{inspect(other)}")
@@ -235,9 +368,11 @@ defmodule AshScenario.Scenario.Runner do
         is_map(top_level) and length(normalized_refs) == 1 ->
           [{only_mod, only_ref}] = normalized_refs
           %{{only_mod, only_ref} => top_level}
+
         is_map(top_level) ->
           # Must be a map keyed by {Module, :ref}
           top_level
+
         true ->
           %{}
       end
@@ -247,21 +382,28 @@ defmodule AshScenario.Scenario.Runner do
 
   defp resolve_attributes(attributes, resource_module, created_resources) do
     Log.debug(
-      fn -> "resolve_attributes module=#{inspect(resource_module)} attrs=#{inspect(attributes)}" end,
-      component: :runner, resource: resource_module
+      fn ->
+        "resolve_attributes module=#{inspect(resource_module)} attrs=#{inspect(attributes)}"
+      end,
+      component: :runner,
+      resource: resource_module
     )
-    resolved = 
+
+    resolved =
       attributes
       |> Enum.map(fn {key, value} ->
-        {:ok, resolved_value} = resolve_attribute_value(value, key, resource_module, created_resources)
+        {:ok, resolved_value} =
+          resolve_attribute_value(value, key, resource_module, created_resources)
+
         {key, resolved_value}
       end)
       |> Map.new()
-    
+
     {:ok, resolved}
   end
 
-  defp resolve_attribute_value(value, attr_name, resource_module, created_resources) when is_atom(value) do
+  defp resolve_attribute_value(value, attr_name, resource_module, created_resources)
+       when is_atom(value) do
     # Only resolve atoms that correspond to relationship attributes
     if is_relationship_attribute?(resource_module, attr_name) do
       case related_module_for_attr(resource_module, attr_name) do
@@ -269,43 +411,59 @@ defmodule AshScenario.Scenario.Runner do
           case find_referenced_resource(value, related_module, created_resources) do
             {:ok, resource} ->
               Log.debug(
-                fn -> "resolved_relationship attr=#{attr_name} value=#{value} -> id=#{Map.get(resource, :id)} related_module=#{inspect(related_module)}" end,
-                component: :runner, resource: resource_module
+                fn ->
+                  "resolved_relationship attr=#{attr_name} value=#{value} -> id=#{Map.get(resource, :id)} related_module=#{inspect(related_module)}"
+                end,
+                component: :runner,
+                resource: resource_module
               )
+
               {:ok, resource.id}
+
             :not_found ->
               Log.debug(
-                fn -> "unresolved_relationship attr=#{attr_name} value=#{value} (keeping as atom) related_module=#{inspect(related_module)}" end,
-                component: :runner, resource: resource_module
+                fn ->
+                  "unresolved_relationship attr=#{attr_name} value=#{value} (keeping as atom) related_module=#{inspect(related_module)}"
+                end,
+                component: :runner,
+                resource: resource_module
               )
+
               {:ok, value}
           end
 
         :error ->
           # Relationship not found (unexpected) — preserve original value
           Log.warn(
-            fn -> "relationship_not_found attr=#{attr_name} value=#{inspect(value)} (keeping as-is)" end,
-            component: :runner, resource: resource_module
+            fn ->
+              "relationship_not_found attr=#{attr_name} value=#{inspect(value)} (keeping as-is)"
+            end,
+            component: :runner,
+            resource: resource_module
           )
+
           {:ok, value}
       end
     else
       # Not a relationship attribute, keep the atom value as-is
       Log.debug(
         fn -> "non_relationship_atom attr=#{attr_name} value=#{inspect(value)}" end,
-        component: :runner, resource: resource_module
+        component: :runner,
+        resource: resource_module
       )
+
       {:ok, value}
     end
   end
 
-  defp resolve_attribute_value(value, _attr_name, _resource_module, _created_resources), do: {:ok, value}
+  defp resolve_attribute_value(value, _attr_name, _resource_module, _created_resources),
+    do: {:ok, value}
 
   defp is_relationship_attribute?(resource_module, attr_name) do
     try do
       resource_module
       |> Ash.Resource.Info.relationships()
-      |> Enum.any?(fn rel -> 
+      |> Enum.any?(fn rel ->
         rel.source_attribute == attr_name
       end)
     rescue
@@ -330,7 +488,8 @@ defmodule AshScenario.Scenario.Runner do
   end
 
   defp execute_custom_function(fun, _resolved_attributes, _opts) do
-    {:error, "Invalid custom function. Must be {module, function, args} or a 2-arity function, got: #{inspect(fun)}"}
+    {:error,
+     "Invalid custom function. Must be {module, function, args} or a 2-arity function, got: #{inspect(fun)}"}
   end
 
   defp find_referenced_resource(resource_name, related_module, created_resources) do
@@ -343,7 +502,9 @@ defmodule AshScenario.Scenario.Runner do
 
   defp related_module_for_attr(resource_module, attr_name) do
     try do
-      case Enum.find(Ash.Resource.Info.relationships(resource_module), fn rel -> rel.source_attribute == attr_name end) do
+      case Enum.find(Ash.Resource.Info.relationships(resource_module), fn rel ->
+             rel.source_attribute == attr_name
+           end) do
         nil -> :error
         rel -> {:ok, rel.destination}
       end
@@ -362,33 +523,62 @@ defmodule AshScenario.Scenario.Runner do
 
   defp get_create_action(resource_module, preferred_action) do
     actions = Ash.Resource.Info.actions(resource_module)
-    
-    case Enum.find(actions, fn action -> action.type == :create and action.name == preferred_action end) do
+
+    case Enum.find(actions, fn action ->
+           action.type == :create and action.name == preferred_action
+         end) do
       nil ->
         # Fallback to any create action if specific not found
         case Enum.find(actions, fn action -> action.type == :create end) do
           nil -> {:error, "No create action found for #{inspect(resource_module)}"}
           action -> {:ok, action.name}
         end
-      action -> {:ok, action.name}
+
+      action ->
+        {:ok, action.name}
     end
   end
 
-
-  defp build_changeset(resource_module, action_name, attributes) do
+  defp build_changeset(resource_module, action_name, attributes, opts) do
     try do
-      # Only include fields explicitly provided (drop nils).
-      # This prevents introducing keys with nil values that would break
-      # validations using absent()/present() semantics.
+      # Drop nils unless they were explicitly provided by the caller.
+      # Keys explicitly set to nil must remain so that absent() validations fail.
+      explicit_nil_keys = MapSet.new(Keyword.get(opts, :__explicit_nil_keys__, []))
+
       sanitized_attributes =
         attributes
-        |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+        |> Enum.reject(fn {k, v} -> is_nil(v) and not MapSet.member?(explicit_nil_keys, k) end)
         |> Map.new()
 
-      changeset = 
+      dbg(sanitized_attributes)
+      dbg(explicit_nil_keys)
+
+      # Debug: show what we're about to pass to for_create/3
+      Log.debug(
+        fn ->
+          "build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} explicit_nil_keys=#{inspect(MapSet.to_list(explicit_nil_keys))} sanitized=#{inspect(sanitized_attributes)}"
+        end,
+        component: :runner,
+        resource: resource_module
+      )
+
+      dbg(resource_module)
+      dbg(action_name)
+
+      changeset =
         resource_module
         |> Ash.Changeset.for_create(action_name, sanitized_attributes)
-      
+
+      dbg(changeset)
+
+      Log.debug(
+        fn ->
+          "built_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} changes=#{inspect(Map.get(changeset, :changes, %{}))}"
+        end,
+        component: :runner,
+        resource: resource_module
+      )
+
       {:ok, changeset}
     rescue
       error -> {:error, "Failed to build changeset: #{inspect(error)}"}
@@ -402,7 +592,11 @@ defmodule AshScenario.Scenario.Runner do
     :telemetry.execute(
       [:ash_scenario, :resource, :created],
       %{count: 1},
-      %{resource: created_resource, resource_name: prototype.ref, resource_module: prototype.resource}
+      %{
+        resource: created_resource,
+        resource_name: prototype.ref,
+        resource_module: prototype.resource
+      }
     )
   end
 end

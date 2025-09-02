@@ -5,5 +5,6 @@ defmodule Domain do
     allow_unregistered? true
     resource Blog
     resource Post
+    resource Validated
   end
 end

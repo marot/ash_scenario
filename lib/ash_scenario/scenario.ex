@@ -430,7 +430,18 @@ defmodule AshScenario.Scenario do
             if create_cfg.function do
               execute_custom_function(create_cfg.function, resolved_attributes, opts)
             else
-              create_ash_resource(module, resolved_attributes, opts, create_cfg.action || :create)
+              # Keep track of explicit nils from scenario overrides to preserve absent() semantics
+              explicit_nil_keys =
+                override_attrs
+                |> Enum.filter(fn {_k, v} -> is_nil(v) end)
+                |> Enum.map(&elem(&1, 0))
+
+              create_ash_resource(
+                module,
+                resolved_attributes,
+                Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys),
+                create_cfg.action || :create
+              )
             end
 
           error ->
@@ -510,7 +521,7 @@ defmodule AshScenario.Scenario do
     domain = Keyword.get(opts, :domain) || infer_domain(module)
 
     with {:ok, create_action} <- get_create_action(module, preferred_action),
-         {:ok, changeset} <- build_changeset(module, create_action, attributes) do
+         {:ok, changeset} <- build_changeset(module, create_action, attributes, opts) do
       case Ash.create(changeset, domain: domain) do
         {:ok, resource} -> {:ok, resource}
         {:error, error} -> {:error, "Failed to create #{inspect(module)}: #{inspect(error)}"}
@@ -543,18 +554,28 @@ defmodule AshScenario.Scenario do
     end
   end
 
-  defp build_changeset(resource_module, action_name, attributes) do
+  defp build_changeset(resource_module, action_name, attributes, opts) do
     try do
-      # Only include fields explicitly provided (drop nils).
-      # This prevents including all accepted fields as nil, which breaks absent()/present().
+      # Drop nils unless explicitly provided in scenario overrides.
+      # Explicit nils are kept so absent() validations properly fail.
+      explicit_nil_keys = MapSet.new(Keyword.get(opts, :__explicit_nil_keys__, []))
       sanitized_attributes =
         attributes
-        |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+        |> Enum.reject(fn {k, v} -> is_nil(v) and not MapSet.member?(explicit_nil_keys, k) end)
         |> Map.new()
+
+      require Logger
+      Logger.debug(
+        "[scenario] build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} explicit_nil_keys=#{inspect(MapSet.to_list(explicit_nil_keys))} sanitized=#{inspect(sanitized_attributes)}"
+      )
 
       changeset =
         resource_module
         |> Ash.Changeset.for_create(action_name, sanitized_attributes)
+      require Logger
+      Logger.debug(
+        "[scenario] built_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} changes=#{inspect(Map.get(changeset, :changes, %{}))}"
+      )
 
       {:ok, changeset}
     rescue
