@@ -1,47 +1,47 @@
 defmodule AshScenario do
   @moduledoc """
   Test data generation for your Ash application.
-  
-  AshScenario provides a DSL for defining named resources in your Ash resources,
+
+  AshScenario provides a DSL for defining named prototypes in your Ash resources,
   allowing you to create test data with automatic dependency resolution.
-  
+
   ## Usage
-  
-  Add the DSL to your resources:
-  
+
+  Add the DSL to your Ash resources:
+
       defmodule MyApp.Post do
         use Ash.Resource, extensions: [AshScenario.Dsl]
-        
-        resources do
-          resource :example_post,
+
+        prototypes do
+          prototype :example_post,
             title: "My Example Post",
             content: "This is example content",
-            blog_id: :example_blog  # Reference to resource in Blog resource
+            blog_id: :example_blog  # Reference to prototype in Blog resource
         end
       end
-      
+
       defmodule MyApp.Blog do
         use Ash.Resource, extensions: [AshScenario.Dsl]
-        
-        resources do
-          resource :example_blog,
+
+        prototypes do
+          prototype :example_blog,
             name: "My Example Blog"
         end
       end
-  
+
   Then run scenarios:
-  
-      # Run a single resource
-      AshScenario.run_resource(MyApp.Post, :example_post)
-      
-      # Run multiple resources with dependency resolution
-      AshScenario.run_resources([
+
+      # Run a single prototype
+      AshScenario.run_prototype(MyApp.Post, :example_post)
+
+      # Run multiple prototypes with dependency resolution
+      AshScenario.run_prototypes([
         {MyApp.Blog, :example_blog},
         {MyApp.Post, :example_post}
       ])
-      
-      # Run all resources for a resource
-      AshScenario.run_all_resources(MyApp.Post)
+
+      # Run all prototypes for a resource
+      AshScenario.run_all_prototypes(MyApp.Post)
   """
 
   alias AshScenario.Scenario.{Registry, Runner}
@@ -54,95 +54,82 @@ defmodule AshScenario do
   end
 
   @doc """
-  Register resources from a resource module.
+  Register prototypes from a resource module.
   This is typically called automatically when the resource is compiled.
   """
-  def register_resources(resource_module) do
-    Registry.register_resources(resource_module)
+  def register_prototypes(resource_module) do
+    Registry.register_prototypes(resource_module)
   end
 
   @doc """
-  Run a single resource by name from a resource.
-  
+  Run a single prototype by name from a resource module.
+
   ## Options
-  
+
     * `:domain` - The Ash domain to use (will be inferred if not provided)
-  
+
   ## Examples
-  
-      AshScenario.run_resource(MyApp.Post, :example_post)
-      AshScenario.run_resource(MyApp.Post, :example_post, domain: MyApp.Domain)
+
+      AshScenario.run_prototype(MyApp.Post, :example_post)
+      AshScenario.run_prototype(MyApp.Post, :example_post, domain: MyApp.Domain)
   """
-  def run_resource(resource_module, resource_name, opts \\ []) do
-    Runner.run_resource(resource_module, resource_name, opts)
+  def run_prototype(resource_module, prototype_name, opts \\ []) do
+    Runner.run_prototype(resource_module, prototype_name, opts)
   end
 
   @doc """
-  Run multiple resources with automatic dependency resolution.
-  
+  Run multiple prototypes with automatic dependency resolution.
+
   ## Options
-  
+
     * `:domain` - The Ash domain to use (will be inferred if not provided)
-  
+
   ## Examples
-  
-      AshScenario.run_resources([
+
+      AshScenario.run_prototypes([
         {MyApp.Blog, :example_blog},
         {MyApp.Post, :example_post}
       ])
   """
-  def run_resources(resource_refs, opts \\ []) when is_list(resource_refs) do
-    Runner.run_resources(resource_refs, opts)
+  def run_prototypes(prototype_refs, opts \\ []) when is_list(prototype_refs) do
+    Runner.run_prototypes(prototype_refs, opts)
   end
 
   @doc """
-  Run all resources defined in a resource.
-  
+  Run all prototypes defined in a resource module.
+
   ## Options
-  
+
     * `:domain` - The Ash domain to use (will be inferred if not provided)
-  
+
   ## Examples
-  
-      AshScenario.run_all_resources(MyApp.Post)
+
+      AshScenario.run_all_prototypes(MyApp.Post)
   """
-  def run_all_resources(resource_module, opts \\ []) do
-    Runner.run_all_resources(resource_module, opts)
+  def run_all_prototypes(resource_module, opts \\ []) do
+    Runner.run_all_prototypes(resource_module, opts)
   end
 
   @doc """
-  Get resource information from a resource.
+  Get prototype information from a resource module.
   """
-  defdelegate resources(resource), to: AshScenario.Info
-  defdelegate resource(resource, name), to: AshScenario.Info
-  defdelegate has_resources?(resource), to: AshScenario.Info
-  defdelegate resource_names(resource), to: AshScenario.Info
-  
-  # Backward compatibility
-  defdelegate scenarios(resource), to: AshScenario.Info
-  defdelegate scenario(resource, name), to: AshScenario.Info
-  defdelegate has_scenarios?(resource), to: AshScenario.Info
-  defdelegate scenario_names(resource), to: AshScenario.Info
+  defdelegate prototypes(resource), to: AshScenario.Info
+  defdelegate prototype(resource, name), to: AshScenario.Info
+  defdelegate has_prototypes?(resource), to: AshScenario.Info
+  defdelegate prototype_names(resource), to: AshScenario.Info
 
   @doc """
-  Clear all registered resources (useful for testing).
+  Clear all registered prototypes (useful for testing).
   """
-  def clear_resources do
+  def clear_prototypes do
     Registry.clear_all()
   end
-  
-  # Backward compatibility
-  def clear_scenarios, do: clear_resources()
-  def register_scenarios(resource_module), do: register_resources(resource_module)
-  def run_scenario(resource_module, resource_name, opts \\ []), do: run_resource(resource_module, resource_name, opts)
-  def run_scenarios(resource_refs, opts \\ []), do: run_resources(resource_refs, opts)
-  def run_all_scenarios(resource_module, opts \\ []), do: run_all_resources(resource_module, opts)
 
   @doc """
-  Use this in your resources to add resource support.
-  
+  Use this in your Ash resources to enable prototype support.
+
   ## Example
-  
+
       defmodule MyApp.Post do
         use Ash.Resource, extensions: [AshScenario.Dsl]
         # ... your resource definition
@@ -151,16 +138,16 @@ defmodule AshScenario do
   defmacro __using__(opts) do
     quote do
       use AshScenario.Dsl, unquote(opts)
-      
-      # Auto-register scenarios when the module is compiled
-      @after_compile {AshScenario, :__register_scenarios__}
+
+      # Auto-register prototypes when the module is compiled
+      @after_compile {AshScenario, :__register_prototypes__}
     end
   end
 
   @doc false
-  def __register_scenarios__(env, _bytecode) do
-    if AshScenario.Info.has_resources?(env.module) do
-      AshScenario.register_resources(env.module)
+  def __register_prototypes__(env, _bytecode) do
+    if AshScenario.Info.has_prototypes?(env.module) do
+      AshScenario.register_prototypes(env.module)
     end
   end
 end

@@ -1,19 +1,19 @@
 defmodule AshScenario.Scenario.Registry do
   @moduledoc """
-  Registry for tracking resources across multiple resources and resolving
-  cross-resource references.
+  Registry for tracking prototypes across resource modules and resolving
+  cross-prototype references.
   """
 
   use GenServer
   require Logger
   alias AshScenario.Log
 
-  @type resource_ref :: {module(), atom()}
-  @type resource_data :: %{
+  @type prototype_ref :: {module(), atom()}
+  @type prototype_data :: %{
           ref: atom(),
           resource: module(),
           attributes: map(),
-          dependencies: [resource_ref()]
+          dependencies: [prototype_ref()]
         }
 
   def start_link(opts \\ []) do
@@ -21,60 +21,65 @@ defmodule AshScenario.Scenario.Registry do
   end
 
   @doc """
-  Register resources from a resource module.
+  Register prototypes from a resource module.
   """
-  def register_resources(resource_module) do
-    resources = AshScenario.Info.resources(resource_module)
-    names = Enum.map(resources, & &1.ref)
+  def register_prototypes(resource_module) do
+    prototypes = AshScenario.Info.prototypes(resource_module)
+    names = Enum.map(prototypes, & &1.ref)
+
     Log.debug(
-      fn -> "register_resources module=#{inspect(resource_module)} names=#{inspect(names)}" end,
-      component: :registry, resource: resource_module
+      fn -> "register_prototypes module=#{inspect(resource_module)} names=#{inspect(names)}" end,
+      component: :registry,
+      resource: resource_module
     )
-    GenServer.call(__MODULE__, {:register_resources, resource_module, resources})
+
+    GenServer.call(__MODULE__, {:register_prototypes, resource_module, prototypes})
   end
 
   @doc """
-  Get a resource by reference (resource_module, resource_name).
+  Get a prototype by reference (resource_module, prototype_name).
   """
-  def get_resource({resource_module, resource_name}) do
+  def get_prototype({resource_module, prototype_name}) do
     Log.debug(
-      fn -> "get_resource module=#{inspect(resource_module)} ref=#{resource_name}" end,
-      component: :registry, resource: resource_module, ref: resource_name
+      fn -> "get_prototype module=#{inspect(resource_module)} ref=#{prototype_name}" end,
+      component: :registry,
+      resource: resource_module,
+      ref: prototype_name
     )
-    GenServer.call(__MODULE__, {:get_resource, resource_module, resource_name})
+
+    GenServer.call(__MODULE__, {:get_prototype, resource_module, prototype_name})
   end
 
   @doc """
-  Get all resources for a resource.
+  Get all prototypes for a resource module.
   """
-  def get_resources(resource_module) do
+  def get_prototypes(resource_module) do
     Log.debug(
-      fn -> "get_resources module=#{inspect(resource_module)}" end,
-      component: :registry, resource: resource_module
+      fn -> "get_prototypes module=#{inspect(resource_module)}" end,
+      component: :registry,
+      resource: resource_module
     )
-    GenServer.call(__MODULE__, {:get_resources, resource_module})
+
+    GenServer.call(__MODULE__, {:get_prototypes, resource_module})
   end
 
   @doc """
-  Resolve resource dependencies and return execution order.
+  Resolve prototype dependencies and return execution order.
   """
-  def resolve_dependencies(resources) when is_list(resources) do
-    Log.debug(fn -> "resolve_dependencies input=#{inspect(resources)}" end, component: :registry)
-    GenServer.call(__MODULE__, {:resolve_dependencies, resources})
+  def resolve_dependencies(refs) when is_list(refs) do
+    Log.debug(fn -> "resolve_dependencies input=#{inspect(refs)}" end, component: :registry)
+    GenServer.call(__MODULE__, {:resolve_dependencies, refs})
   end
 
   @doc """
-  Clear all registered resources (useful for tests).
+  Clear all registered prototypes (useful for tests).
   """
   def clear_all do
     Log.debug(fn -> "clear_all" end, component: :registry)
     GenServer.call(__MODULE__, :clear_all)
   end
 
-  # Backward compatibility functions
-  def register_scenarios(resource_module), do: register_resources(resource_module)
-  def get_scenario(ref), do: get_resource(ref)
-  def get_scenarios(resource_module), do: get_resources(resource_module)
+  # Deprecated scenario-named functions removed. Use prototype-named API.
 
   # GenServer Callbacks
 
@@ -84,48 +89,68 @@ defmodule AshScenario.Scenario.Registry do
   end
 
   @impl true
-  def handle_call({:register_resources, resource_module, resources}, _from, state) do
-    updated_state = 
-      resources
-      |> Enum.reduce(state, fn resource, acc ->
-        resource_data = %{
-          ref: resource.ref,
+  def handle_call({:register_prototypes, resource_module, prototypes}, _from, state) do
+    updated_state =
+      prototypes
+      |> Enum.reduce(state, fn prototype, acc ->
+        prototype_data = %{
+          ref: prototype.ref,
           resource: resource_module,
-          attributes: resource.attributes,
-          dependencies: extract_dependencies(resource_module, resource.attributes)
+          attributes: prototype.attributes,
+          dependencies: extract_dependencies(resource_module, prototype.attributes),
+          action: Map.get(prototype, :action),
+          function: Map.get(prototype, :function)
         }
-        
+
         acc
         |> Map.put_new(resource_module, %{})
-        |> put_in([resource_module, resource.ref], resource_data)
+        |> put_in([resource_module, prototype.ref], prototype_data)
       end)
+
     Log.info(
-      fn -> "registered_resources module=#{inspect(resource_module)} count=#{length(resources)}" end,
-      component: :registry, resource: resource_module
+      fn ->
+        "registered_prototypes module=#{inspect(resource_module)} count=#{length(prototypes)}"
+      end,
+      component: :registry,
+      resource: resource_module
     )
+
     {:reply, :ok, updated_state}
   end
 
   @impl true
-  def handle_call({:get_resource, resource_module, resource_name}, _from, state) do
-    resource = get_in(state, [resource_module, resource_name])
-    {:reply, resource, state}
+  def handle_call({:get_prototype, resource_module, resource_name}, _from, state) do
+    prototype = get_in(state, [resource_module, resource_name])
+    {:reply, prototype, state}
   end
 
   @impl true
-  def handle_call({:get_resources, resource_module}, _from, state) do
-    resources = Map.get(state, resource_module, %{}) |> Map.values()
-    {:reply, resources, state}
+  def handle_call({:get_prototypes, resource_module}, _from, state) do
+    prototypes = Map.get(state, resource_module, %{}) |> Map.values()
+    {:reply, prototypes, state}
   end
 
   @impl true
-  def handle_call({:resolve_dependencies, resource_refs}, _from, state) do
-    {:ok, ordered_resources} = build_dependency_graph(resource_refs, state)
-    Log.debug(
-      fn -> "resolved_order=#{Enum.map(ordered_resources, &{&1.resource, &1.ref}) |> inspect()}" end,
-      component: :registry
-    )
-    {:reply, {:ok, ordered_resources}, state}
+  def handle_call({:resolve_dependencies, prototype_refs}, _from, state) do
+    case build_dependency_graph(prototype_refs, state) do
+      {:ok, ordered_prototypes} ->
+        Log.debug(
+          fn ->
+            "resolved_order=#{Enum.map(ordered_prototypes, &{&1.resource, &1.ref}) |> inspect()}"
+          end,
+          component: :registry
+        )
+
+        {:reply, {:ok, ordered_prototypes}, state}
+
+      {:error, reason} ->
+        Log.error(
+          fn -> "resolve_dependencies_error reason=#{inspect(reason)}" end,
+          component: :registry
+        )
+
+        {:reply, {:error, reason}, state}
+    end
   end
 
   @impl true
@@ -150,25 +175,82 @@ defmodule AshScenario.Scenario.Registry do
     |> Enum.reverse()
   end
 
-  defp build_dependency_graph(resource_refs, state) do
-    resources = 
-      resource_refs
-      |> Enum.map(fn {resource, ref} -> get_in(state, [resource, ref]) end)
-      |> Enum.reject(&is_nil/1)
+  defp build_dependency_graph(prototype_refs, state) do
+    # First, expand the prototype refs to include all transitive dependencies
+    with {:ok, expanded_refs} <- expand_dependencies(prototype_refs, state) do
+      prototypes =
+        expanded_refs
+        |> Enum.map(fn {resource, ref} -> get_in(state, [resource, ref]) end)
+        |> Enum.reject(&is_nil/1)
 
-    # Simple topological sort - this is a basic implementation
-    # In practice, you'd want more robust cycle detection and ordering
-    {:ok, sorted} = topological_sort(resources)
-    {:ok, sorted}
+      # Now do topological sort on the complete set
+      {:ok, sorted} = topological_sort(prototypes)
+      {:ok, sorted}
+    end
   end
 
-  defp topological_sort(resources) do
+  defp expand_dependencies(prototype_refs, state) do
+    expand_dependencies_recursive(prototype_refs, MapSet.new(), state)
+  end
+
+  defp expand_dependencies_recursive(prototype_refs, visited, state) do
+    new_refs = Enum.reject(prototype_refs, &MapSet.member?(visited, &1))
+
+    # Allow resolving a dependency by name across modules. If a dependency
+    # references a different module (e.g., Blog) but the resource with that
+    # name is defined under another module (e.g., CustomBlog), prefer the
+    # declared module to satisfy ordering.
+    new_refs = Enum.map(new_refs, &resolve_cross_module_ref(&1, state))
+
+    if new_refs == [] do
+      {:ok, MapSet.to_list(visited)}
+    else
+      # Validate that all new_refs actually exist after cross-module resolution
+      case Enum.find(new_refs, fn {resource_module, ref} ->
+             get_in(state, [resource_module, ref]) == nil
+           end) do
+        {missing_module, missing_ref} ->
+          # Ensure atom refs render with a leading ':' for consistency
+          {:error, "Prototype #{inspect(missing_ref)} not found in #{inspect(missing_module)}"}
+
+        nil ->
+          # All resources exist, proceed
+          updated_visited = Enum.reduce(new_refs, visited, &MapSet.put(&2, &1))
+
+          # Find dependencies for each new ref
+          dependencies =
+            new_refs
+            |> Enum.flat_map(fn {resource_module, ref} ->
+              resource_data = get_in(state, [resource_module, ref])
+              resource_data.dependencies
+            end)
+
+          expand_dependencies_recursive(dependencies, updated_visited, state)
+      end
+    end
+  end
+
+  defp resolve_cross_module_ref({resource_module, ref} = tuple, state) do
+    case get_in(state, [resource_module, ref]) do
+      nil ->
+        # Try to find any module that defines this ref
+        case Enum.find(Map.keys(state), fn mod -> get_in(state, [mod, ref]) end) do
+          nil -> tuple
+          other_mod -> {other_mod, ref}
+        end
+
+      _ ->
+        tuple
+    end
+  end
+
+  defp topological_sort(prototypes) do
     # Kahn's algorithm over the subgraph induced by the provided resources
-    nodes = Enum.map(resources, fn r -> {r.resource, r.ref} end) |> MapSet.new()
+    nodes = Enum.map(prototypes, fn r -> {r.resource, r.ref} end) |> MapSet.new()
 
     # Build reverse adjacency (dep -> [dependent]) and indegree as number of deps per node
     {reverse_edges, indegree} =
-      Enum.reduce(resources, {%{}, %{}}, fn r, {rev, indeg} ->
+      Enum.reduce(prototypes, {%{}, %{}}, fn r, {rev, indeg} ->
         node = {r.resource, r.ref}
         deps_in_graph = Enum.filter(r.dependencies, &MapSet.member?(nodes, &1))
 
@@ -196,15 +278,20 @@ defmodule AshScenario.Scenario.Registry do
     {order, remaining_indegree} = process_queue(queue, reverse_edges, indegree, [])
 
     if Enum.any?(remaining_indegree, fn {_n, deg} -> deg > 0 end) do
-      Log.error(fn -> "dependency_cycle_detected indegree=#{inspect(remaining_indegree)}" end, component: :registry)
-      {:error, "Cycle detected in resource dependencies"}
-    else
-      # Return resources in topological order
-      ordered_resources =
-        order
-        |> Enum.map(fn {mod, ref} -> Enum.find(resources, fn r -> r.resource == mod and r.ref == ref end) end)
+      Log.error(fn -> "dependency_cycle_detected indegree=#{inspect(remaining_indegree)}" end,
+        component: :registry
+      )
 
-      {:ok, ordered_resources}
+      {:error, "Cycle detected in prototype dependencies"}
+    else
+      # Return prototypes in topological order
+      ordered_prototypes =
+        order
+        |> Enum.map(fn {mod, ref} ->
+          Enum.find(prototypes, fn r -> r.resource == mod and r.ref == ref end)
+        end)
+
+      {:ok, ordered_prototypes}
     end
   end
 
@@ -212,10 +299,13 @@ defmodule AshScenario.Scenario.Registry do
     case :queue.out(queue) do
       {{:value, node}, queue} ->
         order = [node | order]
+
         {queue, indegree} =
-          Enum.reduce(Map.get(reverse_edges, node, []), {queue, indegree}, fn dependent, {q, degs} ->
+          Enum.reduce(Map.get(reverse_edges, node, []), {queue, indegree}, fn dependent,
+                                                                              {q, degs} ->
             new_deg = (degs[dependent] || 0) - 1
             degs = Map.put(degs, dependent, new_deg)
+
             if new_deg == 0 do
               {:queue.in(dependent, q), degs}
             else
@@ -232,7 +322,9 @@ defmodule AshScenario.Scenario.Registry do
 
   defp related_module_for_attr(resource_module, attr_name) do
     try do
-      case Enum.find(Ash.Resource.Info.relationships(resource_module), fn rel -> rel.source_attribute == attr_name end) do
+      case Enum.find(Ash.Resource.Info.relationships(resource_module), fn rel ->
+             rel.source_attribute == attr_name
+           end) do
         nil -> :error
         rel -> {:ok, rel.destination}
       end

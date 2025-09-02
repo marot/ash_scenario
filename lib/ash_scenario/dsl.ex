@@ -1,8 +1,8 @@
 defmodule AshScenario.Dsl do
   @moduledoc """
-  DSL extension for defining resources in Ash resources.
+  DSL extension for defining prototypes in Ash resources.
 
-  This extension allows resources to define named test data resources with dynamic
+  This extension allows Ash resources to define named test data prototypes with dynamic
   attribute and relationship values based on the resource's schema.
   """
 
@@ -13,22 +13,13 @@ defmodule AshScenario.Dsl do
     identifier: nil,
     schema: [
       name: [type: :atom, required: true],
-      value: [type: :any, required: true]
-    ]
-  }
-
-  @resource %Spark.Dsl.Entity{
-    name: :resource,
-    target: AshScenario.Dsl.Resource,
-    args: [:ref],
-    identifier: :ref,
-    no_depend_modules: [],
-    transform: {__MODULE__, :transform_resource, []},
-    schema: [
-      ref: [type: :atom, required: true]
-    ],
-    entities: [
-      values: [@attr]
+      value: [type: :any, required: true],
+      virtual: [
+        type: :boolean,
+        required: false,
+        default: false,
+        doc: "Allow keys not defined as attributes/relationships; passed as create arguments"
+      ]
     ]
   }
 
@@ -51,25 +42,77 @@ defmodule AshScenario.Dsl do
     ]
   }
 
-  @resources %Spark.Dsl.Section{
-    name: :resources,
-    describe: "Define named resources for creating test data",
-    entities: [@create, @resource],
+  @prototype %Spark.Dsl.Entity{
+    name: :prototype,
+    target: AshScenario.Dsl.Prototype,
+    args: [:ref],
+    identifier: :ref,
+    no_depend_modules: [],
+    transform: {__MODULE__, :transform_prototype, []},
+    schema: [
+      ref: [type: :atom, required: true],
+      action: [
+        type: :atom,
+        required: false,
+        doc: "Override the create action for this specific prototype"
+      ],
+      function: [
+        type: {:or, [:mfa, {:fun, 2}]},
+        required: false,
+        doc: "Override the creation function for this specific prototype"
+      ]
+    ],
+    entities: [
+      values: [@attr],
+      create: [@create]
+    ]
+  }
+
+  @prototypes %Spark.Dsl.Section{
+    name: :prototypes,
+    describe: "Define named prototypes for creating test data",
+    entities: [@create, @prototype],
     schema: []
   }
 
-  def transform_resource(resource) do
+  def transform_prototype(prototype) do
+    attr_entities = prototype.values || prototype.attrs || prototype.attr || []
+
     nested_values =
-      (resource.values || resource.attrs || resource.attr || [])
+      attr_entities
       |> Enum.map(fn %AshScenario.Dsl.Attr{name: name, value: value} -> {name, value} end)
 
-    base_attributes = resource.attributes || []
+    base_attributes = prototype.attributes || []
     attributes = Keyword.merge(base_attributes, nested_values)
 
-    {:ok, %{resource | attributes: attributes}}
+    virtuals =
+      attr_entities
+      |> Enum.filter(& &1.virtual)
+      |> Enum.map(& &1.name)
+      |> MapSet.new()
+
+    # If a nested `create` entity is present, map it to action/function
+    {action_override, function_override} =
+      case Map.get(prototype, :create) do
+        %AshScenario.Dsl.Create{action: act, function: fun} -> {act, fun}
+        _ -> {nil, nil}
+      end
+
+    # Preserve explicit per-prototype schema overrides if provided directly
+    final_action = Map.get(prototype, :action) || action_override
+    final_function = Map.get(prototype, :function) || function_override
+
+    {:ok,
+     %{
+       prototype
+       | attributes: attributes,
+         virtuals: virtuals,
+         action: final_action,
+         function: final_function
+     }}
   end
 
   use Spark.Dsl.Extension,
-    sections: [@resources],
-    transformers: [AshScenario.Dsl.Transformers.ValidateResources]
+    sections: [@prototypes],
+    transformers: [AshScenario.Dsl.Transformers.ValidatePrototypes]
 end

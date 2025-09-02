@@ -63,10 +63,10 @@ defmodule AshScenario.CustomFunctionTest do
       end
     end
 
-    resources do
+    prototypes do
       create function: {TestFactory, :create_blog, []}
 
-      resource :factory_blog do
+      prototype :factory_blog do
         attr :name, "Factory Blog"
       end
     end
@@ -91,12 +91,12 @@ defmodule AshScenario.CustomFunctionTest do
       end
     end
 
-    resources do
+    prototypes do
       create function: fn attrs, _opts ->
         {:ok, %Blog{id: Ash.UUID.generate(), name: attrs[:name]}}
       end
 
-      resource :anonymous_blog do
+      prototype :anonymous_blog do
         attr :name, "Anonymous Blog"
       end
     end
@@ -121,10 +121,10 @@ defmodule AshScenario.CustomFunctionTest do
       end
     end
 
-    resources do
+    prototypes do
       create function: {TestFactory, :failing_function, []}
 
-      resource :failing_blog do
+      prototype :failing_blog do
         attr :name, "Failing Blog"
       end
     end
@@ -166,10 +166,10 @@ defmodule AshScenario.CustomFunctionTest do
       end
     end
 
-    resources do
+    prototypes do
       create function: {TestFactory, :create_post, []}
 
-      resource :factory_post do
+      prototype :factory_post do
         attr :title, "Factory Post"
         attr :content, "Factory Content"
         attr :status, :published
@@ -203,10 +203,10 @@ defmodule AshScenario.CustomFunctionTest do
       end
     end
 
-    resources do
+    prototypes do
       create function: {TestFactory, :create_post_with_extra_args, ["PREFIX"]}
 
-      resource :prefixed_post do
+      prototype :prefixed_post do
         attr :title, "Prefixed Post"
         attr :blog_id, :factory_blog
       end
@@ -241,9 +241,9 @@ defmodule AshScenario.CustomFunctionTest do
       end
     end
 
-    resources do
+    prototypes do
       # No create function: uses default Ash.create :create
-      resource :regular_post do
+      prototype :regular_post do
         attr :title, "Regular Post"
         attr :content, "Regular Content"
         attr :blog_id, :factory_blog
@@ -257,28 +257,28 @@ defmodule AshScenario.CustomFunctionTest do
       {:error, {:already_started, _pid}} -> :ok
     end
 
-    AshScenario.clear_resources()
-    AshScenario.register_resources(CustomBlog)
-    AshScenario.register_resources(CustomBlogAnon)
-    AshScenario.register_resources(CustomBlogFail)
-    AshScenario.register_resources(CustomPost)
-    AshScenario.register_resources(PrefixedPost)
-    AshScenario.register_resources(RegularPost)
+    AshScenario.clear_prototypes()
+    AshScenario.register_prototypes(CustomBlog)
+    AshScenario.register_prototypes(CustomBlogAnon)
+    AshScenario.register_prototypes(CustomBlogFail)
+    AshScenario.register_prototypes(CustomPost)
+    AshScenario.register_prototypes(PrefixedPost)
+    AshScenario.register_prototypes(RegularPost)
     # For regular creation comparison
-    AshScenario.register_resources(Blog)
+    AshScenario.register_prototypes(Blog)
     :ok
   end
 
   describe "custom function support" do
-    test "MFA custom function creates resource correctly" do
-      {:ok, blog} = AshScenario.run_resource(CustomBlog, :factory_blog, domain: Domain)
+    test "MFA custom function creates prototype correctly" do
+      {:ok, blog} = AshScenario.run_prototype(CustomBlog, :factory_blog, domain: Domain)
 
       assert blog.name == "Factory Blog"
       assert blog.id != nil
     end
 
-    test "anonymous function creates resource correctly" do
-      {:ok, blog} = AshScenario.run_resource(CustomBlogAnon, :anonymous_blog, domain: Domain)
+    test "anonymous function creates prototype correctly" do
+      {:ok, blog} = AshScenario.run_prototype(CustomBlogAnon, :anonymous_blog, domain: Domain)
 
       assert blog.name == "Anonymous Blog"
       assert blog.id != nil
@@ -286,7 +286,7 @@ defmodule AshScenario.CustomFunctionTest do
 
     test "custom function with dependency resolution" do
       {:ok, resources} =
-        AshScenario.run_resources(
+        AshScenario.run_prototypes(
           [
             {CustomBlog, :factory_blog},
             {CustomPost, :factory_post}
@@ -307,7 +307,7 @@ defmodule AshScenario.CustomFunctionTest do
 
     test "custom function with extra arguments" do
       {:ok, resources} =
-        AshScenario.run_resources(
+        AshScenario.run_prototypes(
           [
             {CustomBlog, :factory_blog},
             {PrefixedPost, :prefixed_post}
@@ -322,7 +322,7 @@ defmodule AshScenario.CustomFunctionTest do
     end
 
     test "error handling for failing custom function" do
-      {:error, message} = AshScenario.run_resource(CustomBlogFail, :failing_blog, domain: Domain)
+      {:error, message} = AshScenario.run_prototype(CustomBlogFail, :failing_blog, domain: Domain)
 
       assert message =~ "Failed to create"
       assert message =~ "with custom function"
@@ -332,7 +332,7 @@ defmodule AshScenario.CustomFunctionTest do
     test "comparison between custom function and regular creation" do
       # Test that regular resources still work alongside custom function resources
       {:ok, resources} =
-        AshScenario.run_resources(
+        AshScenario.run_prototypes(
           [
             {CustomBlog, :factory_blog},
             # Uses default Ash.create
@@ -362,7 +362,7 @@ defmodule AshScenario.CustomFunctionTest do
   describe "hardened relationship resolution" do
     test "only relationship attributes are resolved, not other atoms" do
       {:ok, resources} =
-        AshScenario.run_resources(
+        AshScenario.run_prototypes(
           [
             {CustomBlog, :factory_blog},
             {CustomPost, :factory_post}
@@ -381,9 +381,9 @@ defmodule AshScenario.CustomFunctionTest do
       assert is_atom(post.status)
     end
 
-    test "atoms that don't match resource names are preserved" do
+    test "atoms that don't match prototype names are preserved" do
       # Test with a status that doesn't match any resource name
-      {:ok, post} = AshScenario.run_resource(CustomPost, :factory_post, domain: Domain)
+      {:ok, post} = AshScenario.run_prototype(CustomPost, :factory_post, domain: Domain)
 
       # :published doesn't match any resource name, should be preserved as atom
       assert post.status == :published

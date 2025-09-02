@@ -39,14 +39,14 @@ defmodule Post do
     end
   end
 
-  resources do
-    resource :example_post do
+  prototypes do
+    prototype :example_post do
       attr :title, "A post title"
       attr :content, "The content of the example post"
       attr :blog_id, :example_blog
     end
 
-    resource :another_post do
+    prototype :another_post do
       attr :title, "Another post title"
       attr :content, "Different content"
       attr :blog_id, :example_blog

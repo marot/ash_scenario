@@ -1,0 +1,765 @@
+Running ExUnit with seed: 819735, max_cases: 32
+
+15:55:39.871 component=registry [debug] clear_all
+15:55:39.873 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:39.873 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:39.873 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:39.873 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:39.879 component=runner trace_id=0000000000000001-fae8638f931c94d6-657485e2e845ee7f [debug] run_prototypes start refs=[{Blog, :example_blog}] overrides=%{{Blog, :example_blog} => %{name: "Custom name"}} opts=[trace_id: "0000000000000001-fae8638f931c94d6-657485e2e845ee7f", domain: Domain, overrides: %{name: "Custom name"}]
+15:55:39.879 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}]
+15:55:39.879 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0} rev_edges=%{}
+15:55:39.879 component=registry [debug] resolved_order=[{Blog, :example_blog}]
+15:55:39.879 component=runner trace_id=0000000000000001-fae8638f931c94d6-657485e2e845ee7f [debug] dependency_order=[{Blog, :example_blog}]
+15:55:39.879 component=runner resource=Blog ref=example_blog trace_id=0000000000000001-fae8638f931c94d6-657485e2e845ee7f [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:39.879 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Custom name"}
+15:55:39.879 component=runner resource=Blog ref=example_blog trace_id=0000000000000001-fae8638f931c94d6-657485e2e845ee7f [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:39.904 component=runner resource=Blog ref=example_blog trace_id=0000000000000001-fae8638f931c94d6-657485e2e845ee7f [info] create_success module=Blog ref=example_blog action=create id=a5e0f457-026c-4171-a169-93db6da9ae6e
+.15:55:39.904 component=runner trace_id=0000000000000001-fae8638f931c94d6-657485e2e845ee7f [info] run_prototypes finished duration_ms=26
+15:55:39.904 component=registry [debug] clear_all
+15:55:39.904 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:39.904 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:39.904 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:39.904 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:39.904 component=runner trace_id=0000000000000002-2f6b9291f1106f3f-3f6f64ea37322efa [debug] run_prototypes start refs=[{Blog, :example_blog}, {Post, :example_post}] overrides=%{{Blog, :example_blog} => %{name: "Tuple Blog"}, {Post, :example_post} => %{title: "Tuple Post"}} opts=[trace_id: "0000000000000002-2f6b9291f1106f3f-3f6f64ea37322efa", domain: Domain]
+15:55:39.904 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}, {Post, :example_post}]
+.15:55:39.904 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Post, :example_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :example_post}]}
+15:55:39.904 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.904 component=runner trace_id=0000000000000002-2f6b9291f1106f3f-3f6f64ea37322efa [debug] dependency_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.904 component=runner resource=Blog ref=example_blog trace_id=0000000000000002-2f6b9291f1106f3f-3f6f64ea37322efa [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:39.904 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Tuple Blog"}
+15:55:39.904 component=runner resource=Blog ref=example_blog trace_id=0000000000000002-2f6b9291f1106f3f-3f6f64ea37322efa [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:39.904 component=runner resource=Blog ref=example_blog trace_id=0000000000000002-2f6b9291f1106f3f-3f6f64ea37322efa [info] create_success module=Blog ref=example_blog action=create id=baba1700-bedd-4c71-b7b3-1914f1b868b8
+15:55:39.904 component=runner resource=Post ref=example_post trace_id=0000000000000002-2f6b9291f1106f3f-3f6f64ea37322efa [debug] execute_resource start module=Post ref=example_post domain=Domain
+15:55:39.904 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "Tuple Post", content: "The content of the example post", blog_id: :example_blog}
+15:55:39.904 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=baba1700-bedd-4c71-b7b3-1914f1b868b8 related_module=Blog
+15:55:39.904 component=runner resource=Post ref=example_post trace_id=0000000000000002-2f6b9291f1106f3f-3f6f64ea37322efa [debug] using_default_create module=Post ref=example_post action=:create
+.15:55:39.904 component=runner resource=Post ref=example_post trace_id=0000000000000002-2f6b9291f1106f3f-3f6f64ea37322efa [info] create_success module=Post ref=example_post action=create id=1e9da78d-eaad-4645-8c99-c3088bac25cf
+15:55:39.904 component=runner trace_id=0000000000000002-2f6b9291f1106f3f-3f6f64ea37322efa [info] run_prototypes finished duration_ms=0
+15:55:39.904 component=registry [debug] clear_all
+15:55:39.904 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:39.904 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:39.905 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:39.905 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:39.905 component=runner trace_id=0000000000000003-99030e0f317d8f26-cfaa02160324f53b [debug] run_prototypes start refs=[{Blog, :example_blog}, {Post, :example_post}] overrides=%{{Blog, :example_blog} => %{name: "Top Blog"}, {Post, :example_post} => %{title: "Top Post"}} opts=[trace_id: "0000000000000003-99030e0f317d8f26-cfaa02160324f53b", domain: Domain, overrides: %{{Blog, :example_blog} => %{name: "Top Blog"}, {Post, :example_post} => %{title: "Top Post"}}]
+15:55:39.905 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.905 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Post, :example_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :example_post}]}
+15:55:39.905 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.905 component=runner trace_id=0000000000000003-99030e0f317d8f26-cfaa02160324f53b [debug] dependency_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.905 component=runner resource=Blog ref=example_blog trace_id=0000000000000003-99030e0f317d8f26-cfaa02160324f53b [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:39.905 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Top Blog"}
+15:55:39.905 component=runner resource=Blog ref=example_blog trace_id=0000000000000003-99030e0f317d8f26-cfaa02160324f53b [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:39.905 component=runner resource=Blog ref=example_blog trace_id=0000000000000003-99030e0f317d8f26-cfaa02160324f53b [info] create_success module=Blog ref=example_blog action=create id=d24fb03a-f628-408e-bbe3-f9bd45d47ce9
+15:55:39.905 component=runner resource=Post ref=example_post trace_id=0000000000000003-99030e0f317d8f26-cfaa02160324f53b [debug] execute_resource start module=Post ref=example_post domain=Domain
+15:55:39.905 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "Top Post", content: "The content of the example post", blog_id: :example_blog}
+15:55:39.905 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=d24fb03a-f628-408e-bbe3-f9bd45d47ce9 related_module=Blog
+15:55:39.905 component=runner resource=Post ref=example_post trace_id=0000000000000003-99030e0f317d8f26-cfaa02160324f53b [debug] using_default_create module=Post ref=example_post action=:create
+15:55:39.905 component=runner resource=Post ref=example_post trace_id=0000000000000003-99030e0f317d8f26-cfaa02160324f53b [info] create_success module=Post ref=example_post action=create id=5e714e6b-e90a-4a32-9906-f70942b11eb7
+15:55:39.905 component=runner trace_id=0000000000000003-99030e0f317d8f26-cfaa02160324f53b [info] run_prototypes finished duration_ms=1
+15:55:39.905 component=registry [debug] clear_all
+15:55:39.905 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:39.905 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:39.905 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:39.905 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:39.905 component=registry [debug] clear_all
+15:55:39.905 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:39.905 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:39.905 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:39.905 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:39.905 component=registry resource=Blog [debug] get_prototypes module=Blog
+15:55:39.905 component=runner trace_id=0000000000000004-b3b609429ef3-481ac5750cf8bb27 [debug] run_prototypes start refs=[{Blog, :example_blog}, {Blog, :tech_blog}] overrides=%{} opts=[trace_id: "0000000000000004-b3b609429ef3-481ac5750cf8bb27", domain: Domain]
+15:55:39.905 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}, {Blog, :tech_blog}]
+15:55:39.905 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Blog, :tech_blog} => 0} rev_edges=%{}
+15:55:39.905 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Blog, :tech_blog}]
+15:55:39.905 component=runner trace_id=0000000000000004-b3b609429ef3-481ac5750cf8bb27 [debug] dependency_order=[{Blog, :example_blog}, {Blog, :tech_blog}]
+.15:55:39.905 component=runner resource=Blog ref=example_blog trace_id=0000000000000004-b3b609429ef3-481ac5750cf8bb27 [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:39.906 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:39.906 component=runner resource=Blog ref=example_blog trace_id=0000000000000004-b3b609429ef3-481ac5750cf8bb27 [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:39.906 component=runner resource=Blog ref=example_blog trace_id=0000000000000004-b3b609429ef3-481ac5750cf8bb27 [info] create_success module=Blog ref=example_blog action=create id=a95a921f-6c25-432e-a7dd-b2888bd62e1f
+15:55:39.906 component=runner resource=Blog ref=tech_blog trace_id=0000000000000004-b3b609429ef3-481ac5750cf8bb27 [debug] execute_resource start module=Blog ref=tech_blog domain=Domain
+15:55:39.906 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Tech Blog"}
+15:55:39.906 component=runner resource=Blog ref=tech_blog trace_id=0000000000000004-b3b609429ef3-481ac5750cf8bb27 [debug] using_default_create module=Blog ref=tech_blog action=:create
+15:55:39.906 component=runner resource=Blog ref=tech_blog trace_id=0000000000000004-b3b609429ef3-481ac5750cf8bb27 [info] create_success module=Blog ref=tech_blog action=create id=c184905c-dd59-4e92-ad0b-6b3aae01b18d
+15:55:39.906 component=runner trace_id=0000000000000004-b3b609429ef3-481ac5750cf8bb27 [info] run_prototypes finished duration_ms=1
+15:55:39.906 component=registry [debug] clear_all
+15:55:39.906 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:39.906 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:39.906 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:39.906 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:39.906 component=runner trace_id=0000000000000005-d5269279d0f624ea-ea6dc4cf5624c8b7 [debug] run_prototypes start refs=[{Blog, :example_blog}] overrides=%{} opts=[trace_id: "0000000000000005-d5269279d0f624ea-ea6dc4cf5624c8b7", domain: Domain]
+15:55:39.906 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}]
+15:55:39.906 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0} rev_edges=%{}
+15:55:39.906 component=registry [debug] resolved_order=[{Blog, :example_blog}]
+15:55:39.906 component=runner trace_id=0000000000000005-d5269279d0f624ea-ea6dc4cf5624c8b7 [debug] dependency_order=[{Blog, :example_blog}]
+.15:55:39.906 component=runner resource=Blog ref=example_blog trace_id=0000000000000005-d5269279d0f624ea-ea6dc4cf5624c8b7 [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:39.906 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:39.906 component=runner resource=Blog ref=example_blog trace_id=0000000000000005-d5269279d0f624ea-ea6dc4cf5624c8b7 [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:39.906 component=runner resource=Blog ref=example_blog trace_id=0000000000000005-d5269279d0f624ea-ea6dc4cf5624c8b7 [info] create_success module=Blog ref=example_blog action=create id=a750bdce-2099-4e39-9025-2220e6a3d977
+15:55:39.906 component=runner trace_id=0000000000000005-d5269279d0f624ea-ea6dc4cf5624c8b7 [info] run_prototypes finished duration_ms=0
+15:55:39.906 component=runner trace_id=0000000000000006-c57641cc1b1218c1-50faed4319be8d52 [debug] run_prototypes start refs=[{Blog, :example_blog}, {Post, :another_post}] overrides=%{} opts=[trace_id: "0000000000000006-c57641cc1b1218c1-50faed4319be8d52", domain: Domain]
+15:55:39.906 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}, {Post, :another_post}]
+15:55:39.906 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Post, :another_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :another_post}]}
+15:55:39.906 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Post, :another_post}]
+15:55:39.906 component=runner trace_id=0000000000000006-c57641cc1b1218c1-50faed4319be8d52 [debug] dependency_order=[{Blog, :example_blog}, {Post, :another_post}]
+15:55:39.906 component=runner resource=Blog ref=example_blog trace_id=0000000000000006-c57641cc1b1218c1-50faed4319be8d52 [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:39.906 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:39.906 component=runner resource=Blog ref=example_blog trace_id=0000000000000006-c57641cc1b1218c1-50faed4319be8d52 [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:39.906 component=runner resource=Blog ref=example_blog trace_id=0000000000000006-c57641cc1b1218c1-50faed4319be8d52 [info] create_success module=Blog ref=example_blog action=create id=ebc8ad6c-e6d6-4440-992a-290c6ecde095
+15:55:39.906 component=runner resource=Post ref=another_post trace_id=0000000000000006-c57641cc1b1218c1-50faed4319be8d52 [debug] execute_resource start module=Post ref=another_post domain=Domain
+15:55:39.906 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "Another post title", content: "Different content", blog_id: :example_blog}
+15:55:39.906 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=ebc8ad6c-e6d6-4440-992a-290c6ecde095 related_module=Blog
+15:55:39.906 component=runner resource=Post ref=another_post trace_id=0000000000000006-c57641cc1b1218c1-50faed4319be8d52 [debug] using_default_create module=Post ref=another_post action=:create
+15:55:39.906 component=runner resource=Post ref=another_post trace_id=0000000000000006-c57641cc1b1218c1-50faed4319be8d52 [info] create_success module=Post ref=another_post action=create id=251722f9-1ce2-4880-8789-457fe6b3418f
+.15:55:39.906 component=runner trace_id=0000000000000006-c57641cc1b1218c1-50faed4319be8d52 [info] run_prototypes finished duration_ms=0
+15:55:39.906 component=registry [debug] clear_all
+15:55:39.906 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:39.906 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:39.906 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:39.906 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:39.906 component=runner trace_id=0000000000000007-e9aa29315505cc6c-a5679d9daf423e15 [debug] run_prototypes start refs=[{Blog, :example_blog}, {Post, :example_post}] overrides=%{} opts=[trace_id: "0000000000000007-e9aa29315505cc6c-a5679d9daf423e15", domain: Domain]
+15:55:39.906 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.906 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Post, :example_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :example_post}]}
+15:55:39.906 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.906 component=runner trace_id=0000000000000007-e9aa29315505cc6c-a5679d9daf423e15 [debug] dependency_order=[{Blog, :example_blog}, {Post, :example_post}]
+.15:55:39.906 component=runner resource=Blog ref=example_blog trace_id=0000000000000007-e9aa29315505cc6c-a5679d9daf423e15 [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:39.906 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:39.906 component=runner resource=Blog ref=example_blog trace_id=0000000000000007-e9aa29315505cc6c-a5679d9daf423e15 [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:39.907 component=runner resource=Blog ref=example_blog trace_id=0000000000000007-e9aa29315505cc6c-a5679d9daf423e15 [info] create_success module=Blog ref=example_blog action=create id=a4039ead-2e97-4d03-8d7f-d16e598ebe2d
+15:55:39.907 component=runner resource=Post ref=example_post trace_id=0000000000000007-e9aa29315505cc6c-a5679d9daf423e15 [debug] execute_resource start module=Post ref=example_post domain=Domain
+15:55:39.907 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "A post title", content: "The content of the example post", blog_id: :example_blog}
+15:55:39.907 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=a4039ead-2e97-4d03-8d7f-d16e598ebe2d related_module=Blog
+15:55:39.907 component=runner resource=Post ref=example_post trace_id=0000000000000007-e9aa29315505cc6c-a5679d9daf423e15 [debug] using_default_create module=Post ref=example_post action=:create
+15:55:39.907 component=runner resource=Post ref=example_post trace_id=0000000000000007-e9aa29315505cc6c-a5679d9daf423e15 [info] create_success module=Post ref=example_post action=create id=f568c727-567b-4433-a450-d5f77c8acf63
+15:55:39.907 component=runner trace_id=0000000000000007-e9aa29315505cc6c-a5679d9daf423e15 [info] run_prototypes finished duration_ms=0
+15:55:39.907 component=registry [debug] clear_all
+15:55:39.907 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:39.907 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:39.907 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:39.907 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:39.907 component=runner trace_id=0000000000000008-47be80a71d566928-6840295dc0db83ca [debug] run_prototypes start refs=[{Blog, :example_blog}, {Post, :example_post}] overrides=%{} opts=[trace_id: "0000000000000008-47be80a71d566928-6840295dc0db83ca", domain: Domain]
+15:55:39.907 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.907 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Post, :example_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :example_post}]}
+15:55:39.907 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.907 component=runner trace_id=0000000000000008-47be80a71d566928-6840295dc0db83ca [debug] dependency_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.907 component=runner resource=Blog ref=example_blog trace_id=0000000000000008-47be80a71d566928-6840295dc0db83ca [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:39.907 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:39.907 component=runner resource=Blog ref=example_blog trace_id=0000000000000008-47be80a71d566928-6840295dc0db83ca [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:39.907 component=runner resource=Blog ref=example_blog trace_id=0000000000000008-47be80a71d566928-6840295dc0db83ca [info] create_success module=Blog ref=example_blog action=create id=29744e5a-dbe8-4584-a55b-bb8331d7b350
+15:55:39.907 component=runner resource=Post ref=example_post trace_id=0000000000000008-47be80a71d566928-6840295dc0db83ca [debug] execute_resource start module=Post ref=example_post domain=Domain
+15:55:39.907 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "A post title", content: "The content of the example post", blog_id: :example_blog}
+15:55:39.907 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=29744e5a-dbe8-4584-a55b-bb8331d7b350 related_module=Blog
+15:55:39.907 component=runner resource=Post ref=example_post trace_id=0000000000000008-47be80a71d566928-6840295dc0db83ca [debug] using_default_create module=Post ref=example_post action=:create
+15:55:39.907 component=runner resource=Post ref=example_post trace_id=0000000000000008-47be80a71d566928-6840295dc0db83ca [info] create_success module=Post ref=example_post action=create id=703fb83f-89d0-4e18-bfb1-bb09422d9b9a
+15:55:39.907 component=runner trace_id=0000000000000008-47be80a71d566928-6840295dc0db83ca [info] run_prototypes finished duration_ms=0
+15:55:39.907 component=registry [debug] clear_all
+15:55:39.907 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:39.907 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:39.907 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:39.907 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:39.907 component=runner trace_id=0000000000000009-9b45f2938cfebb31-f62d3c159723227b [debug] run_prototypes start refs=[{Post, :example_post}] overrides=%{} opts=[trace_id: "0000000000000009-9b45f2938cfebb31-f62d3c159723227b", domain: Domain]
+15:55:39.907 component=registry [debug] resolve_dependencies input=[{Post, :example_post}]
+15:55:39.907 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Post, :example_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :example_post}]}
+15:55:39.907 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.907 component=runner trace_id=0000000000000009-9b45f2938cfebb31-f62d3c159723227b [debug] dependency_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:39.907 component=runner resource=Blog ref=example_blog trace_id=0000000000000009-9b45f2938cfebb31-f62d3c159723227b [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:39.907 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:39.907 component=runner resource=Blog ref=example_blog trace_id=0000000000000009-9b45f2938cfebb31-f62d3c159723227b [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:39.907 component=runner resource=Blog ref=example_blog trace_id=0000000000000009-9b45f2938cfebb31-f62d3c159723227b [info] create_success module=Blog ref=example_blog action=create id=023e71ff-d952-4da6-9c9e-5e59864dce2a
+15:55:39.907 component=runner resource=Post ref=example_post trace_id=0000000000000009-9b45f2938cfebb31-f62d3c159723227b [debug] execute_resource start module=Post ref=example_post domain=Domain
+15:55:39.907 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "A post title", content: "The content of the example post", blog_id: :example_blog}
+15:55:39.907 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=023e71ff-d952-4da6-9c9e-5e59864dce2a related_module=Blog
+15:55:39.907 component=runner resource=Post ref=example_post trace_id=0000000000000009-9b45f2938cfebb31-f62d3c159723227b [debug] using_default_create module=Post ref=example_post action=:create
+15:55:39.907 component=runner resource=Post ref=example_post trace_id=0000000000000009-9b45f2938cfebb31-f62d3c159723227b [info] create_success module=Post ref=example_post action=create id=27def2b0-08e0-456e-adb9-159b5dc5a16d
+15:55:39.908 component=runner trace_id=0000000000000009-9b45f2938cfebb31-f62d3c159723227b [info] run_prototypes finished duration_ms=1
+.15:55:39.908 component=registry [debug] clear_all
+15:55:39.908 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:39.908 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:39.908 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:39.908 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.067 component=registry resource=DependencyResolutionTest.Comment [debug] register_prototypes module=DependencyResolutionTest.Comment names=[:example_comment]
+15:55:40.067 component=registry resource=DependencyResolutionTest.Comment [info] registered_prototypes module=DependencyResolutionTest.Comment count=1
+15:55:40.067 component=runner trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [debug] run_prototypes start refs=[{DependencyResolutionTest.Comment, :example_comment}] overrides=%{} opts=[trace_id: "000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0", domain: Domain]
+15:55:40.067 component=registry [debug] resolve_dependencies input=[{DependencyResolutionTest.Comment, :example_comment}]
+15:55:40.067 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {DependencyResolutionTest.Comment, :example_comment} => 1, {Post, :example_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :example_post}], {Post, :example_post} => [{DependencyResolutionTest.Comment, :example_comment}]}
+15:55:40.067 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Post, :example_post}, {DependencyResolutionTest.Comment, :example_comment}]
+15:55:40.068 component=runner trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [debug] dependency_order=[{Blog, :example_blog}, {Post, :example_post}, {DependencyResolutionTest.Comment, :example_comment}]
+15:55:40.068 component=runner resource=Blog ref=example_blog trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:40.068 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:40.068 component=runner resource=Blog ref=example_blog trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:40.068 component=runner resource=Blog ref=example_blog trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [info] create_success module=Blog ref=example_blog action=create id=39a12590-8817-4859-892d-19ea4088deef
+15:55:40.068 component=runner resource=Post ref=example_post trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [debug] execute_resource start module=Post ref=example_post domain=Domain
+15:55:40.068 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "A post title", content: "The content of the example post", blog_id: :example_blog}
+15:55:40.068 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=39a12590-8817-4859-892d-19ea4088deef related_module=Blog
+15:55:40.068 component=runner resource=Post ref=example_post trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [debug] using_default_create module=Post ref=example_post action=:create
+.15:55:40.068 component=runner resource=Post ref=example_post trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [info] create_success module=Post ref=example_post action=create id=c61e93d5-906d-442a-943c-94bc04bbbf56
+15:55:40.068 component=runner resource=DependencyResolutionTest.Comment ref=example_comment trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [debug] execute_resource start module=DependencyResolutionTest.Comment ref=example_comment domain=Domain
+15:55:40.068 component=runner resource=DependencyResolutionTest.Comment [debug] resolve_attributes module=DependencyResolutionTest.Comment attrs=%{content: "Great post!", post_id: :example_post}
+15:55:40.068 component=runner resource=DependencyResolutionTest.Comment [debug] resolved_relationship attr=post_id value=example_post -> id=c61e93d5-906d-442a-943c-94bc04bbbf56 related_module=Post
+15:55:40.068 component=runner resource=DependencyResolutionTest.Comment ref=example_comment trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [debug] using_default_create module=DependencyResolutionTest.Comment ref=example_comment action=:create
+15:55:40.068 component=runner resource=DependencyResolutionTest.Comment ref=example_comment trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [info] create_success module=DependencyResolutionTest.Comment ref=example_comment action=create id=e830b1c9-0206-420c-9123-d94289c24fc4
+15:55:40.068 component=runner trace_id=000000000000000a-7d8e059618a36a22-a2c9e370bcec43e0 [info] run_prototypes finished duration_ms=1
+15:55:40.068 component=registry [debug] clear_all
+15:55:40.068 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.068 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.068 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.068 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.068 component=runner trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [debug] run_prototypes start refs=[{Blog, :tech_blog}, {Post, :example_post}] overrides=%{} opts=[trace_id: "000000000000000b-fa14ca37e09ea48-100f4593972e7efd", domain: Domain]
+15:55:40.068 component=registry [debug] resolve_dependencies input=[{Blog, :tech_blog}, {Post, :example_post}]
+15:55:40.068 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Blog, :tech_blog} => 0, {Post, :example_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :example_post}]}
+15:55:40.068 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Blog, :tech_blog}, {Post, :example_post}]
+15:55:40.068 component=runner trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [debug] dependency_order=[{Blog, :example_blog}, {Blog, :tech_blog}, {Post, :example_post}]
+15:55:40.068 component=runner resource=Blog ref=example_blog trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:40.068 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:40.068 component=runner resource=Blog ref=example_blog trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:40.068 component=runner resource=Blog ref=example_blog trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [info] create_success module=Blog ref=example_blog action=create id=ff9dd5c5-6030-4518-8860-85a6785e91c4
+15:55:40.068 component=runner resource=Blog ref=tech_blog trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [debug] execute_resource start module=Blog ref=tech_blog domain=Domain
+15:55:40.068 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Tech Blog"}
+15:55:40.068 component=runner resource=Blog ref=tech_blog trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [debug] using_default_create module=Blog ref=tech_blog action=:create
+.15:55:40.068 component=runner resource=Blog ref=tech_blog trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [info] create_success module=Blog ref=tech_blog action=create id=0beb1336-4e91-4311-b966-858a9be6a48b
+15:55:40.068 component=runner resource=Post ref=example_post trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [debug] execute_resource start module=Post ref=example_post domain=Domain
+15:55:40.068 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "A post title", content: "The content of the example post", blog_id: :example_blog}
+15:55:40.068 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=ff9dd5c5-6030-4518-8860-85a6785e91c4 related_module=Blog
+15:55:40.068 component=runner resource=Post ref=example_post trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [debug] using_default_create module=Post ref=example_post action=:create
+15:55:40.069 component=runner resource=Post ref=example_post trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [info] create_success module=Post ref=example_post action=create id=bfc535b3-ea37-4fea-b5e7-5fb4a8a285f4
+15:55:40.069 component=runner trace_id=000000000000000b-fa14ca37e09ea48-100f4593972e7efd [info] run_prototypes finished duration_ms=0
+15:55:40.069 component=registry [debug] clear_all
+15:55:40.069 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.069 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.069 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.069 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.069 component=runner trace_id=000000000000000c-6640d8dcd43f9d53-7281dfcc380395b3 [debug] run_prototypes start refs=[{Post, :example_post}] overrides=%{} opts=[trace_id: "000000000000000c-6640d8dcd43f9d53-7281dfcc380395b3", domain: Domain]
+.15:55:40.069 component=registry [debug] resolve_dependencies input=[{Post, :example_post}]
+15:55:40.069 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Post, :example_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :example_post}]}
+15:55:40.069 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:40.069 component=runner trace_id=000000000000000c-6640d8dcd43f9d53-7281dfcc380395b3 [debug] dependency_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:40.069 component=runner resource=Blog ref=example_blog trace_id=000000000000000c-6640d8dcd43f9d53-7281dfcc380395b3 [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:40.069 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:40.069 component=runner resource=Blog ref=example_blog trace_id=000000000000000c-6640d8dcd43f9d53-7281dfcc380395b3 [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:40.069 component=runner resource=Blog ref=example_blog trace_id=000000000000000c-6640d8dcd43f9d53-7281dfcc380395b3 [info] create_success module=Blog ref=example_blog action=create id=ed14e680-4f57-4888-b8f4-f273e42ccf7f
+15:55:40.069 component=runner resource=Post ref=example_post trace_id=000000000000000c-6640d8dcd43f9d53-7281dfcc380395b3 [debug] execute_resource start module=Post ref=example_post domain=Domain
+15:55:40.069 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "A post title", content: "The content of the example post", blog_id: :example_blog}
+15:55:40.069 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=ed14e680-4f57-4888-b8f4-f273e42ccf7f related_module=Blog
+15:55:40.069 component=runner resource=Post ref=example_post trace_id=000000000000000c-6640d8dcd43f9d53-7281dfcc380395b3 [debug] using_default_create module=Post ref=example_post action=:create
+15:55:40.069 component=runner resource=Post ref=example_post trace_id=000000000000000c-6640d8dcd43f9d53-7281dfcc380395b3 [info] create_success module=Post ref=example_post action=create id=edcac28d-1cbd-4291-9e6a-963d2ab07bed
+15:55:40.069 component=runner trace_id=000000000000000c-6640d8dcd43f9d53-7281dfcc380395b3 [info] run_prototypes finished duration_ms=0
+15:55:40.069 component=registry [debug] clear_all
+15:55:40.069 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.069 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.069 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.069 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.093 component=registry [debug] clear_all
+15:55:40.093 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.093 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.093 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.093 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.093 component=runner trace_id=000000000000000d-2ba24d0e99877724-5718d52920501661 [debug] run_prototypes start refs=[{Post, :example_post}] overrides=%{} opts=[trace_id: "000000000000000d-2ba24d0e99877724-5718d52920501661", domain: Domain]
+15:55:40.093 component=registry [debug] resolve_dependencies input=[{Post, :example_post}]
+.15:55:40.093 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Post, :example_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :example_post}]}
+15:55:40.093 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:40.093 component=runner trace_id=000000000000000d-2ba24d0e99877724-5718d52920501661 [debug] dependency_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:40.093 component=runner resource=Blog ref=example_blog trace_id=000000000000000d-2ba24d0e99877724-5718d52920501661 [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:40.093 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:40.093 component=runner resource=Blog ref=example_blog trace_id=000000000000000d-2ba24d0e99877724-5718d52920501661 [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:40.093 component=runner resource=Blog ref=example_blog trace_id=000000000000000d-2ba24d0e99877724-5718d52920501661 [info] create_success module=Blog ref=example_blog action=create id=3b36c997-5791-4dc3-bf1b-e655043e0f14
+.15:55:40.093 component=runner resource=Post ref=example_post trace_id=000000000000000d-2ba24d0e99877724-5718d52920501661 [debug] execute_resource start module=Post ref=example_post domain=Domain
+15:55:40.093 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "A post title", content: "The content of the example post", blog_id: :example_blog}
+15:55:40.093 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=3b36c997-5791-4dc3-bf1b-e655043e0f14 related_module=Blog
+15:55:40.093 component=runner resource=Post ref=example_post trace_id=000000000000000d-2ba24d0e99877724-5718d52920501661 [debug] using_default_create module=Post ref=example_post action=:create
+15:55:40.094 component=runner resource=Post ref=example_post trace_id=000000000000000d-2ba24d0e99877724-5718d52920501661 [info] create_success module=Post ref=example_post action=create id=8643d2d2-b983-49f2-b403-77ec111e21ec
+15:55:40.094 component=runner trace_id=000000000000000d-2ba24d0e99877724-5718d52920501661 [info] run_prototypes finished duration_ms=0
+15:55:40.094 component=registry [debug] clear_all
+15:55:40.094 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.094 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.094 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.094 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.094 component=registry resource=Blog [debug] get_prototypes module=Blog
+15:55:40.094 component=runner trace_id=000000000000000e-307e11368dc78e1a-ffe829150d06fdc5 [debug] run_prototypes start refs=[{Blog, :example_blog}, {Blog, :tech_blog}] overrides=%{} opts=[trace_id: "000000000000000e-307e11368dc78e1a-ffe829150d06fdc5", domain: Domain]
+15:55:40.094 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}, {Blog, :tech_blog}]
+15:55:40.094 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Blog, :tech_blog} => 0} rev_edges=%{}
+15:55:40.094 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Blog, :tech_blog}]
+15:55:40.094 component=runner trace_id=000000000000000e-307e11368dc78e1a-ffe829150d06fdc5 [debug] dependency_order=[{Blog, :example_blog}, {Blog, :tech_blog}]
+
+
+15:55:40.094 component=runner resource=Blog ref=example_blog trace_id=000000000000000e-307e11368dc78e1a-ffe829150d06fdc5 [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+  1) test error handling running non-existent scenario returns error (AshScenarioTest)
+     test/ash_scenario_test.exs:108
+     Assertion with =~ failed
+     code:  assert message =~ "Scenario nonexistent not found"
+     left:  "Prototype nonexistent not found in Post"
+     right: "Scenario nonexistent not found"
+     stacktrace:
+       test/ash_scenario_test.exs:113: (test)
+
+15:55:40.094 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+.15:55:40.094 component=runner resource=Blog ref=example_blog trace_id=000000000000000e-307e11368dc78e1a-ffe829150d06fdc5 [debug] using_default_create module=Blog ref=example_blog action=:create
+.15:55:40.094 component=runner resource=Blog ref=example_blog trace_id=000000000000000e-307e11368dc78e1a-ffe829150d06fdc5 [info] create_success module=Blog ref=example_blog action=create id=f0569aa4-04f2-408c-9461-3a1ef6e88ac1
+.15:55:40.094 component=runner resource=Blog ref=tech_blog trace_id=000000000000000e-307e11368dc78e1a-ffe829150d06fdc5 [debug] execute_resource start module=Blog ref=tech_blog domain=Domain
+.15:55:40.094 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Tech Blog"}
+.15:55:40.094 component=runner resource=Blog ref=tech_blog trace_id=000000000000000e-307e11368dc78e1a-ffe829150d06fdc5 [debug] using_default_create module=Blog ref=tech_blog action=:create
+.15:55:40.094 component=runner resource=Blog ref=tech_blog trace_id=000000000000000e-307e11368dc78e1a-ffe829150d06fdc5 [info] create_success module=Blog ref=tech_blog action=create id=7f699a79-11c9-44bc-a5be-e73c94a8b433
+.15:55:40.094 component=runner trace_id=000000000000000e-307e11368dc78e1a-ffe829150d06fdc5 [info] run_prototypes finished duration_ms=0
+.15:55:40.094 component=registry [debug] clear_all
+.15:55:40.094 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+.15:55:40.094 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.094 component=runner trace_id=000000000000000f-77316a60428f4d10-2500a5a59745970c [debug] run_prototypes start refs=[{Post, :nonexistent}] overrides=%{} opts=[trace_id: "000000000000000f-77316a60428f4d10-2500a5a59745970c", domain: Domain]
+15:55:40.094 component=registry [debug] resolve_dependencies input=[{Post, :nonexistent}]
+15:55:40.094 component=registry [error] resolve_dependencies_error reason="Prototype nonexistent not found in Post"
+15:55:40.094 component=registry [debug] clear_all
+15:55:40.094 component=registry [debug] clear_all
+15:55:40.094 component=registry [debug] clear_all
+15:55:40.094 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.094 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.094 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.094 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.094 component=runner trace_id=0000000000000010-21e25337c4f87ef4-bca5af39588fd78b [debug] run_prototypes start refs=[{Blog, :example_blog}, {Post, :example_post}] overrides=%{} opts=[trace_id: "0000000000000010-21e25337c4f87ef4-bca5af39588fd78b", domain: Domain]
+15:55:40.094 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:40.094 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Post, :example_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :example_post}]}
+15:55:40.094 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:40.094 component=runner trace_id=0000000000000010-21e25337c4f87ef4-bca5af39588fd78b [debug] dependency_order=[{Blog, :example_blog}, {Post, :example_post}]
+15:55:40.094 component=runner resource=Blog ref=example_blog trace_id=0000000000000010-21e25337c4f87ef4-bca5af39588fd78b [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:40.094 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:40.094 component=runner resource=Blog ref=example_blog trace_id=0000000000000010-21e25337c4f87ef4-bca5af39588fd78b [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:40.094 component=runner resource=Blog ref=example_blog trace_id=0000000000000010-21e25337c4f87ef4-bca5af39588fd78b [info] create_success module=Blog ref=example_blog action=create id=0ce6394d-9bc4-4cc0-9a77-0e16091d5f09
+15:55:40.094 component=runner resource=Post ref=example_post trace_id=0000000000000010-21e25337c4f87ef4-bca5af39588fd78b [debug] execute_resource start module=Post ref=example_post domain=Domain
+15:55:40.094 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "A post title", content: "The content of the example post", blog_id: :example_blog}
+15:55:40.094 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=0ce6394d-9bc4-4cc0-9a77-0e16091d5f09 related_module=Blog
+15:55:40.094 component=runner resource=Post ref=example_post trace_id=0000000000000010-21e25337c4f87ef4-bca5af39588fd78b [debug] using_default_create module=Post ref=example_post action=:create
+15:55:40.094 component=runner resource=Post ref=example_post trace_id=0000000000000010-21e25337c4f87ef4-bca5af39588fd78b [info] create_success module=Post ref=example_post action=create id=be973b85-43cb-42bf-bb7d-2c8a5099b4ae
+15:55:40.094 component=runner trace_id=0000000000000010-21e25337c4f87ef4-bca5af39588fd78b [info] run_prototypes finished duration_ms=0
+15:55:40.094 component=registry [debug] clear_all
+15:55:40.095 component=registry [debug] clear_all
+15:55:40.095 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.095 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.095 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.095 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.095 component=registry resource=Post [debug] get_prototypes module=Post
+15:55:40.095 component=registry resource=Blog [debug] get_prototypes module=Blog
+15:55:40.095 component=registry [debug] clear_all
+15:55:40.095 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.095 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.095 component=registry resource=Post ref=example_post [debug] get_prototype module=Post ref=example_post
+15:55:40.095 component=registry [debug] clear_all
+15:55:40.095 component=registry [debug] clear_all
+15:55:40.095 component=registry [debug] clear_all
+15:55:40.095 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.095 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.095 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.095 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.095 component=runner trace_id=0000000000000011-e43fef2f9c2b1b86-f137a324433980e9 [debug] run_prototypes start refs=[{Blog, :example_blog}] overrides=%{} opts=[trace_id: "0000000000000011-e43fef2f9c2b1b86-f137a324433980e9", domain: Domain]
+15:55:40.095 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}]
+15:55:40.095 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0} rev_edges=%{}
+15:55:40.095 component=registry [debug] resolved_order=[{Blog, :example_blog}]
+15:55:40.095 component=runner trace_id=0000000000000011-e43fef2f9c2b1b86-f137a324433980e9 [debug] dependency_order=[{Blog, :example_blog}]
+15:55:40.095 component=runner resource=Blog ref=example_blog trace_id=0000000000000011-e43fef2f9c2b1b86-f137a324433980e9 [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:40.095 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:40.095 component=runner resource=Blog ref=example_blog trace_id=0000000000000011-e43fef2f9c2b1b86-f137a324433980e9 [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:40.095 component=runner resource=Blog ref=example_blog trace_id=0000000000000011-e43fef2f9c2b1b86-f137a324433980e9 [info] create_success module=Blog ref=example_blog action=create id=30630245-c196-4c18-898f-6a140ac4bce8
+15:55:40.095 component=runner trace_id=0000000000000011-e43fef2f9c2b1b86-f137a324433980e9 [info] run_prototypes finished duration_ms=0
+15:55:40.095 component=registry [debug] clear_all
+15:55:40.095 component=registry [debug] clear_all
+15:55:40.095 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.095 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.095 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.095 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.127 component=registry [debug] clear_all
+15:55:40.127 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.127 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.127 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.128 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.151 component=registry [debug] clear_all
+15:55:40.151 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.151 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.151 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.151 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.151 component=runner trace_id=0000000000000012-a7bca9bc58648382-21265f47798f613 [debug] run_prototypes start refs=[{Blog, :example_blog}, {Post, :another_post}] overrides=%{} opts=[trace_id: "0000000000000012-a7bca9bc58648382-21265f47798f613", domain: Domain]
+15:55:40.151 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}, {Post, :another_post}]
+15:55:40.151 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0, {Post, :another_post} => 1} rev_edges=%{{Blog, :example_blog} => [{Post, :another_post}]}
+.15:55:40.151 component=registry [debug] resolved_order=[{Blog, :example_blog}, {Post, :another_post}]
+15:55:40.151 component=runner trace_id=0000000000000012-a7bca9bc58648382-21265f47798f613 [debug] dependency_order=[{Blog, :example_blog}, {Post, :another_post}]
+.15:55:40.151 component=runner resource=Blog ref=example_blog trace_id=0000000000000012-a7bca9bc58648382-21265f47798f613 [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:40.151 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:40.151 component=runner resource=Blog ref=example_blog trace_id=0000000000000012-a7bca9bc58648382-21265f47798f613 [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:40.151 component=runner resource=Blog ref=example_blog trace_id=0000000000000012-a7bca9bc58648382-21265f47798f613 [info] create_success module=Blog ref=example_blog action=create id=e8960df5-6fe5-46bd-b18f-9ef22013803f
+15:55:40.151 component=runner resource=Post ref=another_post trace_id=0000000000000012-a7bca9bc58648382-21265f47798f613 [debug] execute_resource start module=Post ref=another_post domain=Domain
+15:55:40.151 component=runner resource=Post [debug] resolve_attributes module=Post attrs=%{title: "Another post title", content: "Different content", blog_id: :example_blog}
+15:55:40.151 component=runner resource=Post [debug] resolved_relationship attr=blog_id value=example_blog -> id=e8960df5-6fe5-46bd-b18f-9ef22013803f related_module=Blog
+15:55:40.151 component=runner resource=Post ref=another_post trace_id=0000000000000012-a7bca9bc58648382-21265f47798f613 [debug] using_default_create module=Post ref=another_post action=:create
+15:55:40.151 component=runner resource=Post ref=another_post trace_id=0000000000000012-a7bca9bc58648382-21265f47798f613 [info] create_success module=Post ref=another_post action=create id=ce301a96-a87c-40dd-afc2-e41e5582ae48
+15:55:40.151 component=runner trace_id=0000000000000012-a7bca9bc58648382-21265f47798f613 [info] run_prototypes finished duration_ms=0
+15:55:40.152 component=registry [debug] clear_all
+15:55:40.152 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.152 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.152 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.152 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.152 component=registry [debug] clear_all
+15:55:40.152 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.152 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.152 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.152 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.186 component=registry [debug] clear_all
+15:55:40.187 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.187 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.187 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.187 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.187 component=registry [debug] clear_all
+15:55:40.187 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.187 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.187 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.187 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.206 component=registry [debug] clear_all
+15:55:40.206 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.206 component=registry resource=Post [info] registered_prototypes module=Post count=2
+.15:55:40.206 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.206 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.206 component=registry [debug] clear_all
+15:55:40.206 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.206 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.206 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.206 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.237 component=registry [debug] clear_all
+15:55:40.237 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.237 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.237 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.237 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.237 component=runner trace_id=0000000000000013-a6e189c1c777cefb-eb41279fd0a7145e [debug] run_prototypes start refs=[{Blog, :example_blog}] overrides=%{} opts=[trace_id: "0000000000000013-a6e189c1c777cefb-eb41279fd0a7145e", domain: Domain]
+15:55:40.237 component=registry [debug] resolve_dependencies input=[{Blog, :example_blog}]
+15:55:40.237 component=registry [debug] toposort indegree=%{{Blog, :example_blog} => 0} rev_edges=%{}
+15:55:40.237 component=registry [debug] resolved_order=[{Blog, :example_blog}]
+15:55:40.237 component=runner trace_id=0000000000000013-a6e189c1c777cefb-eb41279fd0a7145e [debug] dependency_order=[{Blog, :example_blog}]
+15:55:40.237 component=runner resource=Blog ref=example_blog trace_id=0000000000000013-a6e189c1c777cefb-eb41279fd0a7145e [debug] execute_resource start module=Blog ref=example_blog domain=Domain
+15:55:40.237 component=runner resource=Blog [debug] resolve_attributes module=Blog attrs=%{name: "Example name"}
+15:55:40.237 component=runner resource=Blog ref=example_blog trace_id=0000000000000013-a6e189c1c777cefb-eb41279fd0a7145e [debug] using_default_create module=Blog ref=example_blog action=:create
+15:55:40.237 component=runner resource=Blog ref=example_blog trace_id=0000000000000013-a6e189c1c777cefb-eb41279fd0a7145e [info] create_success module=Blog ref=example_blog action=create id=ad7cc74b-5da1-42d9-be06-59e0f71c2d56
+15:55:40.237 component=runner trace_id=0000000000000013-a6e189c1c777cefb-eb41279fd0a7145e [info] run_prototypes finished duration_ms=0
+.15:55:40.256 component=registry [debug] clear_all
+15:55:40.256 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.256 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.256 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.256 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.268 component=registry [debug] clear_all
+15:55:40.268 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.268 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.268 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.268 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.287 component=registry [debug] clear_all
+15:55:40.287 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.287 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.287 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.287 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.306 component=registry [debug] clear_all
+15:55:40.306 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.306 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.306 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.306 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.326 component=registry [debug] clear_all
+15:55:40.326 component=registry resource=Post [debug] register_prototypes module=Post names=[:example_post, :another_post]
+15:55:40.326 component=registry resource=Post [info] registered_prototypes module=Post count=2
+15:55:40.326 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.326 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.357 component=registry [debug] clear_all
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.BasicCustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.BasicCustomFunctionTest.CustomBlog count=1
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.BasicCustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.BasicCustomFunctionTest.CustomPost count=1
+.15:55:40.357 component=runner trace_id=0000000000000014-6bfde7b1d95bb64a-256fa6f270f99467 [debug] run_prototypes start refs=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}] overrides=%{} opts=[trace_id: "0000000000000014-6bfde7b1d95bb64a-256fa6f270f99467", domain: Domain]
+15:55:40.357 component=registry [debug] resolve_dependencies input=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}]
+15:55:40.357 component=registry [debug] toposort indegree=%{{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog} => 0} rev_edges=%{}
+15:55:40.357 component=registry [debug] resolved_order=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}]
+15:55:40.357 component=runner trace_id=0000000000000014-6bfde7b1d95bb64a-256fa6f270f99467 [debug] dependency_order=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}]
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000014-6bfde7b1d95bb64a-256fa6f270f99467 [debug] execute_resource start module=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog domain=Domain
+.15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog [debug] resolve_attributes module=AshScenario.BasicCustomFunctionTest.CustomBlog attrs=%{name: "Factory Blog"}
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000014-6bfde7b1d95bb64a-256fa6f270f99467 [debug] using_custom_function (module-level) module=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog function={AshScenario.BasicCustomFunctionTest.TestFactory, :create_blog, []}
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000014-6bfde7b1d95bb64a-256fa6f270f99467 [info] custom_function_success module=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog id=d6f7ad4d-aa44-43ff-a198-41e44ac830fd
+15:55:40.357 component=runner trace_id=0000000000000014-6bfde7b1d95bb64a-256fa6f270f99467 [info] run_prototypes finished duration_ms=0
+.15:55:40.357 component=registry [debug] clear_all
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.BasicCustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.BasicCustomFunctionTest.CustomBlog count=1
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.BasicCustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.BasicCustomFunctionTest.CustomPost count=1
+15:55:40.357 component=runner trace_id=0000000000000015-c61d16fba48b6fe4-b02f7d7749d4cedf [debug] run_prototypes start refs=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.BasicCustomFunctionTest.CustomPost, :factory_post}] overrides=%{} opts=[trace_id: "0000000000000015-c61d16fba48b6fe4-b02f7d7749d4cedf", domain: Domain]
+15:55:40.357 component=registry [debug] resolve_dependencies input=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.BasicCustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.357 component=registry [debug] toposort indegree=%{{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog} => 0, {AshScenario.BasicCustomFunctionTest.CustomPost, :factory_post} => 0} rev_edges=%{}
+15:55:40.357 component=registry [debug] resolved_order=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.BasicCustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.357 component=runner trace_id=0000000000000015-c61d16fba48b6fe4-b02f7d7749d4cedf [debug] dependency_order=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.BasicCustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000015-c61d16fba48b6fe4-b02f7d7749d4cedf [debug] execute_resource start module=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog domain=Domain
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog [debug] resolve_attributes module=AshScenario.BasicCustomFunctionTest.CustomBlog attrs=%{name: "Factory Blog"}
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000015-c61d16fba48b6fe4-b02f7d7749d4cedf [debug] using_custom_function (module-level) module=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog function={AshScenario.BasicCustomFunctionTest.TestFactory, :create_blog, []}
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000015-c61d16fba48b6fe4-b02f7d7749d4cedf [info] custom_function_success module=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog id=5c29460e-e20a-4526-8ecc-ece02cf416d8
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000015-c61d16fba48b6fe4-b02f7d7749d4cedf [debug] execute_resource start module=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post domain=Domain
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomPost [debug] resolve_attributes module=AshScenario.BasicCustomFunctionTest.CustomPost attrs=%{status: "published", title: "Factory Post", content: "Factory Content", blog_id: :factory_blog}
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomPost [debug] resolved_relationship attr=blog_id value=factory_blog -> id=5c29460e-e20a-4526-8ecc-ece02cf416d8 related_module=Blog
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000015-c61d16fba48b6fe4-b02f7d7749d4cedf [debug] using_custom_function (module-level) module=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post function={AshScenario.BasicCustomFunctionTest.TestFactory, :create_post, []}
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000015-c61d16fba48b6fe4-b02f7d7749d4cedf [info] custom_function_success module=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post id=e42ed09a-25a3-4567-8cef-162725e94c1d
+15:55:40.357 component=runner trace_id=0000000000000015-c61d16fba48b6fe4-b02f7d7749d4cedf [info] run_prototypes finished duration_ms=0
+15:55:40.357 component=registry [debug] clear_all
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.BasicCustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.BasicCustomFunctionTest.CustomBlog count=1
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.BasicCustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.357 component=registry resource=AshScenario.BasicCustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.BasicCustomFunctionTest.CustomPost count=1
+15:55:40.357 component=runner trace_id=0000000000000016-123ba6645f2a5a3-55b7579287958187 [debug] run_prototypes start refs=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.BasicCustomFunctionTest.CustomPost, :factory_post}] overrides=%{} opts=[trace_id: "0000000000000016-123ba6645f2a5a3-55b7579287958187", domain: Domain]
+15:55:40.357 component=registry [debug] resolve_dependencies input=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.BasicCustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.357 component=registry [debug] toposort indegree=%{{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog} => 0, {AshScenario.BasicCustomFunctionTest.CustomPost, :factory_post} => 0} rev_edges=%{}
+15:55:40.357 component=registry [debug] resolved_order=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.BasicCustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.357 component=runner trace_id=0000000000000016-123ba6645f2a5a3-55b7579287958187 [debug] dependency_order=[{AshScenario.BasicCustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.BasicCustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000016-123ba6645f2a5a3-55b7579287958187 [debug] execute_resource start module=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog domain=Domain
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog [debug] resolve_attributes module=AshScenario.BasicCustomFunctionTest.CustomBlog attrs=%{name: "Factory Blog"}
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000016-123ba6645f2a5a3-55b7579287958187 [debug] using_custom_function (module-level) module=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog function={AshScenario.BasicCustomFunctionTest.TestFactory, :create_blog, []}
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000016-123ba6645f2a5a3-55b7579287958187 [info] custom_function_success module=AshScenario.BasicCustomFunctionTest.CustomBlog ref=factory_blog id=57039206-e2e8-4b0c-9c31-c8efb23f98fd
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000016-123ba6645f2a5a3-55b7579287958187 [debug] execute_resource start module=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post domain=Domain
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomPost [debug] resolve_attributes module=AshScenario.BasicCustomFunctionTest.CustomPost attrs=%{status: "published", title: "Factory Post", content: "Factory Content", blog_id: :factory_blog}
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomPost [debug] resolved_relationship attr=blog_id value=factory_blog -> id=57039206-e2e8-4b0c-9c31-c8efb23f98fd related_module=Blog
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000016-123ba6645f2a5a3-55b7579287958187 [debug] using_custom_function (module-level) module=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post function={AshScenario.BasicCustomFunctionTest.TestFactory, :create_post, []}
+15:55:40.357 component=runner resource=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000016-123ba6645f2a5a3-55b7579287958187 [info] custom_function_success module=AshScenario.BasicCustomFunctionTest.CustomPost ref=factory_post id=3629c07b-bd42-4a88-b11e-5c92df049b9d
+15:55:40.357 component=runner trace_id=0000000000000016-123ba6645f2a5a3-55b7579287958187 [info] run_prototypes finished duration_ms=0
+15:55:40.357 component=registry [debug] clear_all
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlog count=1
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon names=[:anonymous_blog]
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon count=1
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail names=[:failing_blog]
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail count=1
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomPost count=1
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost names=[:prefixed_post]
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost count=1
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.RegularPost names=[:regular_post]
+15:55:40.357 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.RegularPost count=1
+15:55:40.357 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.357 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.357 component=runner trace_id=0000000000000017-8d7a01c2ed25665-25897b3ac945c2c [debug] run_prototypes start refs=[{AshScenario.CustomFunctionTest.CustomPost, :factory_post}] overrides=%{} opts=[trace_id: "0000000000000017-8d7a01c2ed25665-25897b3ac945c2c", domain: Domain]
+15:55:40.357 component=registry [debug] resolve_dependencies input=[{AshScenario.CustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.357 component=registry [debug] toposort indegree=%{{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog} => 0, {AshScenario.CustomFunctionTest.CustomPost, :factory_post} => 0} rev_edges=%{}
+15:55:40.357 component=registry [debug] resolved_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.357 component=runner trace_id=0000000000000017-8d7a01c2ed25665-25897b3ac945c2c [debug] dependency_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.357 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000017-8d7a01c2ed25665-25897b3ac945c2c [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog domain=Domain
+15:55:40.357 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomBlog attrs=%{name: "Factory Blog"}
+15:55:40.357 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000017-8d7a01c2ed25665-25897b3ac945c2c [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog function={AshScenario.CustomFunctionTest.TestFactory, :create_blog, []}
+15:55:40.357 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000017-8d7a01c2ed25665-25897b3ac945c2c [info] custom_function_success module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog id=6dc3e29e-7a96-45d2-b9d8-5381317394d7
+15:55:40.357 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000017-8d7a01c2ed25665-25897b3ac945c2c [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post domain=Domain
+15:55:40.357 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomPost attrs=%{status: :published, title: "Factory Post", content: "Factory Content", blog_id: :factory_blog}
+15:55:40.358 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] non_relationship_atom attr=status value=:published
+15:55:40.358 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] resolved_relationship attr=blog_id value=factory_blog -> id=6dc3e29e-7a96-45d2-b9d8-5381317394d7 related_module=Blog
+.15:55:40.358 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000017-8d7a01c2ed25665-25897b3ac945c2c [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post function={AshScenario.CustomFunctionTest.TestFactory, :create_post, []}
+15:55:40.358 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000017-8d7a01c2ed25665-25897b3ac945c2c [info] custom_function_success module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post id=d3258736-21fe-4fde-a1d6-66ca7fcf29df
+15:55:40.359 component=runner trace_id=0000000000000017-8d7a01c2ed25665-25897b3ac945c2c [info] run_prototypes finished duration_ms=2
+15:55:40.359 component=registry [debug] clear_all
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlog count=1
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon names=[:anonymous_blog]
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon count=1
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail names=[:failing_blog]
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail count=1
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomPost count=1
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost names=[:prefixed_post]
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost count=1
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.RegularPost names=[:regular_post]
+15:55:40.359 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.RegularPost count=1
+15:55:40.359 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.359 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+.15:55:40.380 component=registry [debug] clear_all
+15:55:40.380 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.380 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlog count=1
+15:55:40.380 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon names=[:anonymous_blog]
+15:55:40.380 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon count=1
+15:55:40.380 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail names=[:failing_blog]
+15:55:40.380 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail count=1
+15:55:40.380 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomPost count=1
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost names=[:prefixed_post]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost count=1
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.RegularPost names=[:regular_post]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.RegularPost count=1
+15:55:40.381 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.381 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.381 component=runner trace_id=0000000000000018-f6c3c3134e648d85-f561b8f57054902c [debug] run_prototypes start refs=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}] overrides=%{} opts=[trace_id: "0000000000000018-f6c3c3134e648d85-f561b8f57054902c", domain: Domain]
+15:55:40.381 component=registry [debug] resolve_dependencies input=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}]
+15:55:40.381 component=registry [debug] toposort indegree=%{{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog} => 0} rev_edges=%{}
+15:55:40.381 component=registry [debug] resolved_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}]
+.15:55:40.381 component=runner trace_id=0000000000000018-f6c3c3134e648d85-f561b8f57054902c [debug] dependency_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}]
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000018-f6c3c3134e648d85-f561b8f57054902c [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog domain=Domain
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomBlog attrs=%{name: "Factory Blog"}
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000018-f6c3c3134e648d85-f561b8f57054902c [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog function={AshScenario.CustomFunctionTest.TestFactory, :create_blog, []}
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000018-f6c3c3134e648d85-f561b8f57054902c [info] custom_function_success module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog id=f1eaae2c-2b03-4fe9-944f-f096f0409b83
+15:55:40.381 component=runner trace_id=0000000000000018-f6c3c3134e648d85-f561b8f57054902c [info] run_prototypes finished duration_ms=1
+15:55:40.381 component=registry [debug] clear_all
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlog count=1
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon names=[:anonymous_blog]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon count=1
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail names=[:failing_blog]
+.15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail count=1
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomPost count=1
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost names=[:prefixed_post]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost count=1
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.RegularPost names=[:regular_post]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.RegularPost count=1
+15:55:40.381 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.381 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.381 component=runner trace_id=0000000000000019-dfad13197d249ffc-ef7de44abc612f33 [debug] run_prototypes start refs=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}] overrides=%{} opts=[trace_id: "0000000000000019-dfad13197d249ffc-ef7de44abc612f33", domain: Domain]
+15:55:40.381 component=registry [debug] resolve_dependencies input=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.381 component=registry [debug] toposort indegree=%{{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog} => 0, {AshScenario.CustomFunctionTest.CustomPost, :factory_post} => 0} rev_edges=%{}
+15:55:40.381 component=registry [debug] resolved_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.381 component=runner trace_id=0000000000000019-dfad13197d249ffc-ef7de44abc612f33 [debug] dependency_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000019-dfad13197d249ffc-ef7de44abc612f33 [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog domain=Domain
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomBlog attrs=%{name: "Factory Blog"}
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000019-dfad13197d249ffc-ef7de44abc612f33 [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog function={AshScenario.CustomFunctionTest.TestFactory, :create_blog, []}
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=0000000000000019-dfad13197d249ffc-ef7de44abc612f33 [info] custom_function_success module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog id=0d23dad0-8f39-406c-a598-5d2c4ff26700
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000019-dfad13197d249ffc-ef7de44abc612f33 [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post domain=Domain
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomPost attrs=%{status: :published, title: "Factory Post", content: "Factory Content", blog_id: :factory_blog}
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] non_relationship_atom attr=status value=:published
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] resolved_relationship attr=blog_id value=factory_blog -> id=0d23dad0-8f39-406c-a598-5d2c4ff26700 related_module=Blog
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000019-dfad13197d249ffc-ef7de44abc612f33 [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post function={AshScenario.CustomFunctionTest.TestFactory, :create_post, []}
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=0000000000000019-dfad13197d249ffc-ef7de44abc612f33 [info] custom_function_success module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post id=d6ea07c8-0988-4f5d-8128-8237a714469a
+15:55:40.381 component=runner trace_id=0000000000000019-dfad13197d249ffc-ef7de44abc612f33 [info] run_prototypes finished duration_ms=0
+15:55:40.381 component=registry [debug] clear_all
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlog count=1
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon names=[:anonymous_blog]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon count=1
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail names=[:failing_blog]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail count=1
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomPost count=1
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost names=[:prefixed_post]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost count=1
+.15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.RegularPost names=[:regular_post]
+15:55:40.381 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.RegularPost count=1
+15:55:40.381 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.381 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.381 component=runner trace_id=000000000000001a-c3dde717de3e9d1c-3cc82b78453e2768 [debug] run_prototypes start refs=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.PrefixedPost, :prefixed_post}] overrides=%{} opts=[trace_id: "000000000000001a-c3dde717de3e9d1c-3cc82b78453e2768", domain: Domain]
+15:55:40.381 component=registry [debug] resolve_dependencies input=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.PrefixedPost, :prefixed_post}]
+15:55:40.381 component=registry [debug] toposort indegree=%{{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog} => 0, {AshScenario.CustomFunctionTest.PrefixedPost, :prefixed_post} => 0} rev_edges=%{}
+15:55:40.381 component=registry [debug] resolved_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.PrefixedPost, :prefixed_post}]
+15:55:40.381 component=runner trace_id=000000000000001a-c3dde717de3e9d1c-3cc82b78453e2768 [debug] dependency_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.PrefixedPost, :prefixed_post}]
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=000000000000001a-c3dde717de3e9d1c-3cc82b78453e2768 [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog domain=Domain
+15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomBlog attrs=%{name: "Factory Blog"}
+.15:55:40.381 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=000000000000001a-c3dde717de3e9d1c-3cc82b78453e2768 [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog function={AshScenario.CustomFunctionTest.TestFactory, :create_blog, []}
+15:55:40.382 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=000000000000001a-c3dde717de3e9d1c-3cc82b78453e2768 [info] custom_function_success module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog id=824b6623-b79e-4bc1-b512-48631bcc72fb
+15:55:40.382 component=runner resource=AshScenario.CustomFunctionTest.PrefixedPost ref=prefixed_post trace_id=000000000000001a-c3dde717de3e9d1c-3cc82b78453e2768 [debug] execute_resource start module=AshScenario.CustomFunctionTest.PrefixedPost ref=prefixed_post domain=Domain
+15:55:40.382 component=runner resource=AshScenario.CustomFunctionTest.PrefixedPost [debug] resolve_attributes module=AshScenario.CustomFunctionTest.PrefixedPost attrs=%{title: "Prefixed Post", blog_id: :factory_blog}
+15:55:40.382 component=runner resource=AshScenario.CustomFunctionTest.PrefixedPost [debug] resolved_relationship attr=blog_id value=factory_blog -> id=824b6623-b79e-4bc1-b512-48631bcc72fb related_module=Blog
+15:55:40.382 component=runner resource=AshScenario.CustomFunctionTest.PrefixedPost ref=prefixed_post trace_id=000000000000001a-c3dde717de3e9d1c-3cc82b78453e2768 [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.PrefixedPost ref=prefixed_post function={AshScenario.CustomFunctionTest.TestFactory, :create_post_with_extra_args, ["PREFIX"]}
+15:55:40.382 component=runner resource=AshScenario.CustomFunctionTest.PrefixedPost ref=prefixed_post trace_id=000000000000001a-c3dde717de3e9d1c-3cc82b78453e2768 [info] custom_function_success module=AshScenario.CustomFunctionTest.PrefixedPost ref=prefixed_post id=09a0ae41-f306-42db-ae9f-a87c170f6936
+15:55:40.382 component=runner trace_id=000000000000001a-c3dde717de3e9d1c-3cc82b78453e2768 [info] run_prototypes finished duration_ms=1
+15:55:40.382 component=registry [debug] clear_all
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlog count=1
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon names=[:anonymous_blog]
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon count=1
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail names=[:failing_blog]
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail count=1
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomPost count=1
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost names=[:prefixed_post]
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost count=1
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.RegularPost names=[:regular_post]
+15:55:40.382 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.RegularPost count=1
+15:55:40.382 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.382 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.382 component=runner trace_id=000000000000001b-42f25e38b8746478-2c6a0f16067ff197 [debug] run_prototypes start refs=[{AshScenario.CustomFunctionTest.CustomBlogFail, :failing_blog}] overrides=%{} opts=[trace_id: "000000000000001b-42f25e38b8746478-2c6a0f16067ff197", domain: Domain]
+15:55:40.383 component=registry [debug] resolve_dependencies input=[{AshScenario.CustomFunctionTest.CustomBlogFail, :failing_blog}]
+15:55:40.383 component=registry [debug] toposort indegree=%{{AshScenario.CustomFunctionTest.CustomBlogFail, :failing_blog} => 0} rev_edges=%{}
+15:55:40.383 component=registry [debug] resolved_order=[{AshScenario.CustomFunctionTest.CustomBlogFail, :failing_blog}]
+15:55:40.383 component=runner trace_id=000000000000001b-42f25e38b8746478-2c6a0f16067ff197 [debug] dependency_order=[{AshScenario.CustomFunctionTest.CustomBlogFail, :failing_blog}]
+15:55:40.383 component=runner resource=AshScenario.CustomFunctionTest.CustomBlogFail ref=failing_blog trace_id=000000000000001b-42f25e38b8746478-2c6a0f16067ff197 [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomBlogFail ref=failing_blog domain=Domain
+15:55:40.383 component=runner resource=AshScenario.CustomFunctionTest.CustomBlogFail [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomBlogFail attrs=%{name: "Failing Blog"}
+15:55:40.383 component=runner resource=AshScenario.CustomFunctionTest.CustomBlogFail ref=failing_blog trace_id=000000000000001b-42f25e38b8746478-2c6a0f16067ff197 [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomBlogFail ref=failing_blog function={AshScenario.CustomFunctionTest.TestFactory, :failing_function, []}
+15:55:40.383 component=runner resource=AshScenario.CustomFunctionTest.CustomBlogFail ref=failing_blog trace_id=000000000000001b-42f25e38b8746478-2c6a0f16067ff197 [error] custom_function_failed module=AshScenario.CustomFunctionTest.CustomBlogFail ref=failing_blog error="This function always fails"
+15:55:40.383 component=runner resource=AshScenario.CustomFunctionTest.CustomBlogFail ref=failing_blog trace_id=000000000000001b-42f25e38b8746478-2c6a0f16067ff197 [error] run_prototypes halted module=AshScenario.CustomFunctionTest.CustomBlogFail ref=failing_blog reason="Failed to create AshScenario.CustomFunctionTest.CustomBlogFail with custom function: \"This function always fails\""
+15:55:40.383 component=runner trace_id=000000000000001b-42f25e38b8746478-2c6a0f16067ff197 [info] run_prototypes finished duration_ms=0
+15:55:40.383 component=registry [debug] clear_all
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlog count=1
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon names=[:anonymous_blog]
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon count=1
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail names=[:failing_blog]
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail count=1
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomPost count=1
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost names=[:prefixed_post]
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost count=1
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.RegularPost names=[:regular_post]
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.RegularPost count=1
+15:55:40.383 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.383 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.383 component=runner trace_id=000000000000001c-b1f4b56011c74ecf-50fc20cc1262c348 [debug] run_prototypes start refs=[{AshScenario.CustomFunctionTest.CustomBlogAnon, :anonymous_blog}] overrides=%{} opts=[trace_id: "000000000000001c-b1f4b56011c74ecf-50fc20cc1262c348", domain: Domain]
+15:55:40.383 component=registry [debug] resolve_dependencies input=[{AshScenario.CustomFunctionTest.CustomBlogAnon, :anonymous_blog}]
+15:55:40.383 component=registry [debug] toposort indegree=%{{AshScenario.CustomFunctionTest.CustomBlogAnon, :anonymous_blog} => 0} rev_edges=%{}
+15:55:40.383 component=registry [debug] resolved_order=[{AshScenario.CustomFunctionTest.CustomBlogAnon, :anonymous_blog}]
+.15:55:40.383 component=runner trace_id=000000000000001c-b1f4b56011c74ecf-50fc20cc1262c348 [debug] dependency_order=[{AshScenario.CustomFunctionTest.CustomBlogAnon, :anonymous_blog}]
+15:55:40.383 component=runner resource=AshScenario.CustomFunctionTest.CustomBlogAnon ref=anonymous_blog trace_id=000000000000001c-b1f4b56011c74ecf-50fc20cc1262c348 [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomBlogAnon ref=anonymous_blog domain=Domain
+15:55:40.383 component=runner resource=AshScenario.CustomFunctionTest.CustomBlogAnon [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomBlogAnon attrs=%{name: "Anonymous Blog"}
+15:55:40.383 component=runner resource=AshScenario.CustomFunctionTest.CustomBlogAnon ref=anonymous_blog trace_id=000000000000001c-b1f4b56011c74ecf-50fc20cc1262c348 [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomBlogAnon ref=anonymous_blog function=&AshScenario.CustomFunctionTest.CustomBlogAnon.function_0_generated_494E64A24781B7C54194F481F6CDA6B4/2
+15:55:40.383 component=runner resource=AshScenario.CustomFunctionTest.CustomBlogAnon ref=anonymous_blog trace_id=000000000000001c-b1f4b56011c74ecf-50fc20cc1262c348 [info] custom_function_success module=AshScenario.CustomFunctionTest.CustomBlogAnon ref=anonymous_blog id=b089282c-3736-4326-ba52-632ed0ab6962
+15:55:40.383 component=runner trace_id=000000000000001c-b1f4b56011c74ecf-50fc20cc1262c348 [info] run_prototypes finished duration_ms=0
+15:55:40.383 component=registry [debug] clear_all
+15:55:40.383 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlog count=1
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon names=[:anonymous_blog]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon count=1
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail names=[:failing_blog]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail count=1
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomPost count=1
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost names=[:prefixed_post]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost count=1
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.RegularPost names=[:regular_post]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.RegularPost count=1
+15:55:40.384 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.384 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.384 component=runner trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [debug] run_prototypes start refs=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.RegularPost, :regular_post}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}] overrides=%{} opts=[trace_id: "000000000000001d-7fc2246b487e8009-5622c34c82533809", domain: Domain]
+15:55:40.384 component=registry [debug] resolve_dependencies input=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.RegularPost, :regular_post}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.384 component=registry [debug] toposort indegree=%{{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog} => 0, {AshScenario.CustomFunctionTest.CustomPost, :factory_post} => 0, {AshScenario.CustomFunctionTest.RegularPost, :regular_post} => 0} rev_edges=%{}
+15:55:40.384 component=registry [debug] resolved_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}, {AshScenario.CustomFunctionTest.RegularPost, :regular_post}]
+15:55:40.384 component=runner trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [debug] dependency_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}, {AshScenario.CustomFunctionTest.RegularPost, :regular_post}]
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog domain=Domain
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomBlog attrs=%{name: "Factory Blog"}
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog function={AshScenario.CustomFunctionTest.TestFactory, :create_blog, []}
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [info] custom_function_success module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog id=9cec8be5-42bf-4f3a-93d7-f1b4c89f75a7
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post domain=Domain
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomPost attrs=%{status: :published, title: "Factory Post", content: "Factory Content", blog_id: :factory_blog}
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] non_relationship_atom attr=status value=:published
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] resolved_relationship attr=blog_id value=factory_blog -> id=9cec8be5-42bf-4f3a-93d7-f1b4c89f75a7 related_module=Blog
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post function={AshScenario.CustomFunctionTest.TestFactory, :create_post, []}
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [info] custom_function_success module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post id=1216d90d-df84-44dc-a53d-5dd8be8e19c1
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.RegularPost ref=regular_post trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [debug] execute_resource start module=AshScenario.CustomFunctionTest.RegularPost ref=regular_post domain=Domain
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.RegularPost [debug] resolve_attributes module=AshScenario.CustomFunctionTest.RegularPost attrs=%{title: "Regular Post", content: "Regular Content", blog_id: :factory_blog}
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.RegularPost [debug] resolved_relationship attr=blog_id value=factory_blog -> id=9cec8be5-42bf-4f3a-93d7-f1b4c89f75a7 related_module=Blog
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.RegularPost ref=regular_post trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [debug] using_default_create module=AshScenario.CustomFunctionTest.RegularPost ref=regular_post action=:create
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.RegularPost ref=regular_post trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [info] create_success module=AshScenario.CustomFunctionTest.RegularPost ref=regular_post action=create id=dbaa1360-75bb-4109-b4e1-00f4198ddc4a
+15:55:40.384 component=runner trace_id=000000000000001d-7fc2246b487e8009-5622c34c82533809 [info] run_prototypes finished duration_ms=1
+.15:55:40.384 component=registry [debug] clear_all
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlog names=[:factory_blog]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomBlog [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlog count=1
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon names=[:anonymous_blog]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogAnon [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogAnon count=1
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail names=[:failing_blog]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomBlogFail [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomBlogFail count=1
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.CustomPost names=[:factory_post]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.CustomPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.CustomPost count=1
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost names=[:prefixed_post]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.PrefixedPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.PrefixedPost count=1
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [debug] register_prototypes module=AshScenario.CustomFunctionTest.RegularPost names=[:regular_post]
+15:55:40.384 component=registry resource=AshScenario.CustomFunctionTest.RegularPost [info] registered_prototypes module=AshScenario.CustomFunctionTest.RegularPost count=1
+15:55:40.384 component=registry resource=Blog [debug] register_prototypes module=Blog names=[:example_blog, :tech_blog]
+15:55:40.384 component=registry resource=Blog [info] registered_prototypes module=Blog count=2
+15:55:40.384 component=runner trace_id=000000000000001e-e5f7197ef1c37baa-5860673ad8105250 [debug] run_prototypes start refs=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}] overrides=%{} opts=[trace_id: "000000000000001e-e5f7197ef1c37baa-5860673ad8105250", domain: Domain]
+15:55:40.384 component=registry [debug] resolve_dependencies input=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.384 component=registry [debug] toposort indegree=%{{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog} => 0, {AshScenario.CustomFunctionTest.CustomPost, :factory_post} => 0} rev_edges=%{}
+15:55:40.384 component=registry [debug] resolved_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}]
+15:55:40.384 component=runner trace_id=000000000000001e-e5f7197ef1c37baa-5860673ad8105250 [debug] dependency_order=[{AshScenario.CustomFunctionTest.CustomBlog, :factory_blog}, {AshScenario.CustomFunctionTest.CustomPost, :factory_post}]
+.15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=000000000000001e-e5f7197ef1c37baa-5860673ad8105250 [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog domain=Domain
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomBlog attrs=%{name: "Factory Blog"}
+
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=000000000000001e-e5f7197ef1c37baa-5860673ad8105250 [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog function={AshScenario.CustomFunctionTest.TestFactory, :create_blog, []}
+Finished in 1.5 seconds (0.00s async, 1.5s sync)
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog trace_id=000000000000001e-e5f7197ef1c37baa-5860673ad8105250 [info] custom_function_success module=AshScenario.CustomFunctionTest.CustomBlog ref=factory_blog id=ca678914-7996-4fd7-b0b8-d85fe7583aef
+52 tests, 1 failure
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=000000000000001e-e5f7197ef1c37baa-5860673ad8105250 [debug] execute_resource start module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post domain=Domain
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] resolve_attributes module=AshScenario.CustomFunctionTest.CustomPost attrs=%{status: :published, title: "Factory Post", content: "Factory Content", blog_id: :factory_blog}
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] non_relationship_atom attr=status value=:published
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost [debug] resolved_relationship attr=blog_id value=factory_blog -> id=ca678914-7996-4fd7-b0b8-d85fe7583aef related_module=Blog
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=000000000000001e-e5f7197ef1c37baa-5860673ad8105250 [debug] using_custom_function (module-level) module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post function={AshScenario.CustomFunctionTest.TestFactory, :create_post, []}
+15:55:40.384 component=runner resource=AshScenario.CustomFunctionTest.CustomPost ref=factory_post trace_id=000000000000001e-e5f7197ef1c37baa-5860673ad8105250 [info] custom_function_success module=AshScenario.CustomFunctionTest.CustomPost ref=factory_post id=be4734dd-a16e-4171-9844-3b86ea7a3673
+15:55:40.384 component=runner trace_id=000000000000001e-e5f7197ef1c37baa-5860673ad8105250 [info] run_prototypes finished duration_ms=0

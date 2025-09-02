@@ -2,20 +2,20 @@
 
 Ash Scenario allows you to define reusable test data for your application. It provides two main approaches:
 
-1. **Resource Definitions**: Reusable data templates defined in your Ash resources
-2. **Test Scenarios**: Override and compose resources in test modules with named scenarios
+1. **Prototype Definitions**: Reusable data templates defined in your Ash resources
+2. **Test Scenarios**: Override and compose prototypes in test modules with named scenarios
 
 It can be used for tests, staging environments, seeding, and more.
 
-## Resource Definitions (formerly "scenarios")
-Resources are defined on top of Ash resources using a DSL:
+## Prototype Definitions
+Prototypes are defined on top of Ash resources using a DSL:
 - The name of a test resource
-- The default attributes  
+- The default attributes
 - The default relationships
 - Automatic dependency resolution
 
-## Test Scenarios (new functionality)
-When writing tests, you can define scenarios that override specific attributes from your resource definitions while maintaining automatic dependency resolution.
+## Test Scenarios
+When writing tests, you can define scenarios that override specific attributes from your prototype definitions while maintaining automatic dependency resolution.
 
 
 ## Quick Start
@@ -42,13 +42,15 @@ defmodule Blog do
     end
   end
 
-  # Define reusable test data resources
-  resources do
-    resource :example_blog,
-      name: "Example Blog"
+  # Define reusable test data prototypes
+  prototypes do
+    prototype :example_blog do
+      attr :name, "Example Blog"
+    end
 
-    resource :tech_blog,  
-      name: "Tech Blog"
+    prototype :tech_blog do
+      attr :name, "Tech Blog"
+    end
   end
 end
 
@@ -80,28 +82,31 @@ defmodule Post do
     end
   end
 
-  resources do
-    resource :example_post,
-      title: "A post title",
-      content: "The content of the example post",
-      blog_id: :example_blog  # Reference to example_blog resource
+  prototypes do
+    prototype :example_post do
+      attr :title, "A post title"
+      attr :content, "The content of the example post"
+      # Reference to example_blog prototype
+      attr :blog_id, :example_blog
+    end
 
-    resource :another_post,
-      title: "Another post title", 
-      content: "Different content",
-      blog_id: :example_blog
+    prototype :another_post do
+      attr :title, "Another post title"
+      attr :content, "Different content"
+      attr :blog_id, :example_blog
+    end
   end
 end
 ```
 
-### 2. Create resources in your code
+### 2. Create prototypes in your code
 
 ```elixir
-# Create a single resource
-{:ok, blog} = AshScenario.run_resource(Blog, :example_blog, domain: Domain)
+# Create a single prototype
+{:ok, blog} = AshScenario.run_prototype(Blog, :example_blog, domain: Domain)
 
-# Create multiple resources with automatic dependency resolution  
-{:ok, resources} = AshScenario.run_resources([
+# Create multiple prototypes with automatic dependency resolution
+{:ok, resources} = AshScenario.run_prototypes([
   {Blog, :example_blog},
   {Post, :example_post}
 ], domain: Domain)
@@ -111,6 +116,39 @@ blog = resources[{Blog, :example_blog}]
 post = resources[{Post, :example_post}]
 assert post.blog_id == blog.id
 ```
+
+Overrides (first-class)
+
+You can override attributes inline when creating prototypes:
+
+```elixir
+# Single prototype: pass a map of overrides
+{:ok, post} = AshScenario.run_prototype(Post, :example_post,
+  domain: Domain,
+  overrides: %{title: "Custom title"}
+)
+
+# Multiple prototypes: per-tuple overrides
+{:ok, resources} = AshScenario.run_prototypes([
+  {Blog, :example_blog, %{name: "Custom Blog"}},
+  {Post, :example_post, %{title: "Custom Post"}}
+], domain: Domain)
+
+# Multiple prototypes: top-level overrides map keyed by {Module, :ref}
+overrides = %{
+  {Blog, :example_blog} => %{name: "Top-level Blog"},
+  {Post, :example_post} => %{title: "Top-level Post"}
+}
+{:ok, resources} = AshScenario.run_prototypes([
+  {Blog, :example_blog},
+  {Post, :example_post}
+], domain: Domain, overrides: overrides)
+```
+
+Notes:
+- Overrides are merged with the prototype’s defined attributes before relationship resolution.
+- Relationship atoms you set (like `blog_id: :example_blog`) still resolve to IDs as usual.
+- For a single-resource call, `overrides: %{...}` is shorthand — no tuple key is needed.
 
 ### 3. Test Scenarios
 
@@ -129,7 +167,7 @@ defmodule MyTest do
 
   scenario :with_custom_blog do
     tech_blog do
-      name "My Custom Tech Blog"  
+      name "My Custom Tech Blog"
     end
     another_post do
       title "Post in custom blog"
@@ -140,7 +178,7 @@ defmodule MyTest do
   test "basic scenario" do
     {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :basic_setup)
     assert resources.another_post.title == "Custom title for this test"
-    assert resources.example_blog.name == "Example Blog"  # From resource defaults
+    assert resources.example_blog.name == "Example Blog"  # From prototype defaults
   end
 end
 ```
@@ -174,7 +212,7 @@ defmodule MyFactory do
       blog_id: attributes[:blog_id],
       status: attributes[:status] || :draft
     }
-    
+
     # Custom logic here - add tags, send notifications, etc.
     {:ok, post}
   end
@@ -187,16 +225,34 @@ defmodule Blog do
 
   # ... attributes, actions, etc. ...
 
-  resources do
-    resource :factory_blog,
-      name: "Factory Blog",
-      function: {MyFactory, :create_blog, []}
+  prototypes do
+    # Module-level create configuration for this resource module
+    create function: {MyFactory, :create_blog, []}
 
-    resource :custom_post,
-      title: "Custom Post",
-      status: :published,     # Preserved as atom (not resolved)
-      blog_id: :factory_blog, # Resolved to actual blog ID
-      function: {MyFactory, :create_post_with_tags, []}
+    prototype :factory_blog do
+      attr :name, "Factory Blog"
+    end
+  end
+end
+
+defmodule Post do
+  use Ash.Resource,
+    domain: Domain,
+    extensions: [AshScenario.Dsl]
+
+  # ... attributes, relationships, actions ...
+
+  prototypes do
+    # Separate module-level configuration for Post creation
+    create function: {MyFactory, :create_post_with_tags, []}
+
+    prototype :custom_post do
+      attr :title, "Custom Post"
+      # Preserved as atom (not a relationship)
+      attr :status, :published
+      # Resolved to actual blog ID
+      attr :blog_id, :factory_blog
+    end
   end
 end
 ```
@@ -208,6 +264,10 @@ Your custom function must:
 - Return `{:ok, created_resource}` or `{:error, reason}`
 - Handle the resolved attributes where relationship references are already converted to IDs
 
+Notes:
+- You can configure creation at the module level (via `create ...`) or per resource (via `action:`/`function:` on a specific `resource`).
+- Precedence: resource.function > resource.action > module-level create.function > module-level create.action (default `:create`).
+
 ```elixir
 def my_custom_function(resolved_attributes, opts) do
   # resolved_attributes example:
@@ -216,7 +276,7 @@ def my_custom_function(resolved_attributes, opts) do
   #   status: :published,           # Non-relationship atoms preserved
   #   blog_id: "uuid-string-here"   # Relationship references resolved to IDs
   # }
-  
+
   # Your custom creation logic here
   {:ok, created_resource}
 end
@@ -236,7 +296,7 @@ defmodule MyTest do
     example_blog do
       name "Base Blog"
     end
-    
+
     example_post do
       title "Base Post"
       content "Base content"
@@ -249,7 +309,7 @@ defmodule MyTest do
       title "Extended Post"  # Override title
       # content is inherited as "Base content"
     end
-    
+
     another_post do  # Add new resource
       title "Additional post"
       content "More content"
@@ -258,14 +318,14 @@ defmodule MyTest do
 
   test "extended scenario" do
     {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :extended_setup)
-    
+
     # Has inherited resources
     assert resources.example_blog.name == "Base Blog"
     assert resources.example_post.content == "Base content"  # Inherited
-    
-    # Has overridden attributes  
+
+    # Has overridden attributes
     assert resources.example_post.title == "Extended Post"  # Overridden
-    
+
     # Has new resources from extension
     assert resources.another_post.title == "Additional post"
   end
@@ -281,9 +341,52 @@ end
 - **Scenario Extension**: Build hierarchical scenarios using `extends: :base_scenario`
 - **Custom Functions**: Use any function as an alternative to the default create action
 - **Hardened Resolution**: Only relationship attributes are resolved; other atoms are preserved
-- **Backward Compatibility**: Old "scenario" terminology still works via aliases
+- **Virtual Attributes**: Pass action arguments (not stored attributes) via `virtual: true`
 
 ## Scenario API
+
+### Virtual Attributes (Action Arguments)
+
+Some create actions accept arguments that are not stored as attributes on the resource (e.g., `password`, `password_confirmation` for an auth flow). You can include these in prototype definitions by marking them as virtual. Virtual attributes skip compile-time validation against the resource schema and are passed into the create action input, allowing Ash to treat them as action arguments.
+
+```elixir
+defmodule User do
+  use Ash.Resource,
+    domain: Domain,
+    extensions: [AshScenario.Dsl]
+
+  attributes do
+    uuid_primary_key :id
+    attribute :email, :string do
+      public? true
+    end
+  end
+
+  actions do
+    create :register do
+      accept [:email]
+      # Action arguments that are not attributes
+      argument :password, :string, allow_nil?: false
+      argument :password_confirmation, :string, allow_nil?: false
+    end
+  end
+
+  prototypes do
+    create action: :register
+
+    prototype :admin_user do
+      attr :email, "admin@example.com"
+      attr :password, "s3cret", virtual: true
+      attr :password_confirmation, "s3cret", virtual: true
+    end
+  end
+end
+```
+
+Notes:
+- Virtual attributes are not validated against the resource's attributes/relationships.
+- They are included in the map passed to `Ash.Changeset.for_create/3`, so if your create action defines corresponding `argument`s, Ash will consume them correctly.
+- This also plays nicely with custom `create function:` usage; your factory function receives the same key/value pairs.
 
 ```elixir
 # Enable the Scenario DSL in a test module
@@ -299,7 +402,7 @@ end
 # Run a scenario
 {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :my_setup, domain: MyApp.Domain)
 
-# Access created resources by their resource names (atoms)
+# Access created resources by their prototype names (atoms)
 resources.example_post.title
 resources.example_blog.id
 ```
@@ -312,38 +415,57 @@ resources.example_blog.id
 
 ## API Reference
 
-### Resource Management
+### Prototype Management
 
 ```elixir
 # New API (recommended)
-AshScenario.run_resource(Module, :resource_name, opts)
-AshScenario.run_resources(resource_list, opts) 
-AshScenario.run_all_resources(Module, opts)
-
-# Legacy API (still supported)  
-AshScenario.run_scenario(Module, :resource_name, opts)
-AshScenario.run_scenarios(resource_list, opts)
-AshScenario.run_all_scenarios(Module, opts)
+AshScenario.run_prototype(Module, :prototype_name, opts)
+AshScenario.run_prototypes(prototype_list, opts)
+AshScenario.run_all_prototypes(Module, opts)
 ```
 
 ### Introspection
 
 ```elixir
 # New API
-AshScenario.resources(Module)         # Get all resource definitions
-AshScenario.resource(Module, :name)   # Get specific resource definition
-AshScenario.has_resources?(Module)    # Check if module has resources
-AshScenario.resource_names(Module)    # Get all resource names
+AshScenario.prototypes(Module)         # Get all prototype definitions
+AshScenario.prototype(Module, :name)   # Get specific prototype definition
+AshScenario.has_prototypes?(Module)    # Check if module has prototypes
+AshScenario.prototype_names(Module)    # Get all prototype names
+```
 
-# Legacy API (aliases to new functions)
-AshScenario.scenarios(Module)
-AshScenario.scenario(Module, :name) 
-AshScenario.has_scenarios?(Module)
-AshScenario.scenario_names(Module)
+
+### Per-Prototype Overrides
+
+You can override creation behavior for a specific prototype instance via a nested `create` (mirrors module-level `create`):
+
+```elixir
+prototypes do
+  # Use a specific action just for this instance
+  prototype :published_example do
+    create action: :publish
+    attr :title, "Published Title"
+    attr :content, "Body"
+    attr :blog_id, :example_blog
+  end
+
+  # Or override with a custom function just for this resource
+  prototype :factory_post do
+    create function: {MyFactory, :create_post_with_tags, ["PREFIX"]}
+    attr :title, "Factory Post"
+    attr :blog_id, :example_blog
+  end
+end
+
+# Precedence:
+# 1) prototype.create.function (or prototype.function)
+# 2) prototype.create.action (or prototype.action)
+# 3) module-level create.function
+# 4) module-level create.action (default :create)
 ```
 
 ## Architecture
 
-- **Dependency Graph**: Resources are analyzed for dependencies and created in topological order
-- **Reference Resolution**: Resource references (like `:example_blog`) are resolved to actual resource IDs at runtime
-- **Registry**: A GenServer maintains the registry of all resource definitions across modules
+- **Dependency Graph**: Prototypes are analyzed for dependencies and created in topological order
+- **Reference Resolution**: Prototype references (like `:example_blog`) are resolved to actual resource IDs at runtime
+- **Registry**: A GenServer maintains the registry of all prototype definitions across modules

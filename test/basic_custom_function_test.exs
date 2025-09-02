@@ -43,10 +43,10 @@ defmodule AshScenario.BasicCustomFunctionTest do
       end
     end
 
-    resources do
+    prototypes do
       create function: {TestFactory, :create_blog, []}
 
-      resource :factory_blog do
+      prototype :factory_blog do
         attr :name, "Factory Blog"
       end
     end
@@ -84,10 +84,10 @@ defmodule AshScenario.BasicCustomFunctionTest do
       end
     end
 
-    resources do
+    prototypes do
       create function: {TestFactory, :create_post, []}
 
-      resource :factory_post do
+      prototype :factory_post do
         attr :title, "Factory Post"
         attr :content, "Factory Content"
         attr :status, "published"
@@ -101,22 +101,22 @@ defmodule AshScenario.BasicCustomFunctionTest do
       {:ok, _pid} -> :ok
       {:error, {:already_started, _pid}} -> :ok
     end
-    AshScenario.clear_resources()
-    AshScenario.register_resources(CustomBlog)
-    AshScenario.register_resources(CustomPost)
+    AshScenario.clear_prototypes()
+    AshScenario.register_prototypes(CustomBlog)
+    AshScenario.register_prototypes(CustomPost)
     :ok
   end
 
   describe "basic custom function support" do
-    test "custom function creates resource correctly" do
-      {:ok, blog} = AshScenario.run_resource(CustomBlog, :factory_blog, domain: Domain)
+    test "custom function creates prototype correctly" do
+      {:ok, blog} = AshScenario.run_prototype(CustomBlog, :factory_blog, domain: Domain)
       
       assert blog.name == "Factory Blog"
       assert blog.id != nil
     end
 
     test "custom function with dependency resolution" do
-      {:ok, resources} = AshScenario.run_resources([
+      {:ok, resources} = AshScenario.run_prototypes([
         {CustomBlog, :factory_blog},
         {CustomPost, :factory_post}
       ], domain: Domain)
@@ -131,7 +131,7 @@ defmodule AshScenario.BasicCustomFunctionTest do
     end
 
     test "hardened relationship resolution preserves non-relationship atoms" do
-      {:ok, resources} = AshScenario.run_resources([
+      {:ok, resources} = AshScenario.run_prototypes([
         {CustomBlog, :factory_blog},
         {CustomPost, :factory_post}
       ], domain: Domain)

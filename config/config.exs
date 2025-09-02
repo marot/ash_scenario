@@ -2,7 +2,7 @@ import Config
 
 # Base logger configuration; keep default at :info for libraries
 config :logger,
-  level: :info,
+  level: :warning,
   truncate: 8096,
   compile_time_purge_matching: [],
   backends: [:console]
@@ -10,3 +10,6 @@ config :logger,
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:component, :resource, :ref, :trace_id]
+
+# Import environment specific config
+import_config "#{config_env()}.exs"

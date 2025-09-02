@@ -1,29 +1,29 @@
 defmodule AshScenario.Info do
   @moduledoc """
-  Introspection functions for accessing resource information from resources.
+  Introspection functions for accessing prototype information from resource modules.
   """
 
   @doc """
-  Get all resources defined in a resource.
+  Get all prototypes defined in a resource module.
   """
-  def resources(resource) do
-    entities = Spark.Dsl.Extension.get_entities(resource, [:resources]) || []
+  def prototypes(ash_resource) do
+    entities = Spark.Dsl.Extension.get_entities(ash_resource, [:prototypes]) || []
 
     Enum.filter(entities, fn
-      %AshScenario.Dsl.Resource{} -> true
+      %AshScenario.Dsl.Prototype{} -> true
       _ -> false
     end)
   end
 
   @doc """
-  Get a specific resource by name from a resource.
+  Get a specific prototype by name from a resource module.
   """
-  def resource(resource, name) do
-    resources(resource)
-    |> Enum.find(fn resource_def -> 
+  def prototype(ash_resource, name) do
+    prototypes(ash_resource)
+    |> Enum.find(fn resource_def ->
       # Handle both our Resource struct and potential other structs
       case resource_def do
-        %AshScenario.Dsl.Resource{ref: ^name} -> true
+        %AshScenario.Dsl.Prototype{ref: ^name} -> true
         %{ref: ^name} -> true
         _ -> false
       end
@@ -31,21 +31,21 @@ defmodule AshScenario.Info do
   end
 
   @doc """
-  Check if a resource has any resources defined.
+  Check if a resource module has any prototypes defined.
   """
-  def has_resources?(resource) do
-    resources(resource) != []
+  def has_prototypes?(ash_resource) do
+    prototypes(ash_resource) != []
   end
 
   @doc """
-  Get all resource names from a resource.
+  Get all prototype names from a resource module.
   """
-  def resource_names(resource) do
-    resources(resource)
+  def prototype_names(ash_resource) do
+    prototypes(ash_resource)
     |> Enum.map(fn resource_def ->
       # Handle both our Resource struct and potential other structs
       case resource_def do
-        %AshScenario.Dsl.Resource{ref: ref} -> ref
+        %AshScenario.Dsl.Prototype{ref: ref} -> ref
         %{ref: ref} -> ref
         _ -> nil
       end
@@ -53,26 +53,13 @@ defmodule AshScenario.Info do
     |> Enum.reject(&is_nil/1)
   end
 
-  # Backward compatibility functions
-  @doc "Deprecated: Use resources/1 instead"
-  def scenarios(resource), do: resources(resource)
-  
-  @doc "Deprecated: Use resource/2 instead"
-  def scenario(resource, name), do: resource(resource, name)
-  
-  @doc "Deprecated: Use has_resources?/1 instead"
-  def has_scenarios?(resource), do: has_resources?(resource)
-  
-  @doc "Deprecated: Use resource_names/1 instead"
-  def scenario_names(resource), do: resource_names(resource)
-
   @doc """
   Get the creation configuration for a resource module.
 
   Returns `%AshScenario.Dsl.Create{}` if defined, otherwise a default with action `:create`.
   """
   def create(resource) do
-    Spark.Dsl.Extension.get_entities(resource, [:resources])
+    Spark.Dsl.Extension.get_entities(resource, [:prototypes])
     |> Enum.find(fn
       %AshScenario.Dsl.Create{} -> true
       _ -> false

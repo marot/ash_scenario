@@ -19,12 +19,12 @@ defmodule Blog do
     end
   end
 
-  resources do
-    resource :example_blog do
+  prototypes do
+    prototype :example_blog do
       attr :name, "Example name"
     end
 
-    resource :tech_blog do
+    prototype :tech_blog do
       attr :name, "Tech Blog"
     end
   end
