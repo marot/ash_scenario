@@ -545,9 +545,16 @@ defmodule AshScenario.Scenario do
 
   defp build_changeset(resource_module, action_name, attributes) do
     try do
+      # Only include fields explicitly provided (drop nils).
+      # This prevents including all accepted fields as nil, which breaks absent()/present().
+      sanitized_attributes =
+        attributes
+        |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+        |> Map.new()
+
       changeset =
         resource_module
-        |> Ash.Changeset.for_create(action_name, attributes)
+        |> Ash.Changeset.for_create(action_name, sanitized_attributes)
 
       {:ok, changeset}
     rescue
