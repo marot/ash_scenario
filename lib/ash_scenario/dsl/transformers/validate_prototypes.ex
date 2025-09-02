@@ -16,11 +16,12 @@ defmodule AshScenario.Dsl.Transformers.ValidatePrototypes do
         %AshScenario.Dsl.Prototype{} -> true
         _ -> false
       end)
-    
+
     case process_prototypes(dsl_state, prototypes) do
-      :ok -> 
+      :ok ->
         {:ok, dsl_state}
-      {:error, error} -> 
+
+      {:error, error} ->
         {:error, error}
     end
   end
@@ -28,7 +29,6 @@ defmodule AshScenario.Dsl.Transformers.ValidatePrototypes do
   defp process_prototypes(dsl_state, prototypes) do
     with {:ok, resource_module} <- get_resource_module(dsl_state),
          {:ok, valid_keys} <- get_valid_keys(dsl_state) do
-      
       prototypes
       |> Enum.reduce_while(:ok, fn prototype, :ok ->
         case validate_prototype(prototype, valid_keys, resource_module) do
@@ -71,25 +71,22 @@ defmodule AshScenario.Dsl.Transformers.ValidatePrototypes do
         end
       end)
 
-    relationship_names =
-      relationship_entities
-      |> Enum.map(fn rel ->
-        case rel do
-          %{name: name} -> name
-          _ -> nil
-        end
-      end)
-      |> Enum.reject(&is_nil/1)
-
     # Allow using either the relationship name (e.g., :blog) or its source attribute (e.g., :blog_id)
     relationship_source_attrs =
       relationship_entities
       |> Enum.map(fn rel ->
         cond do
-          is_map(rel) and is_atom(Map.get(rel, :source_attribute)) -> Map.get(rel, :source_attribute)
-          is_map(rel) and is_atom(Map.get(rel, :attribute)) -> Map.get(rel, :attribute)
-          is_map(rel) and is_atom(Map.get(rel, :name)) -> String.to_atom("#{rel.name}_id")
-          true -> nil
+          is_map(rel) and is_atom(Map.get(rel, :source_attribute)) ->
+            Map.get(rel, :source_attribute)
+
+          is_map(rel) and is_atom(Map.get(rel, :attribute)) ->
+            Map.get(rel, :attribute)
+
+          is_map(rel) and is_atom(Map.get(rel, :name)) ->
+            String.to_atom("#{rel.name}_id")
+
+          true ->
+            nil
         end
       end)
       |> Enum.reject(&is_nil/1)
@@ -116,9 +113,10 @@ defmodule AshScenario.Dsl.Transformers.ValidatePrototypes do
         else
           error_msg = """
           Invalid attribute '#{key}' in prototype '#{prototype_name}' for resource #{inspect(resource_module)}.
-          
+
           Valid attributes and relationships: #{valid_keys |> Enum.sort() |> Enum.join(", ")}
           """
+
           {:halt, {:error, error_msg}}
         end
       end)

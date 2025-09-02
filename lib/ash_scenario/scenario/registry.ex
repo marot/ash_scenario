@@ -120,18 +120,30 @@ defmodule AshScenario.Scenario.Registry do
 
   @impl true
   def handle_call({:get_prototype, resource_module, resource_name}, _from, state) do
+    {state, _registered?} = ensure_registered(resource_module, state)
     prototype = get_in(state, [resource_module, resource_name])
     {:reply, prototype, state}
   end
 
   @impl true
   def handle_call({:get_prototypes, resource_module}, _from, state) do
+    {state, _registered?} = ensure_registered(resource_module, state)
     prototypes = Map.get(state, resource_module, %{}) |> Map.values()
     {:reply, prototypes, state}
   end
 
   @impl true
   def handle_call({:resolve_dependencies, prototype_refs}, _from, state) do
+    # Lazily register any resource modules referenced in the request
+    state =
+      prototype_refs
+      |> Enum.map(&elem(&1, 0))
+      |> Enum.uniq()
+      |> Enum.reduce(state, fn mod, acc ->
+        {acc, _} = ensure_registered(mod, acc)
+        acc
+      end)
+
     case build_dependency_graph(prototype_refs, state) do
       {:ok, ordered_prototypes} ->
         Log.debug(
@@ -159,6 +171,50 @@ defmodule AshScenario.Scenario.Registry do
   end
 
   # Private Functions
+
+  # Ensure a resource module's prototypes are present in the registry state.
+  # Returns {updated_state, registered?}
+  defp ensure_registered(resource_module, state) do
+    case Map.has_key?(state, resource_module) do
+      true -> {state, false}
+      false -> do_register_module(resource_module, state)
+    end
+  end
+
+  defp do_register_module(resource_module, state) do
+    prototypes = AshScenario.Info.prototypes(resource_module)
+
+    if prototypes == [] do
+      {state, false}
+    else
+      updated_state =
+        prototypes
+        |> Enum.reduce(state, fn prototype, acc ->
+          prototype_data = %{
+            ref: prototype.ref,
+            resource: resource_module,
+            attributes: prototype.attributes,
+            dependencies: extract_dependencies(resource_module, prototype.attributes),
+            action: Map.get(prototype, :action),
+            function: Map.get(prototype, :function)
+          }
+
+          acc
+          |> Map.put_new(resource_module, %{})
+          |> put_in([resource_module, prototype.ref], prototype_data)
+        end)
+
+      Log.info(
+        fn ->
+          "auto_registered_prototypes module=#{inspect(resource_module)} count=#{length(prototypes)}"
+        end,
+        component: :registry,
+        resource: resource_module
+      )
+
+      {updated_state, true}
+    end
+  end
 
   defp extract_dependencies(resource_module, attributes) do
     attributes
@@ -205,19 +261,26 @@ defmodule AshScenario.Scenario.Registry do
     if new_refs == [] do
       {:ok, MapSet.to_list(visited)}
     else
-      # Validate that all new_refs actually exist after cross-module resolution
+      # Lazily register any modules missing at this point
+      state =
+        new_refs
+        |> Enum.map(&elem(&1, 0))
+        |> Enum.uniq()
+        |> Enum.reduce(state, fn mod, acc ->
+          {acc, _} = ensure_registered(mod, acc)
+          acc
+        end)
+
+      # Validate that all new_refs actually exist after cross-module resolution/registration
       case Enum.find(new_refs, fn {resource_module, ref} ->
              get_in(state, [resource_module, ref]) == nil
            end) do
         {missing_module, missing_ref} ->
-          # Ensure atom refs render with a leading ':' for consistency
           {:error, "Prototype #{inspect(missing_ref)} not found in #{inspect(missing_module)}"}
 
         nil ->
-          # All resources exist, proceed
           updated_visited = Enum.reduce(new_refs, visited, &MapSet.put(&2, &1))
 
-          # Find dependencies for each new ref
           dependencies =
             new_refs
             |> Enum.flat_map(fn {resource_module, ref} ->
