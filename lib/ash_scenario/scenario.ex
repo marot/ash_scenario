@@ -80,13 +80,20 @@ defmodule AshScenario.Scenario do
       |> Enum.map(fn scenario_data ->
         case scenario_data do
           {name, block, base_scenario} ->
-            overrides = extract_overrides_from_ast(block)
-            resolved_overrides = merge_with_base_scenario(overrides, base_scenario, scenarios)
+            # Expand the block to resolve compile-time values
+            expanded_block = expand_compile_time_values(block, env)
+            overrides = extract_overrides_from_ast(expanded_block)
+
+            resolved_overrides =
+              merge_with_base_scenario(overrides, base_scenario, scenarios, env)
+
             {name, resolved_overrides}
 
           {name, block} ->
             # Backward compatibility for scenarios without extends
-            overrides = extract_overrides_from_ast(block)
+            # Expand the block to resolve compile-time values
+            expanded_block = expand_compile_time_values(block, env)
+            overrides = extract_overrides_from_ast(expanded_block)
             {name, overrides}
         end
       end)
@@ -96,6 +103,57 @@ defmodule AshScenario.Scenario do
         unquote(Macro.escape(scenario_definitions))
       end
     end
+  end
+
+  # Helper to expand compile-time values (module attributes and function calls) in AST
+  defp expand_compile_time_values(ast, env) do
+    Macro.prewalk(ast, fn
+      # Module attributes
+      {:@, _, [{name, _, _}]} = node ->
+        # Try to get the module attribute value
+        case Module.get_attribute(env.module, name) do
+          # Keep the original if attribute doesn't exist
+          nil -> node
+          # Replace with the actual value
+          value -> Macro.escape(value)
+        end
+
+      # Local function calls (zero-arity only for safety)
+      {func_name, meta, []} = node when is_atom(func_name) and is_list(meta) ->
+        # Check if the function exists in the module being compiled
+        # Note: function_exported? won't work here because the module isn't compiled yet
+        # We need to use Code.eval_quoted which will call the function if it exists
+        try do
+          # Evaluate the function at compile time
+          {result, _} = Code.eval_quoted(node, [], env)
+          # Only use the result if it's a simple value (not another AST node)
+          if is_function(result) or match?({_, _, _}, result) do
+            node  # Keep original if result is a function or AST
+          else
+            Macro.escape(result)
+          end
+        rescue
+          _ -> node  # Keep original if evaluation fails
+        end
+
+      # Remote function calls (Module.function() pattern)
+      {{:., _, [_module_alias, func_name]}, _, args} = node when is_atom(func_name) ->
+        # Only evaluate zero-arity calls for safety
+        if args == [] do
+          try do
+            # Try to evaluate the remote function call
+            {result, _} = Code.eval_quoted(node, [], env)
+            Macro.escape(result)
+          rescue
+            _ -> node  # Keep original if evaluation fails
+          end
+        else
+          node
+        end
+
+      other ->
+        other
+    end)
   end
 
   # Compile-time version of extract_overrides_from_block for macro expansion
@@ -151,10 +209,10 @@ defmodule AshScenario.Scenario do
   defp extract_attribute_from_ast(_), do: nil
 
   # Scenario merging logic for extension support
-  defp merge_with_base_scenario(overrides, nil, _all_scenarios), do: overrides
+  defp merge_with_base_scenario(overrides, nil, _all_scenarios, _env), do: overrides
 
-  defp merge_with_base_scenario(overrides, base_scenario_name, all_scenarios) do
-    case find_base_scenario(base_scenario_name, all_scenarios) do
+  defp merge_with_base_scenario(overrides, base_scenario_name, all_scenarios, env) do
+    case find_base_scenario(base_scenario_name, all_scenarios, env) do
       nil ->
         # Base scenario not found, return original overrides
         # In practice, this could be an error, but we'll be lenient
@@ -165,7 +223,7 @@ defmodule AshScenario.Scenario do
     end
   end
 
-  defp find_base_scenario(base_name, all_scenarios) do
+  defp find_base_scenario(base_name, all_scenarios, env) do
     case Enum.find(all_scenarios, fn scenario_data ->
            case scenario_data do
              {^base_name, _block} -> true
@@ -177,12 +235,14 @@ defmodule AshScenario.Scenario do
         nil
 
       {_name, block} ->
-        extract_overrides_from_ast(block)
+        expanded_block = expand_compile_time_values(block, env)
+        extract_overrides_from_ast(expanded_block)
 
       {_name, block, base} ->
         # Recursively resolve base scenarios
-        base_overrides = extract_overrides_from_ast(block)
-        merge_with_base_scenario(base_overrides, base, all_scenarios)
+        expanded_block = expand_compile_time_values(block, env)
+        base_overrides = extract_overrides_from_ast(expanded_block)
+        merge_with_base_scenario(base_overrides, base, all_scenarios, env)
     end
   end
 
@@ -559,12 +619,14 @@ defmodule AshScenario.Scenario do
       # Drop nils unless explicitly provided in scenario overrides.
       # Explicit nils are kept so absent() validations properly fail.
       explicit_nil_keys = MapSet.new(Keyword.get(opts, :__explicit_nil_keys__, []))
+
       sanitized_attributes =
         attributes
         |> Enum.reject(fn {k, v} -> is_nil(v) and not MapSet.member?(explicit_nil_keys, k) end)
         |> Map.new()
 
       require Logger
+
       Logger.debug(
         "[scenario] build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} explicit_nil_keys=#{inspect(MapSet.to_list(explicit_nil_keys))} sanitized=#{inspect(sanitized_attributes)}"
       )
@@ -572,7 +634,9 @@ defmodule AshScenario.Scenario do
       changeset =
         resource_module
         |> Ash.Changeset.for_create(action_name, sanitized_attributes)
+
       require Logger
+
       Logger.debug(
         "[scenario] built_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} changes=#{inspect(Map.get(changeset, :changes, %{}))}"
       )
