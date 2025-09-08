@@ -49,6 +49,18 @@ defmodule AshScenario.SimpleCompileTimeTest do
     end
   end
 
+  # Test with date sigil
+  scenario :date_sigil do
+    example_blog do
+      name "Blog with dates"
+    end
+
+    example_post do
+      title "Post with publication date"
+      publication_date ~D[2016-04-12]
+    end
+  end
+
   describe "module attributes" do
     test "module attributes work correctly" do
       {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :attributes_only, domain: Domain)
@@ -87,6 +99,24 @@ defmodule AshScenario.SimpleCompileTimeTest do
       # Verify they're not AST tuples
       refute is_tuple(overrides[:tech_blog][:name])
       refute is_tuple(overrides[:another_post][:title])
+    end
+  end
+
+  describe "date sigils" do
+    test "date sigils are expanded at compile time" do
+      scenarios = __scenarios__()
+      {_name, overrides} = Enum.find(scenarios, fn {name, _} -> name == :date_sigil end)
+      
+      # Date should be expanded to an actual Date struct
+      assert overrides[:example_post][:publication_date] == ~D[2016-04-12]
+      assert %Date{year: 2016, month: 4, day: 12} = overrides[:example_post][:publication_date]
+    end
+
+    test "date sigils work correctly at runtime" do
+      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :date_sigil, domain: Domain)
+
+      assert resources.example_post.publication_date == ~D[2016-04-12]
+      assert %Date{year: 2016, month: 4, day: 12} = resources.example_post.publication_date
     end
   end
 end

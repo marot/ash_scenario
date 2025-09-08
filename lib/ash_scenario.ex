@@ -31,7 +31,7 @@ defmodule AshScenario do
 
   Then run scenarios:
 
-      # Run a single prototype
+      <!--# Run a single prototype-->
       AshScenario.run_prototype(MyApp.Post, :example_post)
 
       # Run multiple prototypes with dependency resolution
@@ -44,7 +44,7 @@ defmodule AshScenario do
       AshScenario.run_all_prototypes(MyApp.Post)
   """
 
-  alias AshScenario.Scenario.{Registry, Runner}
+  alias AshScenario.Scenario.{Registry, Runner, StructBuilder}
 
   @doc """
   Start the scenario registry (should be called in your application supervision tree).
@@ -117,6 +117,48 @@ defmodule AshScenario do
   defdelegate prototype(resource, name), to: AshScenario.Info
   defdelegate has_prototypes?(resource), to: AshScenario.Info
   defdelegate prototype_names(resource), to: AshScenario.Info
+
+  @doc """
+  Create a single prototype as a struct without database persistence.
+
+  This is useful for generating test data for stories or other use cases
+  where you need the data structure but don't want to persist to the database.
+
+  ## Examples
+
+      AshScenario.create_struct(MyApp.Post, :example_post)
+      AshScenario.create_struct(MyApp.Post, :example_post, title: "Override")
+  """
+  def create_struct(resource_module, prototype_name, opts \\ []) do
+    StructBuilder.run_prototype_structs(resource_module, prototype_name, opts)
+  end
+
+  @doc """
+  Create multiple prototypes as structs with automatic dependency resolution.
+
+  All dependencies will be created as structs in memory without database persistence.
+
+  ## Examples
+
+      AshScenario.create_structs([
+        {MyApp.Blog, :example_blog},
+        {MyApp.Post, :example_post}
+      ])
+  """
+  def create_structs(prototype_refs, opts \\ []) when is_list(prototype_refs) do
+    StructBuilder.run_prototypes_structs(prototype_refs, opts)
+  end
+
+  @doc """
+  Create all prototypes defined in a resource module as structs.
+
+  ## Examples
+
+      AshScenario.create_all_structs(MyApp.Post)
+  """
+  def create_all_structs(resource_module, opts \\ []) do
+    StructBuilder.run_all_prototypes_structs(resource_module, opts)
+  end
 
   @doc """
   Clear all registered prototypes (useful for testing).

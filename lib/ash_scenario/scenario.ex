@@ -93,7 +93,9 @@ defmodule AshScenario.Scenario do
             # Backward compatibility for scenarios without extends
             # Expand the block to resolve compile-time values
             expanded_block = expand_compile_time_values(block, env)
+            
             overrides = extract_overrides_from_ast(expanded_block)
+            
             {name, overrides}
         end
       end)
@@ -105,56 +107,63 @@ defmodule AshScenario.Scenario do
     end
   end
 
-  # Helper to expand compile-time values (module attributes and function calls) in AST
+  # Helper to expand compile-time values - always evaluate RHS expressions completely
   defp expand_compile_time_values(ast, env) do
-    Macro.prewalk(ast, fn
-      # Module attributes
-      {:@, _, [{name, _, _}]} = node ->
-        # Try to get the module attribute value
-        case Module.get_attribute(env.module, name) do
-          # Keep the original if attribute doesn't exist
-          nil -> node
-          # Replace with the actual value
-          value -> Macro.escape(value)
-        end
+    Macro.postwalk(ast, fn
+      # For attribute assignment patterns, always evaluate the RHS value completely
+      {attr_name, meta, [value]} when is_atom(attr_name) and is_list(meta) ->
+        # Evaluate the RHS expression to get the actual value
+        evaluated_value = evaluate_rhs_expression(value, env)
+        {attr_name, meta, [evaluated_value]}
 
-      # Local function calls (zero-arity only for safety)
-      {func_name, meta, []} = node when is_atom(func_name) and is_list(meta) ->
-        # Check if the function exists in the module being compiled
-        # Note: function_exported? won't work here because the module isn't compiled yet
-        # We need to use Code.eval_quoted which will call the function if it exists
-        try do
-          # Evaluate the function at compile time
-          {result, _} = Code.eval_quoted(node, [], env)
-          # Only use the result if it's a simple value (not another AST node)
-          if is_function(result) or match?({_, _, _}, result) do
-            node  # Keep original if result is a function or AST
-          else
-            Macro.escape(result)
-          end
-        rescue
-          _ -> node  # Keep original if evaluation fails
-        end
-
-      # Remote function calls (Module.function() pattern)
-      {{:., _, [_module_alias, func_name]}, _, args} = node when is_atom(func_name) ->
-        # Only evaluate zero-arity calls for safety
-        if args == [] do
-          try do
-            # Try to evaluate the remote function call
-            {result, _} = Code.eval_quoted(node, [], env)
-            Macro.escape(result)
-          rescue
-            _ -> node  # Keep original if evaluation fails
-          end
-        else
-          node
-        end
-
+      # Keep other nodes as-is
       other ->
         other
     end)
   end
+
+  # Selectively evaluate RHS expressions that are safe to evaluate at compile time
+  defp evaluate_rhs_expression(ast, env) do
+    case ast do
+      # Module attributes - try to evaluate them
+      {:@, _, [{name, _, _}]} ->
+        case Module.get_attribute(env.module, name) do
+          nil -> ast  # Keep original if attribute doesn't exist
+          value -> value  # Use the actual value
+        end
+
+      # Sigils and other safe compile-time expressions
+      {:sigil_D, _, _} ->
+        try do
+          {result, _} = Code.eval_quoted(ast, [], env)
+          result
+        rescue
+          _ -> ast
+        end
+
+      # Zero-arity function calls that we know are safe
+      {{:., _, [{:__aliases__, _, _module_parts}, _func_name]}, _, []} ->
+        try do
+          {result, _} = Code.eval_quoted(ast, [], env)
+          result
+        rescue
+          _ -> ast
+        end
+
+      # System function calls
+      {{:., _, [{:__aliases__, _, [:System]}, _func_name]}, _, []} ->
+        try do
+          {result, _} = Code.eval_quoted(ast, [], env)
+          result
+        rescue
+          _ -> ast
+        end
+
+      # Everything else - keep as AST (literals, function calls with args, etc.)
+      _ -> ast
+    end
+  end
+
 
   # Compile-time version of extract_overrides_from_block for macro expansion
   defp extract_overrides_from_ast({:__block__, _, statements}) do
@@ -171,6 +180,37 @@ defmodule AshScenario.Scenario do
     end
   end
 
+  # Handle module-scoped prototype: prototype_name(module: Module) do ... end
+  defp extract_override_from_ast({proto_name, _meta, [[module: module], [do: block]]})
+       when is_atom(proto_name) do
+    resolved_module = resolve_module_name(module)
+    overrides = extract_attributes_from_ast(block)
+    {{resolved_module, proto_name}, overrides}
+  end
+
+  # The AST wraps the keyword list in an extra list
+  defp extract_override_from_ast({proto_name, _meta, [[[module: module]], [do: block]]})
+       when is_atom(proto_name) do
+    resolved_module = resolve_module_name(module)
+    overrides = extract_attributes_from_ast(block)
+    {{resolved_module, proto_name}, overrides}
+  end
+
+  defp extract_override_from_ast({proto_name, _meta, [[module: module], block]})
+       when is_atom(proto_name) do
+    resolved_module = resolve_module_name(module)
+    overrides = extract_attributes_from_ast(block)
+    {{resolved_module, proto_name}, overrides}
+  end
+
+  defp extract_override_from_ast({proto_name, _meta, [[[module: module]], block]})
+       when is_atom(proto_name) do
+    resolved_module = resolve_module_name(module)
+    overrides = extract_attributes_from_ast(block)
+    {{resolved_module, proto_name}, overrides}
+  end
+
+  # Handle simple prototype name: prototype_name do ... end
   defp extract_override_from_ast({proto_name, _meta, [[do: block]]}) when is_atom(proto_name) do
     overrides = extract_attributes_from_ast(block)
     {proto_name, overrides}
@@ -182,6 +222,15 @@ defmodule AshScenario.Scenario do
   end
 
   defp extract_override_from_ast(_), do: nil
+
+  # Helper function to resolve module names from AST
+  defp resolve_module_name({:__aliases__, _, parts}) when is_list(parts) do
+    Module.concat(parts)
+  end
+  
+  defp resolve_module_name(module) when is_atom(module) do
+    module
+  end
 
   defp extract_attributes_from_ast({:__block__, _, statements}) do
     statements
@@ -198,15 +247,28 @@ defmodule AshScenario.Scenario do
   end
 
   defp extract_attribute_from_ast({attr_name, _meta, [value]}) when is_atom(attr_name) do
-    {attr_name, value}
+    # If the value is still AST (wasn't evaluated), try to evaluate it now at runtime
+    final_value = maybe_evaluate_remaining_ast(value)
+    {attr_name, final_value}
   end
 
   # Handle do-block syntax: attr_name(do: block) becomes attr_name: value
   defp extract_attribute_from_ast({attr_name, _meta, [[do: value]]}) when is_atom(attr_name) do
-    {attr_name, value}
+    # If the value is still AST (wasn't evaluated), try to evaluate it now at runtime
+    final_value = maybe_evaluate_remaining_ast(value)
+    {attr_name, final_value}
   end
 
   defp extract_attribute_from_ast(_), do: nil
+
+  # Helper to evaluate any remaining AST that wasn't handled at compile time
+  defp maybe_evaluate_remaining_ast({:%{}, _, _} = escaped_struct) do
+    # This is an escaped struct (like a Date), evaluate it to get the actual struct
+    {result, _} = Code.eval_quoted(escaped_struct)
+    result
+  end
+  
+  defp maybe_evaluate_remaining_ast(value), do: value
 
   # Scenario merging logic for extension support
   defp merge_with_base_scenario(overrides, nil, _all_scenarios, _env), do: overrides
@@ -272,6 +334,23 @@ defmodule AshScenario.Scenario do
     end
   end
 
+  @doc """
+  Create structs for a named scenario from a test module without database persistence.
+
+  This is useful for generating test data for stories or other use cases
+  where you need the data structure but don't want to persist to the database.
+
+  ## Examples
+
+      {:ok, structs} = AshScenario.Scenario.create_structs(MyTest, :basic_setup)
+  """
+  def create_structs(test_module, scenario_name, opts \\ []) do
+    with {:ok, overrides} <- get_scenario_with_validation(test_module, scenario_name),
+         {:ok, _} <- validate_prototypes_exist(overrides) do
+      execute_scenario_structs(overrides, opts)
+    end
+  end
+
   # Private Functions
 
   defp get_scenario_with_validation(test_module, scenario_name) do
@@ -327,6 +406,19 @@ defmodule AshScenario.Scenario do
          {:ok, ordered_prototypes} <- resolve_dependency_order(all_proto_names) do
       # 3. Create prototypes in dependency order with overrides applied
       create_prototypes_in_order(ordered_prototypes, overrides, opts)
+    end
+  end
+
+  defp execute_scenario_structs(overrides, opts) do
+    # 1. Extract explicitly referenced prototypes
+    explicitly_referenced = Map.keys(overrides)
+
+    # 2. Find all dependencies and build complete prototype list
+    with {:ok, all_proto_names} <-
+           find_all_dependencies_for_overrides(explicitly_referenced, %{}),
+         {:ok, ordered_prototypes} <- resolve_dependency_order(all_proto_names) do
+      # 3. Create prototypes as structs in dependency order with overrides applied
+      create_prototype_structs_in_order(ordered_prototypes, overrides, opts)
     end
   end
 
@@ -409,8 +501,23 @@ defmodule AshScenario.Scenario do
     |> Enum.reverse()
   end
 
-  defp search_for_prototype_in_registry(prototype_name) do
-    # Dynamic discovery of modules that use AshScenario.Dsl
+  defp search_for_prototype_in_registry({module, prototype_name}) when is_atom(module) do
+    # Module-scoped reference - search only in the specified module
+    if module_uses_ash_scenario_dsl?(module) do
+      resource_def = AshScenario.Info.prototype(module, prototype_name)
+
+      if resource_def do
+        {:ok, {module, resource_def}}
+      else
+        :not_found
+      end
+    else
+      :not_found
+    end
+  end
+
+  defp search_for_prototype_in_registry(prototype_name) when is_atom(prototype_name) do
+    # Simple prototype name - search across all modules (existing behavior)
     case discover_resource_modules() do
       [] ->
         :not_found
@@ -472,6 +579,66 @@ defmodule AshScenario.Scenario do
     end)
   end
 
+  defp create_prototype_structs_in_order(ordered_prototype_names, overrides, opts) do
+    # Create each prototype struct in dependency order, applying overrides as needed
+    Enum.reduce_while(ordered_prototype_names, {:ok, %{}}, fn prototype_name,
+                                                              {:ok, created_structs} ->
+      case create_single_prototype_struct(prototype_name, overrides, created_structs, opts) do
+        {:ok, scoped_key, struct} ->
+          # Always store with the scoped key for consistency
+          updated_structs = Map.put(created_structs, scoped_key, struct)
+          {:cont, {:ok, updated_structs}}
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+      end
+    end)
+  end
+
+  defp create_single_prototype_struct(prototype_name, overrides, created_structs, opts) do
+    # 1. Get base prototype definition
+    case search_for_prototype_in_registry(prototype_name) do
+      {:ok, {module, prototype_definition}} ->
+        # 2. Determine the canonical scoped key for storage
+        # Always use {module, name} format for consistency
+        scoped_key = case prototype_name do
+          {_mod, name} -> {module, name}  # Already scoped, use the found module
+          name when is_atom(name) -> {module, name}  # Unscoped, add module
+        end
+        
+        # 3. Merge base attributes with overrides
+        base_attrs = Map.new(prototype_definition.attributes || [])
+        override_attrs = Map.new(overrides[prototype_name] || [])
+        merged_attributes = Map.merge(base_attrs, override_attrs)
+
+        # 3. Resolve any prototype references to structs (not IDs)
+        case resolve_prototype_struct_references(merged_attributes, module, created_structs) do
+          {:ok, resolved_attributes} ->
+            # 4. Use module-level create configuration (custom function or action)
+            create_cfg = AshScenario.Info.create(module)
+
+            result = if create_cfg.function do
+              execute_custom_function(create_cfg.function, resolved_attributes, opts)
+            else
+              # Create struct without database persistence
+              create_struct(module, resolved_attributes, opts)
+            end
+            
+            # Add the scoped_key to the result
+            case result do
+              {:ok, struct} -> {:ok, scoped_key, struct}
+              error -> error
+            end
+
+          error ->
+            error
+        end
+
+      :not_found ->
+        {:error, "Prototype #{inspect(prototype_name)} not found"}
+    end
+  end
+
   defp create_single_prototype(prototype_name, overrides, created_resources, opts) do
     # 1. Get base prototype definition
     case search_for_prototype_in_registry(prototype_name) do
@@ -511,6 +678,90 @@ defmodule AshScenario.Scenario do
       :not_found ->
         # Ensure atom names are displayed with a leading ':' for consistency
         {:error, "Prototype #{inspect(prototype_name)} not found"}
+    end
+  end
+
+  defp resolve_prototype_struct_references(attributes, module, created_structs) do
+    # Resolve any :prototype_name references to actual structs (not IDs)
+    resolved =
+      attributes
+      |> Enum.map(fn {key, value} ->
+        {:ok, resolved_value} =
+          resolve_single_struct_reference(value, key, module, created_structs)
+
+        {key, resolved_value}
+      end)
+      |> Map.new()
+
+    {:ok, resolved}
+  end
+
+  defp resolve_single_struct_reference(value, attr_name, module, created_structs)
+       when is_atom(value) do
+    # Only resolve atoms that correspond to relationship attributes
+    if is_relationship_attribute?(module, attr_name) do
+      # Always look for scoped key first since we store everything scoped
+      # Need to find the right module for this prototype
+      matching_struct = Enum.find_value(created_structs, fn
+        {{_mod, ^value}, struct} -> struct
+        _ -> nil
+      end)
+      
+      case matching_struct do
+        nil -> {:ok, value}  # Not a reference, return as-is
+        struct -> {:ok, struct}  # Return the struct itself
+      end
+    else
+      # Not a relationship attribute, keep the atom value as-is
+      {:ok, value}
+    end
+  end
+
+  defp resolve_single_struct_reference(value, _attr_name, _module, _created_structs),
+    do: {:ok, value}
+
+  defp create_struct(module, attributes, _opts) do
+    try do
+      # Get primary key field(s)
+      primary_key = Ash.Resource.Info.primary_key(module)
+
+      # Generate ID if needed and not provided
+      attributes_with_id =
+        case {primary_key, Map.has_key?(attributes, :id)} do
+          {[:id], false} ->
+            Map.put(attributes, :id, Ash.UUID.generate())
+
+          _ ->
+            attributes
+        end
+
+      # Add timestamps if the resource has them and they're not provided
+      now = DateTime.utc_now()
+
+      attributes_with_timestamps =
+        attributes_with_id
+        |> maybe_add_timestamp(:inserted_at, now, module)
+        |> maybe_add_timestamp(:updated_at, now, module)
+
+      # Create the struct
+      struct = struct(module, attributes_with_timestamps)
+
+      {:ok, struct}
+    rescue
+      error ->
+        {:error, "Failed to build struct: #{inspect(error)}"}
+    end
+  end
+
+  defp maybe_add_timestamp(attributes, field, default_value, resource_module) do
+    if Map.has_key?(attributes, field) do
+      attributes
+    else
+      # Check if the resource has this timestamp field
+      case Ash.Resource.Info.attribute(resource_module, field) do
+        nil -> attributes
+        _attr -> Map.put(attributes, field, default_value)
+      end
     end
   end
 

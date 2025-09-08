@@ -18,6 +18,10 @@ defmodule Post do
       public? true
       default "draft"
     end
+
+    attribute :publication_date, :date do
+      public? true
+    end
   end
 
   relationships do
@@ -30,7 +34,7 @@ defmodule Post do
     defaults [:read]
 
     create :create do
-      accept [:title, :content, :blog_id]
+      accept [:title, :content, :blog_id, :publication_date]
     end
 
     create :publish do
