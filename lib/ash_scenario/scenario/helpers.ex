@@ -253,6 +253,9 @@ defmodule AshScenario.Scenario.Helpers do
 
   @doc """
   Build a changeset for creating a resource with Ash.
+  
+  Returns `{:ok, changeset, tenant_value}` where tenant_value may be nil
+  if the resource doesn't use attribute-based multitenancy.
   """
   def build_changeset(resource_module, action_name, attributes, opts) do
     try do
@@ -265,9 +268,13 @@ defmodule AshScenario.Scenario.Helpers do
         |> Enum.reject(fn {k, v} -> is_nil(v) and not MapSet.member?(explicit_nil_keys, k) end)
         |> Map.new()
 
+      # Extract tenant information if resource uses attribute multitenancy
+      {:ok, tenant_value, clean_attributes} = 
+        AshScenario.Multitenancy.extract_tenant_info(resource_module, sanitized_attributes)
+
       Log.debug(
         fn ->
-          "build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} explicit_nil_keys=#{inspect(MapSet.to_list(explicit_nil_keys))} sanitized=#{inspect(sanitized_attributes)}"
+          "build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} explicit_nil_keys=#{inspect(MapSet.to_list(explicit_nil_keys))} sanitized=#{inspect(sanitized_attributes)} tenant=#{inspect(tenant_value)} clean_attrs=#{inspect(clean_attributes)}"
         end,
         component: :helpers,
         resource: resource_module
@@ -275,17 +282,17 @@ defmodule AshScenario.Scenario.Helpers do
 
       changeset =
         resource_module
-        |> Ash.Changeset.for_create(action_name, sanitized_attributes)
+        |> Ash.Changeset.for_create(action_name, clean_attributes)
 
       Log.debug(
         fn ->
-          "built_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} changes=#{inspect(Map.get(changeset, :changes, %{}))}"
+          "built_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} changes=#{inspect(Map.get(changeset, :changes, %{}))} tenant=#{inspect(tenant_value)}"
         end,
         component: :helpers,
         resource: resource_module
       )
 
-      {:ok, changeset}
+      {:ok, changeset, tenant_value}
     rescue
       error -> {:error, "Failed to build changeset: #{inspect(error)}"}
     end

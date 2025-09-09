@@ -149,12 +149,19 @@ defmodule AshScenario.Scenario.Runner do
       res_fn = Map.get(prototype, :function)
       res_action = Map.get(prototype, :action)
 
+      # Extract tenant info for custom functions
+      {:ok, tenant_value, _clean_attributes} = 
+        AshScenario.Multitenancy.extract_tenant_info(prototype.resource, resolved_attributes)
+      
+      # Add tenant to opts for custom functions
+      opts_with_tenant = AshScenario.Multitenancy.add_tenant_to_opts(opts, tenant_value)
+
       cond do
         # Per-resource custom function override
         res_fn != nil ->
           Log.debug(
             fn ->
-              "using_custom_function (prototype override) module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(res_fn)}"
+              "using_custom_function (prototype override) module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(res_fn)} tenant=#{inspect(tenant_value)}"
             end,
             component: :runner,
             resource: prototype.resource,
@@ -162,7 +169,7 @@ defmodule AshScenario.Scenario.Runner do
             trace_id: trace
           )
 
-          case Helpers.execute_custom_function(res_fn, resolved_attributes, opts) do
+          case Helpers.execute_custom_function(res_fn, resolved_attributes, opts_with_tenant) do
             {:ok, created_resource} ->
               Helpers.track_created_resource(created_resource, prototype)
 
@@ -206,14 +213,15 @@ defmodule AshScenario.Scenario.Runner do
           )
 
           with {:ok, create_action} <- Helpers.get_create_action(prototype.resource, res_action),
-               {:ok, changeset} <-
+               {:ok, changeset, tenant_value} <-
                  Helpers.build_changeset(
                    prototype.resource,
                    create_action,
                    resolved_attributes,
                    Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys)
                  ) do
-            case Ash.create(changeset, domain: domain) do
+            create_opts = AshScenario.Multitenancy.add_tenant_to_opts([domain: domain], tenant_value)
+            case Ash.create(changeset, create_opts) do
               {:ok, created_resource} ->
                 Helpers.track_created_resource(created_resource, prototype)
 
@@ -248,7 +256,7 @@ defmodule AshScenario.Scenario.Runner do
         module_cfg.function != nil ->
           Log.debug(
             fn ->
-              "using_custom_function (module-level) module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(module_cfg.function)}"
+              "using_custom_function (module-level) module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(module_cfg.function)} tenant=#{inspect(tenant_value)}"
             end,
             component: :runner,
             resource: prototype.resource,
@@ -256,7 +264,7 @@ defmodule AshScenario.Scenario.Runner do
             trace_id: trace
           )
 
-          case Helpers.execute_custom_function(module_cfg.function, resolved_attributes, opts) do
+          case Helpers.execute_custom_function(module_cfg.function, resolved_attributes, opts_with_tenant) do
             {:ok, created_resource} ->
               Helpers.track_created_resource(created_resource, prototype)
 
@@ -302,14 +310,15 @@ defmodule AshScenario.Scenario.Runner do
           )
 
           with {:ok, create_action} <- Helpers.get_create_action(prototype.resource, action),
-               {:ok, changeset} <-
+               {:ok, changeset, tenant_value} <-
                  Helpers.build_changeset(
                    prototype.resource,
                    create_action,
                    resolved_attributes,
                    Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys)
                  ) do
-            case Ash.create(changeset, domain: domain) do
+            create_opts = AshScenario.Multitenancy.add_tenant_to_opts([domain: domain], tenant_value)
+            case Ash.create(changeset, create_opts) do
               {:ok, created_resource} ->
                 Helpers.track_created_resource(created_resource, prototype)
 

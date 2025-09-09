@@ -143,6 +143,13 @@ defmodule AshScenario.Scenario.StructBuilder do
       module_cfg = AshScenario.Info.create(prototype.resource)
       res_fn = Map.get(prototype, :function)
       res_action = Map.get(prototype, :action)
+      
+      # Extract tenant info for custom functions
+      {:ok, tenant_value, _clean_attributes} = 
+        AshScenario.Multitenancy.extract_tenant_info(prototype.resource, resolved_attributes)
+      
+      # Add tenant to opts for custom functions
+      opts_with_tenant = AshScenario.Multitenancy.add_tenant_to_opts(opts, tenant_value)
 
       cond do
         # Custom functions work the same for both modes
@@ -157,7 +164,7 @@ defmodule AshScenario.Scenario.StructBuilder do
             trace_id: trace
           )
 
-          case Helpers.execute_custom_function(res_fn, resolved_attributes, opts) do
+          case Helpers.execute_custom_function(res_fn, resolved_attributes, opts_with_tenant) do
             {:ok, created_resource} ->
               Helpers.track_created_resource(created_resource, prototype)
               {:ok, created_resource}
@@ -179,7 +186,7 @@ defmodule AshScenario.Scenario.StructBuilder do
             trace_id: trace
           )
 
-          case Helpers.execute_custom_function(module_cfg.function, resolved_attributes, opts) do
+          case Helpers.execute_custom_function(module_cfg.function, resolved_attributes, opts_with_tenant) do
             {:ok, created_resource} ->
               Helpers.track_created_resource(created_resource, prototype)
               {:ok, created_resource}
@@ -204,7 +211,7 @@ defmodule AshScenario.Scenario.StructBuilder do
           _action = res_action || module_cfg.action || :create
           
           case creator_fn.(prototype.resource, resolved_attributes, 
-                           Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys)) do
+                           Keyword.put(opts_with_tenant, :__explicit_nil_keys__, explicit_nil_keys)) do
             {:ok, created_resource} ->
               Helpers.track_created_resource(created_resource, prototype)
               {:ok, created_resource}
