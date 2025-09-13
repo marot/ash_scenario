@@ -8,3 +8,17 @@ config :git_ops,
   manage_mix_version?: true,
   manage_readme_version?: "README.md",
   version_tag_prefix: "v"
+
+# somewhere in your config file
+if Mix.env() == :dev do
+  config :git_hooks,
+    auto_install: true,
+    verbose: true,
+    hooks: [
+      pre_commit: [
+        tasks: [
+          {AshScenario.PreCommit.Formatter, :run}
+        ]
+      ]
+    ]
+end

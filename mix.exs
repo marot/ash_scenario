@@ -75,6 +75,7 @@ defmodule AshScenario.MixProject do
       {:claude, "~> 0.5", only: [:dev], runtime: false},
       {:ash, ash_version("~> 3.5 and >= 3.5.5")},
       # Dev/test dependencies
+      {:git_hooks, "~> 0.8.0", only: [:dev], runtime: false},
       {:ex_check, "~> 0.12", only: [:dev, :test]},
       {:git_ops, "~> 2.6.1", only: [:dev]},
       {:ex_doc, "~> 0.34", only: [:dev], runtime: false},
