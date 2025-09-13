@@ -16,72 +16,89 @@ defmodule AshScenario.ScenarioDslTest do
   end
 
   # Define test scenarios using the new DSL
-  scenario :basic_setup do
-    another_post do
-      title("Override title for basic setup")
-    end
-  end
+  scenarios do
+    scenario :basic_setup do
+      # TODO: Ask if this is supported somehow
+      # another_post do
+      #   title("Override title for basic setup")
+      # end
 
-  scenario :with_custom_blog do
-    tech_blog do
-      name "My Custom Tech Blog"
-    end
-
-    another_post do
-      title("Post in custom blog")
-      blog_id(:tech_blog)
-    end
-  end
-
-  scenario :multiple_posts do
-    example_post do
-      title("First post override")
+      prototype :another_post do
+        attr(:title, "Override title for basic setup")
+      end
     end
 
-    another_post do
-      title("Second post override")
-    end
-  end
+    scenario :with_custom_blog do
+      # tech_blog do
+      #   name "My Custom Tech Blog"
+      # end
 
-  scenario :single_blog_only do
-    example_blog do
-      name "Just a blog, no posts"
-    end
-  end
+      # another_post do
+      #   title("Post in custom blog")
+      #   blog_id(:tech_blog)
+      # end
+      prototype :tech_blog do
+        attr(:name, "My Custom Tech Blog")
+      end
 
-  # Test scenarios for new features
-  scenario :base_scenario do
-    example_blog do
-      name "Base Blog"
-    end
-
-    example_post do
-      title("Base Post")
-      content("Base content")
-    end
-  end
-
-  scenario :extended_scenario, extends: :base_scenario do
-    example_post do
-      # Override title
-      title("Extended Post")
-      # content is inherited from base
+      prototype :another_post do
+        attr(:title, "Post in custom blog")
+        attr(:blog_id, :tech_blog)
+      end
     end
 
-    # Add new resource
-    another_post do
-      title("Additional post in extended scenario")
-      content("More content")
+    scenario :multiple_posts do
+      prototype :example_post do
+        attr(:title, "First post override")
+      end
+
+      prototype :another_post do
+        attr(:title, "Second post override")
+      end
+    end
+
+    scenario :single_blog_only do
+      prototype :example_blog do
+        attr(:name, "Just a blog, no posts")
+      end
+    end
+
+    # Test scenarios for new features
+    scenario :base_scenario do
+      prototype :example_blog do
+        attr(:name, "Base Blog")
+      end
+
+      prototype :example_post do
+        attr(:title, "Base Post")
+        attr(:content, "Base content")
+      end
+    end
+
+    scenario :extended_scenario do
+      extends(:base_scenario)
+
+      prototype :example_post do
+        # Override title
+        attr(:title, "Extended Post")
+        # content is inherited from base
+      end
+
+      # Add new resource
+      prototype :another_post do
+        attr(:title, "Additional post in extended scenario")
+        attr(:content, "More content")
+      end
     end
   end
 
   describe "scenario DSL functionality" do
     test "can define and access scenarios" do
       # Test that the scenario definition macro works
-      scenarios = __scenarios__()
+      scenarios = AshScenario.ScenarioInfo.scenarios(__MODULE__)
       assert length(scenarios) == 6
 
-      scenario_names = scenarios |> Enum.map(fn {name, _} -> name end)
+      scenario_names = scenarios |> Enum.map(fn %{name: name} -> name end)
       assert :basic_setup in scenario_names
       assert :with_custom_blog in scenario_names
       assert :multiple_posts in scenario_names

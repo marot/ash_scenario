@@ -159,19 +159,21 @@ defmodule MyTest do
   use ExUnit.Case
   use AshScenario.Scenario
 
-  scenario :basic_setup do
-    another_post do
-      title "Custom title for this test"
+  scenarios do
+    scenario :basic_setup do
+      prototype :another_post do
+        attr(:title, "Custom title for this test")
+      end
     end
-  end
 
-  scenario :with_custom_blog do
-    tech_blog do
-      name "My Custom Tech Blog"
-    end
-    another_post do
-      title "Post in custom blog"
-      blog_id :tech_blog  # Use the custom blog
+    scenario :with_custom_blog do
+      prototype :tech_blog do
+        attr(:name, "My Custom Tech Blog")
+      end
+      prototype :another_post do
+        attr(:title, "Post in custom blog")
+        attr(:blog_id, :tech_blog)  # Use the custom blog
+      end
     end
   end
 
@@ -291,28 +293,28 @@ defmodule MyTest do
   use ExUnit.Case
   use AshScenario.Scenario
 
-  # Base scenario
-  scenario :base_setup do
-    example_blog do
-      name "Base Blog"
+  scenarios do
+    # Base scenario
+    scenario :base_setup do
+      prototype :example_post do
+        attr(:title, "Base Post 123lshdfkjglsdfg")
+        # attr(:content, "Base content")
+      end
     end
 
-    example_post do
-      title "Base Post"
-      content "Base content"
-    end
-  end
+    # Extended scenario - inherits from base and adds/overrides
+    scenario :extended_setup do
+      extends(:base_setup)
 
-  # Extended scenario - inherits from base and adds/overrides
-  scenario :extended_setup, extends: :base_setup do
-    example_post do
-      title "Extended Post"  # Override title
-      # content is inherited as "Base content"
-    end
+      prototype :example_post do
+        attr(:title, "Extended Post")  # Override title
+        # content is inherited as "Base content"
+      end
 
-    another_post do  # Add new resource
-      title "Additional post"
-      content "More content"
+      prototype :another_post do  # Add new resource
+        attr(:title, "Additional post")
+        attr(:content, "More content")
+      end
     end
   end
 
@@ -393,9 +395,11 @@ Notes:
 use AshScenario.Scenario
 
 # Define scenarios
-scenario :my_setup do
-  example_post do
-    title "Overridden title"
+scenarios do
+  scenario :my_setup do
+    prototype :example_post do
+      attr(:title, "Overridden title")
+    end
   end
 end
 

@@ -2,19 +2,22 @@
 defmodule AshScenario.StructBuilderTest.TestScenarioModule do
   use AshScenario.Scenario
 
-  scenario :test_setup do
-    example_blog(module: AshScenario.StructBuilderTest.Blog) do
-      name "Test Blog"
-    end
+  scenarios do
+    scenario :test_setup do
+      prototype {AshScenario.StructBuilderTest.Blog, :example_blog} do
+        attr(:name, "Test Blog")
+      end
 
-    example_post(module: AshScenario.StructBuilderTest.Post) do
-      title("Test Post")
-      content("Test Content")
+      prototype {AshScenario.StructBuilderTest.Post, :example_post} do
+        attr(:title, "Test Post")
+        attr(:content, "Test Content")
+      end
     end
   end
 end
 
 defmodule AshScenario.StructBuilderTest do
+  alias AshScenario.StructBuilderTest.TestScenarioModule
   use ExUnit.Case
 
   defmodule TestDomain do
@@ -129,7 +132,7 @@ defmodule AshScenario.StructBuilderTest do
 
   describe "Scenario.create_structs/3" do
     test "creates structs from a scenario without persistence" do
-      scenarios = __MODULE__.TestScenarioModule.__scenarios__()
+      scenarios = AshScenario.ScenarioInfo.scenarios(TestScenarioModule)
 
       {:ok, structs} =
         AshScenario.Scenario.create_structs(__MODULE__.TestScenarioModule, :test_setup)

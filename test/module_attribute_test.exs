@@ -21,49 +21,53 @@ defmodule AshScenario.ModuleAttributeTest do
     :ok
   end
 
-  # Scenario using module attributes for values
-  scenario :with_module_attributes do
-    example_blog do
-      name @blog_name
+  scenarios do
+    # Scenario using module attributes for values
+    scenario :with_module_attributes do
+      prototype :example_blog do
+        attr(:name, @blog_name)
+      end
+
+      prototype :example_post do
+        attr(:title, @test_title)
+        attr(:content, @test_content)
+      end
     end
 
-    example_post do
-      title(@test_title)
-      content(@test_content)
-    end
-  end
-
-  # Scenario using module attributes in override
-  scenario :override_with_attributes do
-    another_post do
-      title(@test_title)
-      content(@shared_value)
-    end
-  end
-
-  # Mixed scenario with both literals and module attributes
-  scenario :mixed_values do
-    tech_blog do
-      name "Literal Blog Name"
+    # Scenario using module attributes in override
+    scenario :override_with_attributes do
+      prototype :another_post do
+        attr(:title, @test_title)
+        attr(:content, @shared_value)
+      end
     end
 
-    example_post do
-      title(@shared_value)
-      content("Literal content")
-    end
-  end
+    # Mixed scenario with both literals and module attributes
+    scenario :mixed_values do
+      prototype :tech_blog do
+        attr(:name, "Literal Blog Name")
+      end
 
-  # Test base scenario with module attribute
-  scenario :base_with_attribute do
-    example_blog do
-      name @blog_name
+      prototype :example_post do
+        attr(:title, @shared_value)
+        attr(:content, "Literal content")
+      end
     end
-  end
 
-  # Extended scenario overriding with module attribute
-  scenario :extended_with_attribute, extends: :base_with_attribute do
-    example_post do
-      title(@test_title)
+    # Test base scenario with module attribute
+    scenario :base_with_attribute do
+      prototype :example_blog do
+        attr(:name, @blog_name)
+      end
+    end
+
+    # Extended scenario overriding with module attribute
+    scenario :extended_with_attribute do
+      extends(:base_with_attribute)
+
+      prototype :example_post do
+        attr(:title, @test_title)
+      end
     end
   end
 
@@ -101,20 +105,6 @@ defmodule AshScenario.ModuleAttributeTest do
       assert resources.example_blog.name == "Blog from Module Attribute"
       # Extended scenario's module attribute should be used
       assert resources.example_post.title == "Title from Module Attribute"
-    end
-
-    test "module attributes are evaluated at compile time" do
-      # Verify that the scenarios have the expanded values
-      scenarios = __scenarios__()
-
-      # Find the :with_module_attributes scenario
-      {_name, overrides} =
-        Enum.find(scenarios, fn {name, _} -> name == :with_module_attributes end)
-
-      # Check that the module attributes were expanded to their values
-      assert overrides[:example_blog][:name] == "Blog from Module Attribute"
-      assert overrides[:example_post][:title] == "Title from Module Attribute"
-      assert overrides[:example_post][:content] == "Content from Module Attribute"
     end
   end
 end

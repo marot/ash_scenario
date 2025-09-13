@@ -35,287 +35,10 @@ defmodule AshScenario.Scenario do
       end
   """
 
-  @doc """
-  Use this macro to add scenario support to your test modules.
-  """
-  defmacro __using__(_opts) do
-    quote do
-      import AshScenario.Scenario, only: [scenario: 2, scenario: 3]
-      Module.register_attribute(__MODULE__, :scenarios, accumulate: true)
-      @before_compile AshScenario.Scenario
-    end
-  end
-
-  @doc """
-  Define a named scenario with prototype overrides.
-
-  ## Examples
-
-      scenario :my_test_data do
-        example_post do
-          title "Override title"
-          content "Override content"
-        end
-
-        tech_blog do
-          name "Custom blog name"
-        end
-      end
-  """
-  defmacro scenario(name, opts \\ [], do: block) do
-    base_scenario = Keyword.get(opts, :extends)
-
-    quote do
-      @scenarios {unquote(name), unquote(Macro.escape(block)), unquote(base_scenario)}
-    end
-  end
-
-  @doc false
-  defmacro __before_compile__(env) do
-    scenarios = Module.get_attribute(env.module, :scenarios, [])
-
-    scenario_definitions =
-      scenarios
-      |> Enum.reverse()
-      |> Enum.map(fn scenario_data ->
-        case scenario_data do
-          {name, block, base_scenario} ->
-            # Expand the block to resolve compile-time values
-            expanded_block = expand_compile_time_values(block, env)
-            overrides = extract_overrides_from_ast(expanded_block)
-
-            resolved_overrides =
-              merge_with_base_scenario(overrides, base_scenario, scenarios, env)
-
-            {name, resolved_overrides}
-
-          {name, block} ->
-            # Backward compatibility for scenarios without extends
-            # Expand the block to resolve compile-time values
-            expanded_block = expand_compile_time_values(block, env)
-
-            overrides = extract_overrides_from_ast(expanded_block)
-
-            {name, overrides}
-        end
-      end)
-
-    quote do
-      def __scenarios__() do
-        unquote(Macro.escape(scenario_definitions))
-      end
-    end
-  end
-
-  # Helper to expand compile-time values - always evaluate RHS expressions completely
-  defp expand_compile_time_values(ast, env) do
-    Macro.postwalk(ast, fn
-      # For attribute assignment patterns, always evaluate the RHS value completely
-      {attr_name, meta, [value]} when is_atom(attr_name) and is_list(meta) ->
-        # Evaluate the RHS expression to get the actual value
-        evaluated_value = evaluate_rhs_expression(value, env)
-        {attr_name, meta, [evaluated_value]}
-
-      # Keep other nodes as-is
-      other ->
-        other
-    end)
-  end
-
-  # Selectively evaluate RHS expressions that are safe to evaluate at compile time
-  defp evaluate_rhs_expression(ast, env) do
-    case ast do
-      # Module attributes - try to evaluate them
-      {:@, _, [{name, _, _}]} ->
-        case Module.get_attribute(env.module, name) do
-          # Keep original if attribute doesn't exist
-          nil -> ast
-          # Use the actual value
-          value -> value
-        end
-
-      # Sigils and other safe compile-time expressions
-      {:sigil_D, _, _} ->
-        try do
-          {result, _} = Code.eval_quoted(ast, [], env)
-          result
-        rescue
-          _ -> ast
-        end
-
-      # Zero-arity function calls that we know are safe
-      {{:., _, [{:__aliases__, _, _module_parts}, _func_name]}, _, []} ->
-        try do
-          {result, _} = Code.eval_quoted(ast, [], env)
-          result
-        rescue
-          _ -> ast
-        end
-
-      # System function calls
-      {{:., _, [{:__aliases__, _, [:System]}, _func_name]}, _, []} ->
-        try do
-          {result, _} = Code.eval_quoted(ast, [], env)
-          result
-        rescue
-          _ -> ast
-        end
-
-      # Everything else - keep as AST (literals, function calls with args, etc.)
-      _ ->
-        ast
-    end
-  end
-
-  # Compile-time version of extract_overrides_from_block for macro expansion
-  defp extract_overrides_from_ast({:__block__, _, statements}) do
-    statements
-    |> Enum.map(&extract_override_from_ast/1)
-    |> Enum.reject(&is_nil/1)
-    |> Map.new()
-  end
-
-  defp extract_overrides_from_ast(single_statement) do
-    case extract_override_from_ast(single_statement) do
-      nil -> %{}
-      override -> Map.new([override])
-    end
-  end
-
-  # Handle module-scoped prototype: prototype_name(module: Module) do ... end
-  defp extract_override_from_ast({proto_name, _meta, [[module: module], [do: block]]})
-       when is_atom(proto_name) do
-    resolved_module = resolve_module_name(module)
-    overrides = extract_attributes_from_ast(block)
-    {{resolved_module, proto_name}, overrides}
-  end
-
-  # The AST wraps the keyword list in an extra list
-  defp extract_override_from_ast({proto_name, _meta, [[[module: module]], [do: block]]})
-       when is_atom(proto_name) do
-    resolved_module = resolve_module_name(module)
-    overrides = extract_attributes_from_ast(block)
-    {{resolved_module, proto_name}, overrides}
-  end
-
-  defp extract_override_from_ast({proto_name, _meta, [[module: module], block]})
-       when is_atom(proto_name) do
-    resolved_module = resolve_module_name(module)
-    overrides = extract_attributes_from_ast(block)
-    {{resolved_module, proto_name}, overrides}
-  end
-
-  defp extract_override_from_ast({proto_name, _meta, [[[module: module]], block]})
-       when is_atom(proto_name) do
-    resolved_module = resolve_module_name(module)
-    overrides = extract_attributes_from_ast(block)
-    {{resolved_module, proto_name}, overrides}
-  end
-
-  # Handle simple prototype name: prototype_name do ... end
-  defp extract_override_from_ast({proto_name, _meta, [[do: block]]}) when is_atom(proto_name) do
-    overrides = extract_attributes_from_ast(block)
-    {proto_name, overrides}
-  end
-
-  defp extract_override_from_ast({proto_name, _meta, [block]}) when is_atom(proto_name) do
-    overrides = extract_attributes_from_ast(block)
-    {proto_name, overrides}
-  end
-
-  defp extract_override_from_ast(_), do: nil
-
-  # Helper function to resolve module names from AST
-  defp resolve_module_name({:__aliases__, _, parts}) when is_list(parts) do
-    Module.concat(parts)
-  end
-
-  defp resolve_module_name(module) when is_atom(module) do
-    module
-  end
-
-  defp extract_attributes_from_ast({:__block__, _, statements}) do
-    statements
-    |> Enum.map(&extract_attribute_from_ast/1)
-    |> Enum.reject(&is_nil/1)
-    |> Map.new()
-  end
-
-  defp extract_attributes_from_ast(single_statement) do
-    case extract_attribute_from_ast(single_statement) do
-      nil -> %{}
-      attr -> Map.new([attr])
-    end
-  end
-
-  defp extract_attribute_from_ast({attr_name, _meta, [value]}) when is_atom(attr_name) do
-    # If the value is still AST (wasn't evaluated), try to evaluate it now at runtime
-    final_value = maybe_evaluate_remaining_ast(value)
-    {attr_name, final_value}
-  end
-
-  # Handle do-block syntax: attr_name(do: block) becomes attr_name: value
-  defp extract_attribute_from_ast({attr_name, _meta, [[do: value]]}) when is_atom(attr_name) do
-    # If the value is still AST (wasn't evaluated), try to evaluate it now at runtime
-    final_value = maybe_evaluate_remaining_ast(value)
-    {attr_name, final_value}
-  end
-
-  defp extract_attribute_from_ast(_), do: nil
-
-  # Helper to evaluate any remaining AST that wasn't handled at compile time
-  defp maybe_evaluate_remaining_ast({:%{}, _, _} = escaped_struct) do
-    # This is an escaped struct (like a Date), evaluate it to get the actual struct
-    {result, _} = Code.eval_quoted(escaped_struct)
-    result
-  end
-
-  defp maybe_evaluate_remaining_ast(value), do: value
-
-  # Scenario merging logic for extension support
-  defp merge_with_base_scenario(overrides, nil, _all_scenarios, _env), do: overrides
-
-  defp merge_with_base_scenario(overrides, base_scenario_name, all_scenarios, env) do
-    case find_base_scenario(base_scenario_name, all_scenarios, env) do
-      nil ->
-        # Base scenario not found, return original overrides
-        # In practice, this could be an error, but we'll be lenient
-        overrides
-
-      base_overrides ->
-        deep_merge_scenarios(base_overrides, overrides)
-    end
-  end
-
-  defp find_base_scenario(base_name, all_scenarios, env) do
-    case Enum.find(all_scenarios, fn scenario_data ->
-           case scenario_data do
-             {^base_name, _block} -> true
-             {^base_name, _block, _base} -> true
-             _ -> false
-           end
-         end) do
-      nil ->
-        nil
-
-      {_name, block} ->
-        expanded_block = expand_compile_time_values(block, env)
-        extract_overrides_from_ast(expanded_block)
-
-      {_name, block, base} ->
-        # Recursively resolve base scenarios
-        expanded_block = expand_compile_time_values(block, env)
-        base_overrides = extract_overrides_from_ast(expanded_block)
-        merge_with_base_scenario(base_overrides, base, all_scenarios, env)
-    end
-  end
-
-  defp deep_merge_scenarios(base, extension) do
-    Map.merge(base, extension, fn _prototype_name, base_attrs, ext_attrs ->
-      # Merge attributes for the same prototype - extension overrides base
-      Map.merge(base_attrs, ext_attrs)
-    end)
-  end
+  use Spark.Dsl,
+    default_extensions: [
+      extensions: [AshScenario.ScenarioDsl]
+    ]
 
   @doc """
   Run a named scenario from a test module.
@@ -356,26 +79,44 @@ defmodule AshScenario.Scenario do
   # Private Functions
 
   defp get_scenario_with_validation(test_module, scenario_name) do
-    cond do
-      not function_exported?(test_module, :__scenarios__, 0) ->
-        {:error,
-         "Module #{inspect(test_module)} does not define any scenarios. Did you forget to add `use AshScenario.Scenario`?"}
+    if function_exported?(test_module, :spark_dsl_config, 0) do
+      case AshScenario.ScenarioInfo.resolved_scenario(test_module, scenario_name) do
+        nil ->
+          available_scenarios =
+            AshScenario.ScenarioInfo.scenarios(test_module)
+            |> Enum.map(& &1.name)
+            |> Enum.join(", ")
 
-      true ->
-        scenarios = test_module.__scenarios__()
-
-        case Enum.find(scenarios, fn {name, _overrides} -> name == scenario_name end) do
-          {_name, overrides} ->
-            {:ok, overrides}
-
-          nil ->
-            available_scenarios =
-              scenarios |> Enum.map(fn {name, _} -> name end) |> Enum.join(", ")
-
+          if available_scenarios == "" do
+            {:error,
+             "Module #{inspect(test_module)} does not define any scenarios. Did you forget to add `use AshScenario.Scenario`?"}
+          else
             {:error,
              "Scenario #{scenario_name} not found in #{inspect(test_module)}. Available scenarios: #{available_scenarios}"}
-        end
+          end
+
+        scenario ->
+          # Convert Spark DSL format to override map format
+          overrides = convert_scenario_to_overrides(scenario)
+          {:ok, overrides}
+      end
+    else
+      {:error,
+       "Module #{inspect(test_module)} does not define any scenarios. Did you forget to add `use AshScenario.Scenario`?"}
     end
+  end
+
+  # Convert Spark DSL scenario format to override map format
+  defp convert_scenario_to_overrides(scenario) do
+    (scenario.prototypes || [])
+    |> Enum.reduce(%{}, fn prototype_override, acc ->
+      attrs_map =
+        (prototype_override.attributes || [])
+        |> Enum.map(fn attr -> {attr.name, attr.value} end)
+        |> Map.new()
+
+      Map.put(acc, prototype_override.ref, attrs_map)
+    end)
   end
 
   defp validate_prototypes_exist(overrides) do
