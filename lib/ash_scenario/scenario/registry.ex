@@ -107,15 +107,23 @@ defmodule AshScenario.Scenario.Registry do
         |> put_in([resource_module, prototype.ref], prototype_data)
       end)
 
-    Log.info(
-      fn ->
-        "registered_prototypes module=#{inspect(resource_module)} count=#{length(prototypes)}"
-      end,
-      component: :registry,
-      resource: resource_module
-    )
+    # Check for circular dependencies after all prototypes are registered
+    case detect_circular_dependencies(updated_state) do
+      :ok ->
+        Log.info(
+          fn ->
+            "registered_prototypes module=#{inspect(resource_module)} count=#{length(prototypes)}"
+          end,
+          component: :registry,
+          resource: resource_module
+        )
 
-    {:reply, :ok, updated_state}
+        {:reply, :ok, updated_state}
+      
+      {:error, cycle_info} ->
+        # Don't update state if cycles detected
+        {:reply, {:error, cycle_info}, state}
+    end
   end
 
   @impl true
@@ -240,6 +248,7 @@ defmodule AshScenario.Scenario.Registry do
         |> Enum.reject(&is_nil/1)
 
       # Now do topological sort on the complete set
+      # Cycles should be caught at compile time, so we can simplify this
       {:ok, sorted} = topological_sort(prototypes)
       {:ok, sorted}
     end
@@ -338,48 +347,41 @@ defmodule AshScenario.Scenario.Registry do
       |> Enum.map(&elem(&1, 0))
       |> :queue.from_list()
 
-    {order, remaining_indegree} = process_queue(queue, reverse_edges, indegree, [])
+    {order, _remaining_indegree} = process_queue(queue, reverse_edges, indegree, [])
 
-    if Enum.any?(remaining_indegree, fn {_n, deg} -> deg > 0 end) do
-      Log.error(fn -> "dependency_cycle_detected indegree=#{inspect(remaining_indegree)}" end,
-        component: :registry
-      )
+    # Return prototypes in topological order
+    # Cycles are caught at compile time, so we don't check here
+    ordered_prototypes =
+      order
+      |> Enum.map(fn {mod, ref} ->
+        Enum.find(prototypes, fn r -> r.resource == mod and r.ref == ref end)
+      end)
 
-      {:error, "Cycle detected in prototype dependencies"}
-    else
-      # Return prototypes in topological order
-      ordered_prototypes =
-        order
-        |> Enum.map(fn {mod, ref} ->
-          Enum.find(prototypes, fn r -> r.resource == mod and r.ref == ref end)
-        end)
-
-      {:ok, ordered_prototypes}
-    end
+    {:ok, ordered_prototypes}
   end
 
-  defp process_queue(queue, reverse_edges, indegree, order) do
+  defp process_queue(queue, reverse_adjacency_list, indegrees, sorted_nodes) do
     case :queue.out(queue) do
-      {{:value, node}, queue} ->
-        order = [node | order]
+      {{:value, current_node}, remaining_queue} ->
+        updated_sorted = [current_node | sorted_nodes]
 
-        {queue, indegree} =
-          Enum.reduce(Map.get(reverse_edges, node, []), {queue, indegree}, fn dependent,
-                                                                              {q, degs} ->
-            new_deg = (degs[dependent] || 0) - 1
-            degs = Map.put(degs, dependent, new_deg)
+        {updated_queue, updated_indegrees} =
+          Enum.reduce(Map.get(reverse_adjacency_list, current_node, []), {remaining_queue, indegrees}, 
+            fn dependent_node, {queue_acc, indegree_map} ->
+              new_indegree = (indegree_map[dependent_node] || 0) - 1
+              updated_map = Map.put(indegree_map, dependent_node, new_indegree)
 
-            if new_deg == 0 do
-              {:queue.in(dependent, q), degs}
-            else
-              {q, degs}
-            end
-          end)
+              if new_indegree == 0 do
+                {:queue.in(dependent_node, queue_acc), updated_map}
+              else
+                {queue_acc, updated_map}
+              end
+            end)
 
-        process_queue(queue, reverse_edges, indegree, order)
+        process_queue(updated_queue, reverse_adjacency_list, updated_indegrees, updated_sorted)
 
       {:empty, _queue} ->
-        {Enum.reverse(order), indegree}
+        {Enum.reverse(sorted_nodes), indegrees}
     end
   end
 
@@ -393,6 +395,95 @@ defmodule AshScenario.Scenario.Registry do
       end
     rescue
       _ -> :error
+    end
+  end
+
+  # Detect circular dependencies across all registered prototypes
+  defp detect_circular_dependencies(state) do
+    # Build a flat dependency graph from all prototypes
+    all_prototypes = 
+      state
+      |> Enum.flat_map(fn {_module, prototypes} -> Map.values(prototypes) end)
+    
+    dependencies = 
+      all_prototypes
+      |> Enum.reduce(%{}, fn prototype, acc ->
+        Map.put(acc, {prototype.resource, prototype.ref}, prototype.dependencies || [])
+      end)
+    
+    # Use DFS to detect cycles
+    case detect_cycles(dependencies) do
+      nil -> :ok
+      cycle -> 
+        cycle_str = Enum.map_join(cycle, " -> ", fn {mod, ref} -> 
+          "#{inspect(mod)}.#{ref}"
+        end)
+        
+        [{first_mod, first_ref} | _] = cycle
+        
+        error_msg = """
+        Circular dependency detected in prototypes:
+        
+        #{cycle_str} -> #{inspect(first_mod)}.#{first_ref}
+        
+        Prototypes cannot have circular dependencies. Please restructure your prototypes to avoid cycles.
+        """
+        
+        {:error, error_msg}
+    end
+  end
+
+  defp detect_cycles(dependencies) do
+    nodes = Map.keys(dependencies)
+    detect_cycles_dfs(nodes, dependencies, MapSet.new(), MapSet.new(), [])
+  end
+
+  defp detect_cycles_dfs([], _dependencies, _visited, _rec_stack, _path) do
+    nil
+  end
+
+  defp detect_cycles_dfs([node | rest], dependencies, visited, rec_stack, path) do
+    if MapSet.member?(visited, node) do
+      detect_cycles_dfs(rest, dependencies, visited, rec_stack, path)
+    else
+      case dfs_visit(node, dependencies, visited, MapSet.put(rec_stack, node), [node | path]) do
+        {:cycle, cycle} -> cycle
+        {new_visited, _new_rec} -> 
+          detect_cycles_dfs(rest, dependencies, new_visited, rec_stack, path)
+      end
+    end
+  end
+
+  defp dfs_visit(node, dependencies, visited, rec_stack, path) do
+    deps = Map.get(dependencies, node, [])
+    
+    {visited, rec_stack, result} = 
+      Enum.reduce_while(deps, {MapSet.put(visited, node), rec_stack, nil}, fn dep, {vis, rec, _} ->
+        cond do
+          MapSet.member?(rec, dep) ->
+            # Found a cycle - build the cycle path
+            cycle_start_idx = Enum.find_index(path, &(&1 == dep))
+            cycle = Enum.take(path, cycle_start_idx + 1) |> Enum.reverse()
+            {:halt, {vis, rec, {:cycle, cycle}}}
+          
+          MapSet.member?(vis, dep) ->
+            # Already visited in a different path, no cycle here
+            {:cont, {vis, rec, nil}}
+          
+          true ->
+            # Continue DFS
+            case dfs_visit(dep, dependencies, vis, MapSet.put(rec, dep), [dep | path]) do
+              {:cycle, cycle} -> 
+                {:halt, {vis, rec, {:cycle, cycle}}}
+              {new_vis, new_rec} -> 
+                {:cont, {new_vis, new_rec, nil}}
+            end
+        end
+      end)
+    
+    case result do
+      {:cycle, cycle} -> {:cycle, cycle}
+      nil -> {visited, MapSet.delete(rec_stack, node)}
     end
   end
 end

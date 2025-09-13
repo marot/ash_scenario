@@ -49,6 +49,7 @@ defmodule AshScenario do
   @doc """
   Start the scenario registry (should be called in your application supervision tree).
   """
+  @spec start_registry(keyword()) :: {:ok, pid()} | {:error, term()}
   def start_registry(opts \\ []) do
     Registry.start_link(opts)
   end
@@ -57,6 +58,7 @@ defmodule AshScenario do
   Register prototypes from a resource module.
   This is typically called automatically when the resource is compiled.
   """
+  @spec register_prototypes(module()) :: :ok
   def register_prototypes(resource_module) do
     Registry.register_prototypes(resource_module)
   end
@@ -73,6 +75,7 @@ defmodule AshScenario do
       AshScenario.run_prototype(MyApp.Post, :example_post)
       AshScenario.run_prototype(MyApp.Post, :example_post, domain: MyApp.Domain)
   """
+  @spec run_prototype(module(), atom(), keyword()) :: {:ok, struct()} | {:error, term()}
   def run_prototype(resource_module, prototype_name, opts \\ []) do
     Runner.run_prototype(resource_module, prototype_name, opts)
   end
@@ -91,6 +94,7 @@ defmodule AshScenario do
         {MyApp.Post, :example_post}
       ])
   """
+  @spec run_prototypes([{module(), atom()}], keyword()) :: {:ok, map()} | {:error, term()}
   def run_prototypes(prototype_refs, opts \\ []) when is_list(prototype_refs) do
     Runner.run_prototypes(prototype_refs, opts)
   end
@@ -106,6 +110,7 @@ defmodule AshScenario do
 
       AshScenario.run_all_prototypes(MyApp.Post)
   """
+  @spec run_all_prototypes(module(), keyword()) :: {:ok, map()} | {:error, term()}
   def run_all_prototypes(resource_module, opts \\ []) do
     Runner.run_all_prototypes(resource_module, opts)
   end
@@ -189,7 +194,15 @@ defmodule AshScenario do
   @doc false
   def __register_prototypes__(env, _bytecode) do
     if AshScenario.Info.has_prototypes?(env.module) do
-      AshScenario.register_prototypes(env.module)
+      case AshScenario.register_prototypes(env.module) do
+        :ok -> :ok
+        {:error, message} -> 
+          raise """
+          Failed to register prototypes for #{inspect(env.module)}:
+          
+          #{message}
+          """
+      end
     end
   end
 end

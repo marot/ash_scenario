@@ -257,15 +257,12 @@ defmodule AshScenario.Scenario.Helpers do
   Returns `{:ok, changeset, tenant_value}` where tenant_value may be nil
   if the resource doesn't use attribute-based multitenancy.
   """
-  def build_changeset(resource_module, action_name, attributes, opts) do
+  def build_changeset(resource_module, action_name, attributes, _opts) do
     try do
-      # Drop nils unless they were explicitly provided by the caller.
-      # Keys explicitly set to nil must remain so that absent() validations fail.
-      explicit_nil_keys = MapSet.new(Keyword.get(opts, :__explicit_nil_keys__, []))
-
+      # Drop nil values
       sanitized_attributes =
         attributes
-        |> Enum.reject(fn {k, v} -> is_nil(v) and not MapSet.member?(explicit_nil_keys, k) end)
+        |> Enum.reject(fn {_k, v} -> is_nil(v) end)
         |> Map.new()
 
       # Extract tenant information if resource uses attribute multitenancy
@@ -274,7 +271,7 @@ defmodule AshScenario.Scenario.Helpers do
 
       Log.debug(
         fn ->
-          "build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} explicit_nil_keys=#{inspect(MapSet.to_list(explicit_nil_keys))} sanitized=#{inspect(sanitized_attributes)} tenant=#{inspect(tenant_value)} clean_attrs=#{inspect(clean_attributes)}"
+          "build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} sanitized=#{inspect(sanitized_attributes)} tenant=#{inspect(tenant_value)} clean_attrs=#{inspect(clean_attributes)}"
         end,
         component: :helpers,
         resource: resource_module

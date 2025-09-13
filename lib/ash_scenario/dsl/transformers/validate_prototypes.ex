@@ -17,10 +17,9 @@ defmodule AshScenario.Dsl.Transformers.ValidatePrototypes do
         _ -> false
       end)
 
-    case process_prototypes(dsl_state, prototypes) do
-      :ok ->
-        {:ok, dsl_state}
-
+    with :ok <- process_prototypes(dsl_state, prototypes) do
+      {:ok, dsl_state}
+    else
       {:error, error} ->
         {:error, error}
     end
