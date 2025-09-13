@@ -1,4 +1,4 @@
-# Test scenario module needs to be defined before test module  
+# Test scenario module needs to be defined before test module
 defmodule AshScenario.StructBuilderTest.TestScenarioModule do
   use AshScenario.Scenario
 
@@ -130,13 +130,9 @@ defmodule AshScenario.StructBuilderTest do
   describe "Scenario.create_structs/3" do
     test "creates structs from a scenario without persistence" do
       scenarios = __MODULE__.TestScenarioModule.__scenarios__()
-      IO.inspect(scenarios, label: "DEBUG: scenarios", pretty: true)
 
       {:ok, structs} =
         AshScenario.Scenario.create_structs(__MODULE__.TestScenarioModule, :test_setup)
-
-      IO.inspect(structs, label: "DEBUG: structs")
-      IO.inspect(Map.keys(structs), label: "DEBUG: struct keys")
 
       blog = structs[{AshScenario.StructBuilderTest.Blog, :example_blog}]
       post = structs[{AshScenario.StructBuilderTest.Post, :example_post}]
