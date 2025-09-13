@@ -469,3 +469,31 @@ end
 - **Dependency Graph**: Prototypes are analyzed for dependencies and created in topological order
 - **Reference Resolution**: Prototype references (like `:example_blog`) are resolved to actual resource IDs at runtime
 - **Registry**: A GenServer maintains the registry of all prototype definitions across modules
+
+## Contributing
+
+### Development Setup
+
+After cloning the repository and installing dependencies:
+
+```bash
+# Install dependencies
+mix deps.get
+```
+
+The project uses `git_hooks` to manage git hooks. The pre-commit hook will automatically format staged Elixir files to ensure consistent code style.
+
+### Code Quality
+
+Before committing, ensure your code passes all quality checks:
+
+```bash
+# Run all quality checks
+mix check
+
+# Run tests
+mix test
+
+# Format code
+mix format
+```
