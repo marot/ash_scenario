@@ -52,11 +52,9 @@ defmodule DependencyResolutionTest do
       defmodule TestScenarioModule do
         use AshScenario.Scenario
 
-        scenarios do
-          scenario :test_post do
-            prototype :example_post do
-              attr(:title, "Scenario Post Title")
-            end
+        scenario :test_post do
+          prototype :example_post do
+            attr(:title, "Scenario Post Title")
           end
         end
       end

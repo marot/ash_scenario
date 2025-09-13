@@ -2,25 +2,23 @@ defmodule AshScenario.ScenarioInfoTest do
   use ExUnit.Case
   use AshScenario.Scenario
 
-  scenarios do
-    scenario :test_scenario do
-      prototype :example_post do
-        attr(:title, "Test Post")
-      end
+  scenario :test_scenario do
+    prototype :example_post do
+      attr(:title, "Test Post")
     end
+  end
 
-    scenario :another_scenario do
-      prototype :example_blog do
-        attr(:name, "Test Blog")
-      end
+  scenario :another_scenario do
+    prototype :example_blog do
+      attr(:name, "Test Blog")
     end
+  end
 
-    scenario :inherited_scenario do
-      extends(:test_scenario)
+  scenario :inherited_scenario do
+    extends(:test_scenario)
 
-      prototype :example_post do
-        attr(:title, "Inherited Post Title")
-      end
+    prototype :example_post do
+      attr(:title, "Inherited Post Title")
     end
   end
 

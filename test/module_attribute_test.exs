@@ -21,53 +21,51 @@ defmodule AshScenario.ModuleAttributeTest do
     :ok
   end
 
-  scenarios do
-    # Scenario using module attributes for values
-    scenario :with_module_attributes do
-      prototype :example_blog do
-        attr(:name, @blog_name)
-      end
-
-      prototype :example_post do
-        attr(:title, @test_title)
-        attr(:content, @test_content)
-      end
+  # Scenario using module attributes for values
+  scenario :with_module_attributes do
+    prototype :example_blog do
+      attr(:name, @blog_name)
     end
 
-    # Scenario using module attributes in override
-    scenario :override_with_attributes do
-      prototype :another_post do
-        attr(:title, @test_title)
-        attr(:content, @shared_value)
-      end
+    prototype :example_post do
+      attr(:title, @test_title)
+      attr(:content, @test_content)
+    end
+  end
+
+  # Scenario using module attributes in override
+  scenario :override_with_attributes do
+    prototype :another_post do
+      attr(:title, @test_title)
+      attr(:content, @shared_value)
+    end
+  end
+
+  # Mixed scenario with both literals and module attributes
+  scenario :mixed_values do
+    prototype :tech_blog do
+      attr(:name, "Literal Blog Name")
     end
 
-    # Mixed scenario with both literals and module attributes
-    scenario :mixed_values do
-      prototype :tech_blog do
-        attr(:name, "Literal Blog Name")
-      end
-
-      prototype :example_post do
-        attr(:title, @shared_value)
-        attr(:content, "Literal content")
-      end
+    prototype :example_post do
+      attr(:title, @shared_value)
+      attr(:content, "Literal content")
     end
+  end
 
-    # Test base scenario with module attribute
-    scenario :base_with_attribute do
-      prototype :example_blog do
-        attr(:name, @blog_name)
-      end
+  # Test base scenario with module attribute
+  scenario :base_with_attribute do
+    prototype :example_blog do
+      attr(:name, @blog_name)
     end
+  end
 
-    # Extended scenario overriding with module attribute
-    scenario :extended_with_attribute do
-      extends(:base_with_attribute)
+  # Extended scenario overriding with module attribute
+  scenario :extended_with_attribute do
+    extends(:base_with_attribute)
 
-      prototype :example_post do
-        attr(:title, @test_title)
-      end
+    prototype :example_post do
+      attr(:title, @test_title)
     end
   end
 

@@ -2,16 +2,14 @@
 defmodule AshScenario.StructBuilderTest.TestScenarioModule do
   use AshScenario.Scenario
 
-  scenarios do
-    scenario :test_setup do
-      prototype {AshScenario.StructBuilderTest.Blog, :example_blog} do
-        attr(:name, "Test Blog")
-      end
+  scenario :test_setup do
+    prototype {AshScenario.StructBuilderTest.Blog, :example_blog} do
+      attr(:name, "Test Blog")
+    end
 
-      prototype {AshScenario.StructBuilderTest.Post, :example_post} do
-        attr(:title, "Test Post")
-        attr(:content, "Test Content")
-      end
+    prototype {AshScenario.StructBuilderTest.Post, :example_post} do
+      attr(:title, "Test Post")
+      attr(:content, "Test Content")
     end
   end
 end

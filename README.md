@@ -159,7 +159,6 @@ defmodule MyTest do
   use ExUnit.Case
   use AshScenario.Scenario
 
-  scenarios do
     scenario :basic_setup do
       prototype :another_post do
         attr(:title, "Custom title for this test")
@@ -174,7 +173,6 @@ defmodule MyTest do
         attr(:title, "Post in custom blog")
         attr(:blog_id, :tech_blog)  # Use the custom blog
       end
-    end
   end
 
   test "basic scenario" do
@@ -293,7 +291,6 @@ defmodule MyTest do
   use ExUnit.Case
   use AshScenario.Scenario
 
-  scenarios do
     # Base scenario
     scenario :base_setup do
       prototype :example_post do
@@ -316,7 +313,6 @@ defmodule MyTest do
         attr(:content, "More content")
       end
     end
-  end
 
   test "extended scenario" do
     {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :extended_setup)
@@ -395,13 +391,11 @@ Notes:
 use AshScenario.Scenario
 
 # Define scenarios
-scenarios do
   scenario :my_setup do
     prototype :example_post do
       attr(:title, "Overridden title")
     end
   end
-end
 
 # Run a scenario
 {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :my_setup, domain: MyApp.Domain)

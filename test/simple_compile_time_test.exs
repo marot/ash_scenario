@@ -26,41 +26,39 @@ defmodule AshScenario.SimpleCompileTimeTest do
   @my_title "Title from attribute"
   @my_content "Content from attribute"
 
-  scenarios do
-    scenario :attributes_only do
-      prototype :example_blog do
-        attr(:name, "Static blog name")
-      end
-
-      prototype :example_post do
-        attr(:title, @my_title)
-        attr(:content, @my_content)
-      end
+  scenario :attributes_only do
+    prototype :example_blog do
+      attr(:name, "Static blog name")
     end
 
-    # Test with simple zero-arity remote function calls
-    scenario :simple_functions do
-      prototype :tech_blog do
-        attr(:name, Helpers.get_value())
-      end
+    prototype :example_post do
+      attr(:title, @my_title)
+      attr(:content, @my_content)
+    end
+  end
 
-      prototype :another_post do
-        attr(:title, Helpers.get_value())
-        # Built-in function
-        attr(:content, System.version())
-      end
+  # Test with simple zero-arity remote function calls
+  scenario :simple_functions do
+    prototype :tech_blog do
+      attr(:name, Helpers.get_value())
     end
 
-    # Test with date sigil
-    scenario :date_sigil do
-      prototype :example_blog do
-        attr(:name, "Blog with dates")
-      end
+    prototype :another_post do
+      attr(:title, Helpers.get_value())
+      # Built-in function
+      attr(:content, System.version())
+    end
+  end
 
-      prototype :example_post do
-        attr(:title, "Post with publication date")
-        attr(:publication_date, ~D[2016-04-12])
-      end
+  # Test with date sigil
+  scenario :date_sigil do
+    prototype :example_blog do
+      attr(:name, "Blog with dates")
+    end
+
+    prototype :example_post do
+      attr(:title, "Post with publication date")
+      attr(:publication_date, ~D[2016-04-12])
     end
   end
 

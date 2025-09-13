@@ -402,17 +402,15 @@ defmodule AshScenario.CustomFunctionTest do
   describe "scenario integration" do
     use AshScenario.Scenario
 
-    scenarios do
-      scenario :custom_function_scenario do
-        prototype :factory_blog do
-          attr(:name, "Scenario Blog")
-        end
+    scenario :custom_function_scenario do
+      prototype :factory_blog do
+        attr(:name, "Scenario Blog")
+      end
 
-        prototype :factory_post do
-          attr(:title, "Scenario Post")
-          # Should remain as atom
-          attr(:status, :draft)
-        end
+      prototype :factory_post do
+        attr(:title, "Scenario Post")
+        # Should remain as atom
+        attr(:status, :draft)
       end
     end
 

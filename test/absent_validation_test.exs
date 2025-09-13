@@ -16,18 +16,16 @@ defmodule AshScenario.AbsentValidationTest do
     :ok
   end
 
-  scenarios do
-    # Scenarios for the minimal daily-activity-like resource
-    scenario :custom_valid do
-      prototype :custom_activity do
-        # keep as-is from prototype
-      end
+  # Scenarios for the minimal daily-activity-like resource
+  scenario :custom_valid do
+    prototype :custom_activity do
+      # keep as-is from prototype
     end
+  end
 
-    scenario :library_valid do
-      prototype :library_activity do
-        # keep as-is from prototype
-      end
+  scenario :library_valid do
+    prototype :library_activity do
+      # keep as-is from prototype
     end
   end
 

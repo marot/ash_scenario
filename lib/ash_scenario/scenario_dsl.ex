@@ -63,7 +63,7 @@ defmodule AshScenario.ScenarioDsl do
     name: :scenarios,
     describe: "Define test scenarios with prototype overrides",
     entities: [@scenario],
-    top_level?: false,
+    top_level?: true,
     imports: []
   }
 

@@ -16,79 +16,67 @@ defmodule AshScenario.ScenarioDslTest do
   end
 
   # Define test scenarios using the new DSL
-  scenarios do
-    scenario :basic_setup do
-      # TODO: Ask if this is supported somehow
-      # another_post do
-      #   title("Override title for basic setup")
-      # end
+  scenario :basic_setup do
+    # TODO: Ask if this is supported somehow
+    # another_post do
+    #   title("Override title for basic setup")
+    # end
 
-      prototype :another_post do
-        attr(:title, "Override title for basic setup")
-      end
+    prototype :another_post do
+      attr(:title, "Override title for basic setup")
+    end
+  end
+
+  scenario :with_custom_blog do
+    # tech_blog do
+    #   name "My Custom Tech Blog"
+    # end
+
+    # another_post do
+    #   title("Post in custom blog")
+    #   blog_id(:tech_blog)
+    # end
+    prototype :tech_blog do
+      attr(:name, "My Custom Tech Blog")
     end
 
-    scenario :with_custom_blog do
-      # tech_blog do
-      #   name "My Custom Tech Blog"
-      # end
+    prototype :another_post do
+      attr(:title, "Post in custom blog")
+      attr(:blog_id, :tech_blog)
+    end
+  end
 
-      # another_post do
-      #   title("Post in custom blog")
-      #   blog_id(:tech_blog)
-      # end
-      prototype :tech_blog do
-        attr(:name, "My Custom Tech Blog")
-      end
+  scenario :single_blog_only do
+    prototype :example_blog do
+      attr(:name, "Just a blog, no posts")
+    end
+  end
 
-      prototype :another_post do
-        attr(:title, "Post in custom blog")
-        attr(:blog_id, :tech_blog)
-      end
+  # Test scenarios for new features
+  scenario :base_scenario do
+    prototype :example_blog do
+      attr(:name, "Base Blog")
     end
 
-    scenario :multiple_posts do
-      prototype :example_post do
-        attr(:title, "First post override")
-      end
+    prototype :example_post do
+      attr(:title, "Base Post")
+      attr(:content, "Base content")
+    end
+  end
 
-      prototype :another_post do
-        attr(:title, "Second post override")
-      end
+  scenario :extended_scenario do
+    extends(:base_scenario)
+
+    prototype :example_post do
+      # Override title
+      attr(:title, "Extended Post")
+      # content is inherited from base
     end
 
-    scenario :single_blog_only do
-      prototype :example_blog do
-        attr(:name, "Just a blog, no posts")
-      end
-    end
-
-    # Test scenarios for new features
-    scenario :base_scenario do
-      prototype :example_blog do
-        attr(:name, "Base Blog")
-      end
-
-      prototype :example_post do
-        attr(:title, "Base Post")
-        attr(:content, "Base content")
-      end
-    end
-
-    scenario :extended_scenario do
-      extends(:base_scenario)
-
-      prototype :example_post do
-        # Override title
-        attr(:title, "Extended Post")
-        # content is inherited from base
-      end
-
-      # Add new resource
-      prototype :another_post do
-        attr(:title, "Additional post in extended scenario")
-        attr(:content, "More content")
-      end
+    # Add new resource
+    prototype :another_post do
+      attr(:title, "Additional post in extended scenario")
+      attr(:content, "More content")
     end
   end
 
@@ -137,6 +125,16 @@ defmodule AshScenario.ScenarioDslTest do
       # Check that the post references the custom blog
       assert resources.another_post.blog_id == resources.tech_blog.id
       assert resources.another_post.title == "Post in custom blog"
+    end
+
+    scenario :multiple_posts do
+      prototype :example_post do
+        attr(:title, "First post override")
+      end
+
+      prototype :another_post do
+        attr(:title, "Second post override")
+      end
     end
 
     test "scenario with multiple posts creates all resources" do
