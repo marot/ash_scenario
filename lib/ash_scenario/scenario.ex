@@ -657,16 +657,10 @@ defmodule AshScenario.Scenario do
             if create_cfg.function do
               execute_custom_function(create_cfg.function, resolved_attributes, opts)
             else
-              # Keep track of explicit nils from scenario overrides to preserve absent() semantics
-              explicit_nil_keys =
-                override_attrs
-                |> Enum.filter(fn {_k, v} -> is_nil(v) end)
-                |> Enum.map(&elem(&1, 0))
-
               create_ash_resource(
                 module,
                 resolved_attributes,
-                Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys),
+                opts,
                 create_cfg.action || :create
               )
             end
@@ -865,21 +859,18 @@ defmodule AshScenario.Scenario do
     end
   end
 
-  defp build_changeset(resource_module, action_name, attributes, opts) do
+  defp build_changeset(resource_module, action_name, attributes, _opts) do
     try do
-      # Drop nils unless explicitly provided in scenario overrides.
-      # Explicit nils are kept so absent() validations properly fail.
-      explicit_nil_keys = MapSet.new(Keyword.get(opts, :__explicit_nil_keys__, []))
-
+      # Drop nil values
       sanitized_attributes =
         attributes
-        |> Enum.reject(fn {k, v} -> is_nil(v) and not MapSet.member?(explicit_nil_keys, k) end)
+        |> Enum.reject(fn {_k, v} -> is_nil(v) end)
         |> Map.new()
 
       require Logger
 
       Logger.debug(
-        "[scenario] build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} explicit_nil_keys=#{inspect(MapSet.to_list(explicit_nil_keys))} sanitized=#{inspect(sanitized_attributes)}"
+        "[scenario] build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} sanitized=#{inspect(sanitized_attributes)}"
       )
 
       changeset =

@@ -125,231 +125,180 @@ defmodule AshScenario.Scenario.Runner do
       trace_id: trace
     )
 
+    with {:ok, attributes, explicit_nil_keys} <- prepare_attributes(prototype, opts),
+         {:ok, resolved_attributes} <- Helpers.resolve_attributes(attributes, prototype.resource, created_resources) do
+      
+      execution_context = %{
+        prototype: prototype,
+        resolved_attributes: resolved_attributes,
+        explicit_nil_keys: explicit_nil_keys,
+        opts: opts,
+        domain: domain,
+        trace: trace
+      }
+      
+      execute_by_strategy(execution_context)
+    end
+  end
+  
+  defp prepare_attributes(prototype, opts) do
     overrides_map = Keyword.get(opts, :__overrides_map__, %{})
     per_ref_overrides = Map.get(overrides_map, {prototype.resource, prototype.ref}, %{})
-
-    base_attributes =
-      cond do
-        is_map(prototype.attributes) -> prototype.attributes
-        is_list(prototype.attributes) -> Map.new(prototype.attributes)
-        is_nil(prototype.attributes) -> %{}
-        true -> %{}
-      end
-
+    
+    base_attributes = normalize_attributes(prototype.attributes)
     merged_attributes = Map.merge(base_attributes, per_ref_overrides)
-    # Track which keys were explicitly set to nil in overrides
+    
     explicit_nil_keys =
       per_ref_overrides
       |> Enum.filter(fn {_k, v} -> is_nil(v) end)
       |> Enum.map(&elem(&1, 0))
-
-    with {:ok, resolved_attributes} <-
-           Helpers.resolve_attributes(merged_attributes, prototype.resource, created_resources) do
-      module_cfg = AshScenario.Info.create(prototype.resource)
-      res_fn = Map.get(prototype, :function)
-      res_action = Map.get(prototype, :action)
-
-      # Extract tenant info for custom functions
-      {:ok, tenant_value, _clean_attributes} = 
-        AshScenario.Multitenancy.extract_tenant_info(prototype.resource, resolved_attributes)
+    
+    {:ok, merged_attributes, explicit_nil_keys}
+  end
+  
+  defp normalize_attributes(attributes) when is_map(attributes), do: attributes
+  defp normalize_attributes(attributes) when is_list(attributes), do: Map.new(attributes)
+  defp normalize_attributes(nil), do: %{}
+  defp normalize_attributes(_), do: %{}
+  
+  defp execute_by_strategy(%{prototype: prototype} = context) do
+    module_config = AshScenario.Info.create(prototype.resource)
+    prototype_function = Map.get(prototype, :function)
+    prototype_action = Map.get(prototype, :action)
+    
+    cond do
+      prototype_function != nil ->
+        execute_with_custom_function(context, prototype_function, :prototype)
       
-      # Add tenant to opts for custom functions
-      opts_with_tenant = AshScenario.Multitenancy.add_tenant_to_opts(opts, tenant_value)
-
-      cond do
-        # Per-resource custom function override
-        res_fn != nil ->
-          Log.debug(
-            fn ->
-              "using_custom_function (prototype override) module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(res_fn)} tenant=#{inspect(tenant_value)}"
-            end,
-            component: :runner,
-            resource: prototype.resource,
-            ref: prototype.ref,
-            trace_id: trace
-          )
-
-          case Helpers.execute_custom_function(res_fn, resolved_attributes, opts_with_tenant) do
-            {:ok, created_resource} ->
-              Helpers.track_created_resource(created_resource, prototype)
-
-              Log.info(
-                fn ->
-                  "custom_function_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} id=#{Map.get(created_resource, :id)}"
-                end,
-                component: :runner,
-                resource: prototype.resource,
-                ref: prototype.ref,
-                trace_id: trace
-              )
-
-              {:ok, created_resource}
-
-            {:error, error} ->
-              Log.error(
-                fn ->
-                  "custom_function_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} error=#{inspect(error)}"
-                end,
-                component: :runner,
-                resource: prototype.resource,
-                ref: prototype.ref,
-                trace_id: trace
-              )
-
-              {:error,
-               "Failed to create #{inspect(prototype.resource)} with custom function: #{inspect(error)}"}
-          end
-
-        # Per-resource action override (takes precedence over module-level function)
-        res_action != nil ->
-          Log.debug(
-            fn ->
-              "using_action (prototype override) module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{inspect(res_action)}"
-            end,
-            component: :runner,
-            resource: prototype.resource,
-            ref: prototype.ref,
-            trace_id: trace
-          )
-
-          with {:ok, create_action} <- Helpers.get_create_action(prototype.resource, res_action),
-               {:ok, changeset, tenant_value} <-
-                 Helpers.build_changeset(
-                   prototype.resource,
-                   create_action,
-                   resolved_attributes,
-                   Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys)
-                 ) do
-            create_opts = AshScenario.Multitenancy.add_tenant_to_opts([domain: domain], tenant_value)
-            case Ash.create(changeset, create_opts) do
-              {:ok, created_resource} ->
-                Helpers.track_created_resource(created_resource, prototype)
-
-                Log.info(
-                  fn ->
-                    "create_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} id=#{Map.get(created_resource, :id)}"
-                  end,
-                  component: :runner,
-                  resource: prototype.resource,
-                  ref: prototype.ref,
-                  trace_id: trace
-                )
-
-                {:ok, created_resource}
-
-              {:error, error} ->
-                Log.error(
-                  fn ->
-                    "create_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} error=#{inspect(error)}"
-                  end,
-                  component: :runner,
-                  resource: prototype.resource,
-                  ref: prototype.ref,
-                  trace_id: trace
-                )
-
-                {:error, "Failed to create #{inspect(prototype.resource)}: #{inspect(error)}"}
-            end
-          end
-
-        # Module-level custom function
-        module_cfg.function != nil ->
-          Log.debug(
-            fn ->
-              "using_custom_function (module-level) module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(module_cfg.function)} tenant=#{inspect(tenant_value)}"
-            end,
-            component: :runner,
-            resource: prototype.resource,
-            ref: prototype.ref,
-            trace_id: trace
-          )
-
-          case Helpers.execute_custom_function(module_cfg.function, resolved_attributes, opts_with_tenant) do
-            {:ok, created_resource} ->
-              Helpers.track_created_resource(created_resource, prototype)
-
-              Log.info(
-                fn ->
-                  "custom_function_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} id=#{Map.get(created_resource, :id)}"
-                end,
-                component: :runner,
-                resource: prototype.resource,
-                ref: prototype.ref,
-                trace_id: trace
-              )
-
-              {:ok, created_resource}
-
-            {:error, error} ->
-              Log.error(
-                fn ->
-                  "custom_function_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} error=#{inspect(error)}"
-                end,
-                component: :runner,
-                resource: prototype.resource,
-                ref: prototype.ref,
-                trace_id: trace
-              )
-
-              {:error,
-               "Failed to create #{inspect(prototype.resource)} with custom function: #{inspect(error)}"}
-          end
-
-        true ->
-          # Default Ash.create, using module-level preferred action or :create
-          action = module_cfg.action || :create
-
-          Log.debug(
-            fn ->
-              "using_default_create module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{inspect(action)}"
-            end,
-            component: :runner,
-            resource: prototype.resource,
-            ref: prototype.ref,
-            trace_id: trace
-          )
-
-          with {:ok, create_action} <- Helpers.get_create_action(prototype.resource, action),
-               {:ok, changeset, tenant_value} <-
-                 Helpers.build_changeset(
-                   prototype.resource,
-                   create_action,
-                   resolved_attributes,
-                   Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys)
-                 ) do
-            create_opts = AshScenario.Multitenancy.add_tenant_to_opts([domain: domain], tenant_value)
-            case Ash.create(changeset, create_opts) do
-              {:ok, created_resource} ->
-                Helpers.track_created_resource(created_resource, prototype)
-
-                Log.info(
-                  fn ->
-                    "create_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} id=#{Map.get(created_resource, :id)}"
-                  end,
-                  component: :runner,
-                  resource: prototype.resource,
-                  ref: prototype.ref,
-                  trace_id: trace
-                )
-
-                {:ok, created_resource}
-
-              {:error, error} ->
-                Log.error(
-                  fn ->
-                    "create_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{create_action} error=#{inspect(error)}"
-                  end,
-                  component: :runner,
-                  resource: prototype.resource,
-                  ref: prototype.ref,
-                  trace_id: trace
-                )
-
-                {:error, "Failed to create #{inspect(prototype.resource)}: #{inspect(error)}"}
-            end
-          end
+      prototype_action != nil ->
+        execute_with_action(context, prototype_action, :prototype)
+      
+      module_config.function != nil ->
+        execute_with_custom_function(context, module_config.function, :module)
+      
+      true ->
+        action = module_config.action || :create
+        execute_with_action(context, action, :default)
+    end
+  end
+  
+  defp execute_with_custom_function(context, function, level) do
+    %{
+      prototype: prototype,
+      resolved_attributes: resolved_attributes,
+      opts: opts,
+      trace: trace
+    } = context
+    
+    # Extract tenant info for custom functions
+    {:ok, tenant_value, _clean_attributes} = 
+      AshScenario.Multitenancy.extract_tenant_info(prototype.resource, resolved_attributes)
+    
+    # Add tenant to opts for custom functions
+    opts_with_tenant = AshScenario.Multitenancy.add_tenant_to_opts(opts, tenant_value)
+    
+    Log.debug(
+      fn ->
+        level_desc = if level == :prototype, do: " (prototype override)", else: " (module-level)"
+        "using_custom_function#{level_desc} module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(function)} tenant=#{inspect(tenant_value)}"
+      end,
+      component: :runner,
+      resource: prototype.resource,
+      ref: prototype.ref,
+      trace_id: trace
+    )
+    
+    case Helpers.execute_custom_function(function, resolved_attributes, opts_with_tenant) do
+      {:ok, created_resource} ->
+        handle_creation_success(created_resource, prototype, trace, :custom_function)
+      
+      {:error, error} ->
+        handle_creation_error(error, prototype, trace, :custom_function)
+    end
+  end
+  
+  defp execute_with_action(context, action, level) do
+    %{
+      prototype: prototype,
+      resolved_attributes: resolved_attributes,
+      explicit_nil_keys: explicit_nil_keys,
+      opts: opts,
+      domain: domain,
+      trace: trace
+    } = context
+    
+    Log.debug(
+      fn ->
+        level_desc = case level do
+          :prototype -> " (prototype override)"
+          :default -> ""
+          _ -> " (#{level})"
+        end
+        "using_action#{level_desc} module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{inspect(action)}"
+      end,
+      component: :runner,
+      resource: prototype.resource,
+      ref: prototype.ref,
+      trace_id: trace
+    )
+    
+    with {:ok, create_action} <- Helpers.get_create_action(prototype.resource, action),
+         {:ok, changeset, tenant_value} <-
+           Helpers.build_changeset(
+             prototype.resource,
+             create_action,
+             resolved_attributes,
+             Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys)
+           ) do
+      
+      create_opts = AshScenario.Multitenancy.add_tenant_to_opts([domain: domain], tenant_value)
+      
+      case Ash.create(changeset, create_opts) do
+        {:ok, created_resource} ->
+          handle_creation_success(created_resource, prototype, trace, create_action)
+        
+        {:error, error} ->
+          handle_creation_error(error, prototype, trace, create_action)
       end
     end
+  end
+  
+  defp handle_creation_success(created_resource, prototype, trace, method) do
+    Helpers.track_created_resource(created_resource, prototype)
+    
+    Log.info(
+      fn ->
+        method_desc = if is_atom(method), do: "action=#{method}", else: "method=#{method}"
+        "create_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} #{method_desc} id=#{Map.get(created_resource, :id)}"
+      end,
+      component: :runner,
+      resource: prototype.resource,
+      ref: prototype.ref,
+      trace_id: trace
+    )
+    
+    {:ok, created_resource}
+  end
+  
+  defp handle_creation_error(error, prototype, trace, method) do
+    Log.error(
+      fn ->
+        method_desc = if is_atom(method), do: "action=#{method}", else: "method=#{method}"
+        "create_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} #{method_desc} error=#{inspect(error)}"
+      end,
+      component: :runner,
+      resource: prototype.resource,
+      ref: prototype.ref,
+      trace_id: trace
+    )
+    
+    error_context = 
+      case method do
+        :custom_function -> " with custom function"
+        method when is_atom(method) -> ""
+        _ -> " with #{method}"
+      end
+    {:error, "Failed to create #{inspect(prototype.resource)}#{error_context}: #{inspect(error)}"}
   end
 
 end
