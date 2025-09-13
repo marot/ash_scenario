@@ -7,6 +7,7 @@ defmodule AshScenarioTest do
       {:ok, _pid} -> :ok
       {:error, {:already_started, _pid}} -> :ok
     end
+
     AshScenario.clear_prototypes()
     :ok
   end
@@ -76,10 +77,14 @@ defmodule AshScenarioTest do
     end
 
     test "multiple prototypes can be run with dependency resolution" do
-      result = AshScenario.run_prototypes([
-        {Blog, :example_blog},
-        {Post, :example_post}
-      ], domain: Domain)
+      result =
+        AshScenario.run_prototypes(
+          [
+            {Blog, :example_blog},
+            {Post, :example_post}
+          ],
+          domain: Domain
+        )
 
       assert {:ok, created_resources} = result
       assert map_size(created_resources) == 2
@@ -125,21 +130,21 @@ defmodule AshScenarioTest do
     test "prototypes only accept valid resource attributes" do
       # Test that our Post prototypes only use valid attributes
       example_post = AshScenario.prototype(Post, :example_post)
-      
+
       # These are all valid Post attributes/relationships
       valid_keys = [:title, :content, :blog_id]
       scenario_keys = Keyword.keys(example_post.attributes)
-      
+
       assert Enum.all?(scenario_keys, fn key -> key in valid_keys end)
     end
 
     test "blog prototypes only use valid blog attributes" do
       example_blog = AshScenario.prototype(Blog, :example_blog)
-      
+
       # Blog only has the 'name' attribute
       valid_keys = [:name]
       scenario_keys = Keyword.keys(example_blog.attributes)
-      
+
       assert Enum.all?(scenario_keys, fn key -> key in valid_keys end)
     end
   end

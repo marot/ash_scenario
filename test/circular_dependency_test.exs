@@ -1,6 +1,6 @@
 defmodule TestDomain do
   use Ash.Domain
-  
+
   resources do
     allow_unregistered? true
   end
@@ -40,6 +40,7 @@ defmodule CircularDependencyTest do
 
         actions do
           defaults [:read]
+
           create :create do
             accept [:name, :parent_id]
           end
@@ -47,8 +48,9 @@ defmodule CircularDependencyTest do
 
         prototypes do
           prototype :self_ref do
-            attr :name, "Self Reference"
-            attr :parent_id, :self_ref  # Points to itself
+            attr(:name, "Self Reference")
+            # Points to itself
+            attr(:parent_id, :self_ref)
           end
         end
       end
@@ -75,6 +77,7 @@ defmodule CircularDependencyTest do
 
         actions do
           defaults [:read]
+
           create :create do
             accept [:name, :parent_id]
           end
@@ -82,13 +85,14 @@ defmodule CircularDependencyTest do
 
         prototypes do
           prototype :node_a do
-            attr :name, "Node A"
-            attr :parent_id, :node_b
+            attr(:name, "Node A")
+            attr(:parent_id, :node_b)
           end
-          
+
           prototype :node_b do
-            attr :name, "Node B"
-            attr :parent_id, :node_a  # Cycle back to A
+            attr(:name, "Node B")
+            # Cycle back to A
+            attr(:parent_id, :node_a)
           end
         end
       end
@@ -116,6 +120,7 @@ defmodule CircularDependencyTest do
 
         actions do
           defaults [:read]
+
           create :create do
             accept [:name, :parent_id]
           end
@@ -123,18 +128,19 @@ defmodule CircularDependencyTest do
 
         prototypes do
           prototype :node_a do
-            attr :name, "Node A"
-            attr :parent_id, :node_b
+            attr(:name, "Node A")
+            attr(:parent_id, :node_b)
           end
-          
+
           prototype :node_b do
-            attr :name, "Node B"
-            attr :parent_id, :node_c
+            attr(:name, "Node B")
+            attr(:parent_id, :node_c)
           end
-          
+
           prototype :node_c do
-            attr :name, "Node C"
-            attr :parent_id, :node_a  # Cycle back to A
+            attr(:name, "Node C")
+            # Cycle back to A
+            attr(:parent_id, :node_a)
           end
         end
       end
@@ -160,6 +166,7 @@ defmodule CircularDependencyTest do
 
         actions do
           defaults [:read]
+
           create :create do
             accept [:name, :parent_id]
           end
@@ -167,18 +174,20 @@ defmodule CircularDependencyTest do
 
         prototypes do
           prototype :root do
-            attr :name, "Root Node"
+            attr(:name, "Root Node")
             # No parent_id - this is valid
           end
-          
+
           prototype :child do
-            attr :name, "Child Node"
-            attr :parent_id, :root  # Valid reference
+            attr(:name, "Child Node")
+            # Valid reference
+            attr(:parent_id, :root)
           end
-          
+
           prototype :grandchild do
-            attr :name, "Grandchild Node"
-            attr :parent_id, :child  # Valid chain
+            attr(:name, "Grandchild Node")
+            # Valid chain
+            attr(:parent_id, :child)
           end
         end
       end
@@ -204,6 +213,7 @@ defmodule CircularDependencyTest do
 
         actions do
           defaults [:read]
+
           create :create do
             accept [:name, :parent_id, :other_parent_id]
           end
@@ -212,23 +222,24 @@ defmodule CircularDependencyTest do
         prototypes do
           # Diamond pattern: root -> (left, right) -> bottom
           prototype :root do
-            attr :name, "Root"
+            attr(:name, "Root")
           end
-          
+
           prototype :left do
-            attr :name, "Left Branch"
-            attr :parent_id, :root
+            attr(:name, "Left Branch")
+            attr(:parent_id, :root)
           end
-          
+
           prototype :right do
-            attr :name, "Right Branch"
-            attr :parent_id, :root
+            attr(:name, "Right Branch")
+            attr(:parent_id, :root)
           end
-          
+
           prototype :bottom do
-            attr :name, "Bottom (Diamond)"
-            attr :parent_id, :left
-            attr :other_parent_id, :right  # Both paths lead here - still valid DAG
+            attr(:name, "Bottom (Diamond)")
+            attr(:parent_id, :left)
+            # Both paths lead here - still valid DAG
+            attr(:other_parent_id, :right)
           end
         end
       end
@@ -256,6 +267,7 @@ defmodule CircularDependencyTest do
 
         actions do
           defaults [:read]
+
           create :create do
             accept [:name, :other_id]
           end
@@ -263,8 +275,8 @@ defmodule CircularDependencyTest do
 
         prototypes do
           prototype :instance_a do
-            attr :name, "A Instance"
-            attr :other_id, :instance_b
+            attr(:name, "A Instance")
+            attr(:other_id, :instance_b)
           end
         end
       end
@@ -285,6 +297,7 @@ defmodule CircularDependencyTest do
 
         actions do
           defaults [:read]
+
           create :create do
             accept [:name, :other_id]
           end
@@ -292,15 +305,15 @@ defmodule CircularDependencyTest do
 
         prototypes do
           prototype :instance_b do
-            attr :name, "B Instance"
-            attr :other_id, :instance_a
+            attr(:name, "B Instance")
+            attr(:other_id, :instance_a)
           end
         end
       end
 
       # Register first resource successfully
       assert :ok = AshScenario.register_prototypes(CrossResourceA)
-      
+
       # Second registration should detect the cycle
       assert {:error, message} = AshScenario.register_prototypes(CrossResourceB)
       assert message =~ "Circular dependency detected"

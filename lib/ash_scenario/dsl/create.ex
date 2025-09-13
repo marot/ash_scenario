@@ -18,4 +18,3 @@ defmodule AshScenario.Dsl.Create do
           __identifier__: atom() | nil
         }
 end
-

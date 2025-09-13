@@ -11,9 +11,10 @@ defmodule AshScenario.Log do
 
   @type meta :: keyword()
 
-  @spec with(metadata :: meta(), fun :: (() -> any())) :: any()
+  @spec with(metadata :: meta(), fun :: (-> any())) :: any()
   def with(metadata, fun) when is_function(fun, 0) do
     prev = Logger.metadata()
+
     try do
       Logger.metadata(metadata)
       fun.()
@@ -22,16 +23,16 @@ defmodule AshScenario.Log do
     end
   end
 
-  @spec debug(message :: String.t() | (() -> iodata()), meta()) :: :ok
+  @spec debug(message :: String.t() | (-> iodata()), meta()) :: :ok
   def debug(message, meta \\ []), do: Logger.debug(message, meta)
 
-  @spec info(message :: String.t() | (() -> iodata()), meta()) :: :ok
+  @spec info(message :: String.t() | (-> iodata()), meta()) :: :ok
   def info(message, meta \\ []), do: Logger.info(message, meta)
 
-  @spec warn(message :: String.t() | (() -> iodata()), meta()) :: :ok
+  @spec warn(message :: String.t() | (-> iodata()), meta()) :: :ok
   def warn(message, meta \\ []), do: Logger.warning(message, meta)
 
-  @spec error(message :: String.t() | (() -> iodata()), meta()) :: :ok
+  @spec error(message :: String.t() | (-> iodata()), meta()) :: :ok
   def error(message, meta \\ []), do: Logger.error(message, meta)
 
   @doc """

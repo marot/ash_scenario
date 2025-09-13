@@ -48,7 +48,7 @@ defmodule AshScenario.Scenario.StructBuilder do
       Enum.reduce_while(ordered_prototypes, {:ok, %{}}, fn prototype, {:ok, created_structs} ->
         # Use a custom creator function that builds structs instead of using Ash.create
         creator_fn = &create_struct/3
-        
+
         case execute_prototype(
                prototype,
                Keyword.put(opts, :__overrides_map__, overrides_map),
@@ -131,7 +131,7 @@ defmodule AshScenario.Scenario.StructBuilder do
       end
 
     merged_attributes = Map.merge(base_attributes, per_ref_overrides)
-    
+
     # Track which keys were explicitly set to nil in overrides
     explicit_nil_keys =
       per_ref_overrides
@@ -143,11 +143,11 @@ defmodule AshScenario.Scenario.StructBuilder do
       module_cfg = AshScenario.Info.create(prototype.resource)
       res_fn = Map.get(prototype, :function)
       res_action = Map.get(prototype, :action)
-      
+
       # Extract tenant info for custom functions
-      {:ok, tenant_value, _clean_attributes} = 
+      {:ok, tenant_value, _clean_attributes} =
         AshScenario.Multitenancy.extract_tenant_info(prototype.resource, resolved_attributes)
-      
+
       # Add tenant to opts for custom functions
       opts_with_tenant = AshScenario.Multitenancy.add_tenant_to_opts(opts, tenant_value)
 
@@ -186,7 +186,11 @@ defmodule AshScenario.Scenario.StructBuilder do
             trace_id: trace
           )
 
-          case Helpers.execute_custom_function(module_cfg.function, resolved_attributes, opts_with_tenant) do
+          case Helpers.execute_custom_function(
+                 module_cfg.function,
+                 resolved_attributes,
+                 opts_with_tenant
+               ) do
             {:ok, created_resource} ->
               Helpers.track_created_resource(created_resource, prototype)
               {:ok, created_resource}
@@ -209,15 +213,19 @@ defmodule AshScenario.Scenario.StructBuilder do
           )
 
           _action = res_action || module_cfg.action || :create
-          
-          case creator_fn.(prototype.resource, resolved_attributes, 
-                           Keyword.put(opts_with_tenant, :__explicit_nil_keys__, explicit_nil_keys)) do
+
+          case creator_fn.(
+                 prototype.resource,
+                 resolved_attributes,
+                 Keyword.put(opts_with_tenant, :__explicit_nil_keys__, explicit_nil_keys)
+               ) do
             {:ok, created_resource} ->
               Helpers.track_created_resource(created_resource, prototype)
               {:ok, created_resource}
 
             {:error, error} ->
-              {:error, "Failed to create struct #{inspect(prototype.resource)}: #{inspect(error)}"}
+              {:error,
+               "Failed to create struct #{inspect(prototype.resource)}: #{inspect(error)}"}
           end
       end
     end
@@ -279,20 +287,20 @@ defmodule AshScenario.Scenario.StructBuilder do
     try do
       # Get primary key field(s)
       primary_key = Ash.Resource.Info.primary_key(resource_module)
-      
+
       # Generate ID if needed and not provided
       attributes_with_id =
         case {primary_key, Map.has_key?(attributes, :id)} do
           {[:id], false} ->
             Map.put(attributes, :id, Ash.UUID.generate())
-          
+
           _ ->
             attributes
         end
 
       # Add timestamps if the resource has them and they're not provided
       now = DateTime.utc_now()
-      
+
       attributes_with_timestamps =
         attributes_with_id
         |> maybe_add_timestamp(:inserted_at, now, resource_module)
@@ -300,7 +308,7 @@ defmodule AshScenario.Scenario.StructBuilder do
 
       # Create the struct
       struct = struct(resource_module, attributes_with_timestamps)
-      
+
       {:ok, struct}
     rescue
       error ->

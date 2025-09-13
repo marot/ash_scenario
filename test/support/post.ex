@@ -45,15 +45,15 @@ defmodule Post do
 
   prototypes do
     prototype :example_post do
-      attr :title, "A post title"
-      attr :content, "The content of the example post"
-      attr :blog_id, :example_blog
+      attr(:title, "A post title")
+      attr(:content, "The content of the example post")
+      attr(:blog_id, :example_blog)
     end
 
     prototype :another_post do
-      attr :title, "Another post title"
-      attr :content, "Different content"
-      attr :blog_id, :example_blog
+      attr(:title, "Another post title")
+      attr(:content, "Different content")
+      attr(:blog_id, :example_blog)
     end
   end
 end

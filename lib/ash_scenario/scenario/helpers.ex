@@ -8,7 +8,7 @@ defmodule AshScenario.Scenario.Helpers do
 
   @doc """
   Normalize prototype refs and merge overrides from multiple sources.
-  
+
   Supports:
   - Per-ref tuple: {Module, :ref, %{attr => value}}
   - Top-level opts: overrides: %{{Module, :ref} => %{...}}
@@ -77,7 +77,7 @@ defmodule AshScenario.Scenario.Helpers do
 
   @doc """
   Resolve a single attribute value, handling relationship references.
-  
+
   For database mode: Resolves atom references to IDs from created resources.
   For struct mode: Keep atom references as-is (handled by caller).
   """
@@ -253,7 +253,7 @@ defmodule AshScenario.Scenario.Helpers do
 
   @doc """
   Build a changeset for creating a resource with Ash.
-  
+
   Returns `{:ok, changeset, tenant_value}` where tenant_value may be nil
   if the resource doesn't use attribute-based multitenancy.
   """
@@ -266,7 +266,7 @@ defmodule AshScenario.Scenario.Helpers do
         |> Map.new()
 
       # Extract tenant information if resource uses attribute multitenancy
-      {:ok, tenant_value, clean_attributes} = 
+      {:ok, tenant_value, clean_attributes} =
         AshScenario.Multitenancy.extract_tenant_info(resource_module, sanitized_attributes)
 
       Log.debug(

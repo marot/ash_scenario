@@ -21,11 +21,11 @@ defmodule Blog do
 
   prototypes do
     prototype :example_blog do
-      attr :name, "Example name"
+      attr(:name, "Example name")
     end
 
     prototype :tech_blog do
-      attr :name, "Tech Blog"
+      attr(:name, "Tech Blog")
     end
   end
 end

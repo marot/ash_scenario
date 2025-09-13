@@ -195,11 +195,13 @@ defmodule AshScenario do
   def __register_prototypes__(env, _bytecode) do
     if AshScenario.Info.has_prototypes?(env.module) do
       case AshScenario.register_prototypes(env.module) do
-        :ok -> :ok
-        {:error, message} -> 
+        :ok ->
+          :ok
+
+        {:error, message} ->
           raise """
           Failed to register prototypes for #{inspect(env.module)}:
-          
+
           #{message}
           """
       end

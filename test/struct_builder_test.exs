@@ -8,8 +8,8 @@ defmodule AshScenario.StructBuilderTest.TestScenarioModule do
     end
 
     example_post(module: AshScenario.StructBuilderTest.Post) do
-      title "Test Post"
-      content "Test Content"
+      title("Test Post")
+      content("Test Content")
     end
   end
 end
@@ -131,7 +131,7 @@ defmodule AshScenario.StructBuilderTest do
     test "creates structs from a scenario without persistence" do
       scenarios = __MODULE__.TestScenarioModule.__scenarios__()
       IO.inspect(scenarios, label: "DEBUG: scenarios", pretty: true)
-      
+
       {:ok, structs} =
         AshScenario.Scenario.create_structs(__MODULE__.TestScenarioModule, :test_setup)
 

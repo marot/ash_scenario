@@ -14,19 +14,24 @@ defmodule AshScenario.OverridesTest do
   end
 
   test "run_resource supports inline overrides" do
-    {:ok, blog} = AshScenario.run_prototype(Blog, :example_blog,
-      domain: Domain,
-      overrides: %{name: "Custom name"}
-    )
+    {:ok, blog} =
+      AshScenario.run_prototype(Blog, :example_blog,
+        domain: Domain,
+        overrides: %{name: "Custom name"}
+      )
 
     assert blog.name == "Custom name"
   end
 
   test "run_resources supports per-tuple overrides" do
-    {:ok, resources} = AshScenario.run_prototypes([
-      {Blog, :example_blog, %{name: "Tuple Blog"}},
-      {Post, :example_post, %{title: "Tuple Post"}}
-    ], domain: Domain)
+    {:ok, resources} =
+      AshScenario.run_prototypes(
+        [
+          {Blog, :example_blog, %{name: "Tuple Blog"}},
+          {Post, :example_post, %{title: "Tuple Post"}}
+        ],
+        domain: Domain
+      )
 
     blog = resources[{Blog, :example_blog}]
     post = resources[{Post, :example_post}]
@@ -42,10 +47,15 @@ defmodule AshScenario.OverridesTest do
       {Post, :example_post} => %{title: "Top Post"}
     }
 
-    {:ok, resources} = AshScenario.run_prototypes([
-      {Blog, :example_blog},
-      {Post, :example_post}
-    ], domain: Domain, overrides: overrides)
+    {:ok, resources} =
+      AshScenario.run_prototypes(
+        [
+          {Blog, :example_blog},
+          {Post, :example_post}
+        ],
+        domain: Domain,
+        overrides: overrides
+      )
 
     blog = resources[{Blog, :example_blog}]
     post = resources[{Post, :example_post}]

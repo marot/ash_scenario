@@ -67,7 +67,7 @@ defmodule AshScenario.CustomFunctionTest do
       create function: {TestFactory, :create_blog, []}
 
       prototype :factory_blog do
-        attr :name, "Factory Blog"
+        attr(:name, "Factory Blog")
       end
     end
   end
@@ -79,6 +79,7 @@ defmodule AshScenario.CustomFunctionTest do
 
     attributes do
       uuid_primary_key :id
+
       attribute :name, :string do
         public? true
       end
@@ -86,6 +87,7 @@ defmodule AshScenario.CustomFunctionTest do
 
     actions do
       defaults [:read]
+
       create :create do
         accept [:name]
       end
@@ -93,11 +95,11 @@ defmodule AshScenario.CustomFunctionTest do
 
     prototypes do
       create function: fn attrs, _opts ->
-        {:ok, %Blog{id: Ash.UUID.generate(), name: attrs[:name]}}
-      end
+               {:ok, %Blog{id: Ash.UUID.generate(), name: attrs[:name]}}
+             end
 
       prototype :anonymous_blog do
-        attr :name, "Anonymous Blog"
+        attr(:name, "Anonymous Blog")
       end
     end
   end
@@ -109,6 +111,7 @@ defmodule AshScenario.CustomFunctionTest do
 
     attributes do
       uuid_primary_key :id
+
       attribute :name, :string do
         public? true
       end
@@ -116,6 +119,7 @@ defmodule AshScenario.CustomFunctionTest do
 
     actions do
       defaults [:read]
+
       create :create do
         accept [:name]
       end
@@ -125,7 +129,7 @@ defmodule AshScenario.CustomFunctionTest do
       create function: {TestFactory, :failing_function, []}
 
       prototype :failing_blog do
-        attr :name, "Failing Blog"
+        attr(:name, "Failing Blog")
       end
     end
   end
@@ -170,10 +174,10 @@ defmodule AshScenario.CustomFunctionTest do
       create function: {TestFactory, :create_post, []}
 
       prototype :factory_post do
-        attr :title, "Factory Post"
-        attr :content, "Factory Content"
-        attr :status, :published
-        attr :blog_id, :factory_blog
+        attr(:title, "Factory Post")
+        attr(:content, "Factory Content")
+        attr(:status, :published)
+        attr(:blog_id, :factory_blog)
       end
     end
   end
@@ -185,6 +189,7 @@ defmodule AshScenario.CustomFunctionTest do
 
     attributes do
       uuid_primary_key :id
+
       attribute :title, :string do
         public? true
       end
@@ -198,6 +203,7 @@ defmodule AshScenario.CustomFunctionTest do
 
     actions do
       defaults [:read]
+
       create :create do
         accept [:title, :blog_id]
       end
@@ -207,8 +213,8 @@ defmodule AshScenario.CustomFunctionTest do
       create function: {TestFactory, :create_post_with_extra_args, ["PREFIX"]}
 
       prototype :prefixed_post do
-        attr :title, "Prefixed Post"
-        attr :blog_id, :factory_blog
+        attr(:title, "Prefixed Post")
+        attr(:blog_id, :factory_blog)
       end
     end
   end
@@ -220,9 +226,11 @@ defmodule AshScenario.CustomFunctionTest do
 
     attributes do
       uuid_primary_key :id
+
       attribute :title, :string do
         public? true
       end
+
       attribute :content, :string do
         public? true
       end
@@ -236,6 +244,7 @@ defmodule AshScenario.CustomFunctionTest do
 
     actions do
       defaults [:read]
+
       create :create do
         accept [:title, :content, :blog_id]
       end
@@ -244,9 +253,9 @@ defmodule AshScenario.CustomFunctionTest do
     prototypes do
       # No create function: uses default Ash.create :create
       prototype :regular_post do
-        attr :title, "Regular Post"
-        attr :content, "Regular Content"
-        attr :blog_id, :factory_blog
+        attr(:title, "Regular Post")
+        attr(:content, "Regular Content")
+        attr(:blog_id, :factory_blog)
       end
     end
   end

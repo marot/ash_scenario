@@ -93,9 +93,9 @@ defmodule AshScenario.Scenario do
             # Backward compatibility for scenarios without extends
             # Expand the block to resolve compile-time values
             expanded_block = expand_compile_time_values(block, env)
-            
+
             overrides = extract_overrides_from_ast(expanded_block)
-            
+
             {name, overrides}
         end
       end)
@@ -128,8 +128,10 @@ defmodule AshScenario.Scenario do
       # Module attributes - try to evaluate them
       {:@, _, [{name, _, _}]} ->
         case Module.get_attribute(env.module, name) do
-          nil -> ast  # Keep original if attribute doesn't exist
-          value -> value  # Use the actual value
+          # Keep original if attribute doesn't exist
+          nil -> ast
+          # Use the actual value
+          value -> value
         end
 
       # Sigils and other safe compile-time expressions
@@ -160,10 +162,10 @@ defmodule AshScenario.Scenario do
         end
 
       # Everything else - keep as AST (literals, function calls with args, etc.)
-      _ -> ast
+      _ ->
+        ast
     end
   end
-
 
   # Compile-time version of extract_overrides_from_block for macro expansion
   defp extract_overrides_from_ast({:__block__, _, statements}) do
@@ -227,7 +229,7 @@ defmodule AshScenario.Scenario do
   defp resolve_module_name({:__aliases__, _, parts}) when is_list(parts) do
     Module.concat(parts)
   end
-  
+
   defp resolve_module_name(module) when is_atom(module) do
     module
   end
@@ -267,7 +269,7 @@ defmodule AshScenario.Scenario do
     {result, _} = Code.eval_quoted(escaped_struct)
     result
   end
-  
+
   defp maybe_evaluate_remaining_ast(value), do: value
 
   # Scenario merging logic for extension support
@@ -601,11 +603,14 @@ defmodule AshScenario.Scenario do
       {:ok, {module, prototype_definition}} ->
         # 2. Determine the canonical scoped key for storage
         # Always use {module, name} format for consistency
-        scoped_key = case prototype_name do
-          {_mod, name} -> {module, name}  # Already scoped, use the found module
-          name when is_atom(name) -> {module, name}  # Unscoped, add module
-        end
-        
+        scoped_key =
+          case prototype_name do
+            # Already scoped, use the found module
+            {_mod, name} -> {module, name}
+            # Unscoped, add module
+            name when is_atom(name) -> {module, name}
+          end
+
         # 3. Merge base attributes with overrides
         base_attrs = Map.new(prototype_definition.attributes || [])
         override_attrs = Map.new(overrides[prototype_name] || [])
@@ -617,13 +622,14 @@ defmodule AshScenario.Scenario do
             # 4. Use module-level create configuration (custom function or action)
             create_cfg = AshScenario.Info.create(module)
 
-            result = if create_cfg.function do
-              execute_custom_function(create_cfg.function, resolved_attributes, opts)
-            else
-              # Create struct without database persistence
-              create_struct(module, resolved_attributes, opts)
-            end
-            
+            result =
+              if create_cfg.function do
+                execute_custom_function(create_cfg.function, resolved_attributes, opts)
+              else
+                # Create struct without database persistence
+                create_struct(module, resolved_attributes, opts)
+              end
+
             # Add the scoped_key to the result
             case result do
               {:ok, struct} -> {:ok, scoped_key, struct}
@@ -696,14 +702,17 @@ defmodule AshScenario.Scenario do
     if is_relationship_attribute?(module, attr_name) do
       # Always look for scoped key first since we store everything scoped
       # Need to find the right module for this prototype
-      matching_struct = Enum.find_value(created_structs, fn
-        {{_mod, ^value}, struct} -> struct
-        _ -> nil
-      end)
-      
+      matching_struct =
+        Enum.find_value(created_structs, fn
+          {{_mod, ^value}, struct} -> struct
+          _ -> nil
+        end)
+
       case matching_struct do
-        nil -> {:ok, value}  # Not a reference, return as-is
-        struct -> {:ok, struct}  # Return the struct itself
+        # Not a reference, return as-is
+        nil -> {:ok, value}
+        # Return the struct itself
+        struct -> {:ok, struct}
       end
     else
       # Not a relationship attribute, keep the atom value as-is

@@ -2,7 +2,7 @@ defmodule AshScenario.Dsl.Prototype do
   @moduledoc """
   Defines a prototype entity that dynamically accepts attributes and relationships
   based on the containing Ash resource's schema.
-  
+
   This replaces the previous `resources/resource` naming to avoid collisions
   with other Spark/Ash DSLs. The semantics are unchanged.
   """
@@ -39,4 +39,3 @@ defmodule AshScenario.Dsl.Prototype do
           __identifier__: atom()
         }
 end
-

@@ -8,4 +8,3 @@ config :git_ops,
   manage_mix_version?: true,
   manage_readme_version?: "README.md",
   version_tag_prefix: "v"
-
