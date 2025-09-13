@@ -1,7 +1,7 @@
 import Config
 
 # Verbose logging in test for easier debugging
-config :logger, level: :debug
+config :logger, level: :info
 
 # Ash test convenience: avoid strict domain/resource inclusion checks in test
 config :ash, :validate_domain_config_inclusion?, false
