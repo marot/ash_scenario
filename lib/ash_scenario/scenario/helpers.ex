@@ -142,31 +142,27 @@ defmodule AshScenario.Scenario.Helpers do
   Check if an attribute name corresponds to a relationship.
   """
   def is_relationship_attribute?(resource_module, attr_name) do
-    try do
-      resource_module
-      |> Ash.Resource.Info.relationships()
-      |> Enum.any?(fn rel ->
-        rel.source_attribute == attr_name
-      end)
-    rescue
-      _ -> false
-    end
+    resource_module
+    |> Ash.Resource.Info.relationships()
+    |> Enum.any?(fn rel ->
+      rel.source_attribute == attr_name
+    end)
+  rescue
+    _ -> false
   end
 
   @doc """
   Get the related module for a relationship attribute.
   """
   def related_module_for_attr(resource_module, attr_name) do
-    try do
-      case Enum.find(Ash.Resource.Info.relationships(resource_module), fn rel ->
-             rel.source_attribute == attr_name
-           end) do
-        nil -> :error
-        rel -> {:ok, rel.destination}
-      end
-    rescue
-      _ -> :error
+    case Enum.find(Ash.Resource.Info.relationships(resource_module), fn rel ->
+           rel.source_attribute == attr_name
+         end) do
+      nil -> :error
+      rel -> {:ok, rel.destination}
     end
+  rescue
+    _ -> :error
   end
 
   @doc """
@@ -184,30 +180,24 @@ defmodule AshScenario.Scenario.Helpers do
   Infer the domain for a resource module.
   """
   def infer_domain(resource_module) do
-    try do
-      Ash.Resource.Info.domain(resource_module)
-    rescue
-      _ -> nil
-    end
+    Ash.Resource.Info.domain(resource_module)
+  rescue
+    _ -> nil
   end
 
   @doc """
   Execute a custom creation function.
   """
   def execute_custom_function({module, function, extra_args}, resolved_attributes, opts) do
-    try do
-      apply(module, function, [resolved_attributes, opts] ++ extra_args)
-    rescue
-      error -> {:error, "Custom function failed: #{inspect(error)}"}
-    end
+    apply(module, function, [resolved_attributes, opts] ++ extra_args)
+  rescue
+    error -> {:error, "Custom function failed: #{inspect(error)}"}
   end
 
   def execute_custom_function(fun, resolved_attributes, opts) when is_function(fun, 2) do
-    try do
-      fun.(resolved_attributes, opts)
-    rescue
-      error -> {:error, "Custom function failed: #{inspect(error)}"}
-    end
+    fun.(resolved_attributes, opts)
+  rescue
+    error -> {:error, "Custom function failed: #{inspect(error)}"}
   end
 
   def execute_custom_function(fun, _resolved_attributes, _opts) do
@@ -258,40 +248,38 @@ defmodule AshScenario.Scenario.Helpers do
   if the resource doesn't use attribute-based multitenancy.
   """
   def build_changeset(resource_module, action_name, attributes, _opts) do
-    try do
-      # Drop nil values
-      sanitized_attributes =
-        attributes
-        |> Enum.reject(fn {_k, v} -> is_nil(v) end)
-        |> Map.new()
+    # Drop nil values
+    sanitized_attributes =
+      attributes
+      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+      |> Map.new()
 
-      # Extract tenant information if resource uses attribute multitenancy
-      {:ok, tenant_value, clean_attributes} =
-        AshScenario.Multitenancy.extract_tenant_info(resource_module, sanitized_attributes)
+    # Extract tenant information if resource uses attribute multitenancy
+    {:ok, tenant_value, clean_attributes} =
+      AshScenario.Multitenancy.extract_tenant_info(resource_module, sanitized_attributes)
 
-      Log.debug(
-        fn ->
-          "build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} sanitized=#{inspect(sanitized_attributes)} tenant=#{inspect(tenant_value)} clean_attrs=#{inspect(clean_attributes)}"
-        end,
-        component: :helpers,
-        resource: resource_module
-      )
+    Log.debug(
+      fn ->
+        "build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} sanitized=#{inspect(sanitized_attributes)} tenant=#{inspect(tenant_value)} clean_attrs=#{inspect(clean_attributes)}"
+      end,
+      component: :helpers,
+      resource: resource_module
+    )
 
-      changeset =
-        resource_module
-        |> Ash.Changeset.for_create(action_name, clean_attributes)
+    changeset =
+      resource_module
+      |> Ash.Changeset.for_create(action_name, clean_attributes)
 
-      Log.debug(
-        fn ->
-          "built_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} changes=#{inspect(Map.get(changeset, :changes, %{}))} tenant=#{inspect(tenant_value)}"
-        end,
-        component: :helpers,
-        resource: resource_module
-      )
+    Log.debug(
+      fn ->
+        "built_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} changes=#{inspect(Map.get(changeset, :changes, %{}))} tenant=#{inspect(tenant_value)}"
+      end,
+      component: :helpers,
+      resource: resource_module
+    )
 
-      {:ok, changeset, tenant_value}
-    rescue
-      error -> {:error, "Failed to build changeset: #{inspect(error)}"}
-    end
+    {:ok, changeset, tenant_value}
+  rescue
+    error -> {:error, "Failed to build changeset: #{inspect(error)}"}
   end
 end

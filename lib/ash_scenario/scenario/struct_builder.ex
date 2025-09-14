@@ -284,36 +284,34 @@ defmodule AshScenario.Scenario.StructBuilder do
 
   # Create a struct without database persistence
   defp create_struct(resource_module, attributes, _opts) do
-    try do
-      # Get primary key field(s)
-      primary_key = Ash.Resource.Info.primary_key(resource_module)
+    # Get primary key field(s)
+    primary_key = Ash.Resource.Info.primary_key(resource_module)
 
-      # Generate ID if needed and not provided
-      attributes_with_id =
-        case {primary_key, Map.has_key?(attributes, :id)} do
-          {[:id], false} ->
-            Map.put(attributes, :id, Ash.UUID.generate())
+    # Generate ID if needed and not provided
+    attributes_with_id =
+      case {primary_key, Map.has_key?(attributes, :id)} do
+        {[:id], false} ->
+          Map.put(attributes, :id, Ash.UUID.generate())
 
-          _ ->
-            attributes
-        end
+        _ ->
+          attributes
+      end
 
-      # Add timestamps if the resource has them and they're not provided
-      now = DateTime.utc_now()
+    # Add timestamps if the resource has them and they're not provided
+    now = DateTime.utc_now()
 
-      attributes_with_timestamps =
-        attributes_with_id
-        |> maybe_add_timestamp(:inserted_at, now, resource_module)
-        |> maybe_add_timestamp(:updated_at, now, resource_module)
+    attributes_with_timestamps =
+      attributes_with_id
+      |> maybe_add_timestamp(:inserted_at, now, resource_module)
+      |> maybe_add_timestamp(:updated_at, now, resource_module)
 
-      # Create the struct
-      struct = struct(resource_module, attributes_with_timestamps)
+    # Create the struct
+    struct = struct(resource_module, attributes_with_timestamps)
 
-      {:ok, struct}
-    rescue
-      error ->
-        {:error, "Failed to build struct: #{inspect(error)}"}
-    end
+    {:ok, struct}
+  rescue
+    error ->
+      {:error, "Failed to build struct: #{inspect(error)}"}
   end
 
   defp maybe_add_timestamp(attributes, field, default_value, resource_module) do

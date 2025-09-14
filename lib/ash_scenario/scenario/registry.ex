@@ -389,16 +389,14 @@ defmodule AshScenario.Scenario.Registry do
   end
 
   defp related_module_for_attr(resource_module, attr_name) do
-    try do
-      case Enum.find(Ash.Resource.Info.relationships(resource_module), fn rel ->
-             rel.source_attribute == attr_name
-           end) do
-        nil -> :error
-        rel -> {:ok, rel.destination}
-      end
-    rescue
-      _ -> :error
+    case Enum.find(Ash.Resource.Info.relationships(resource_module), fn rel ->
+           rel.source_attribute == attr_name
+         end) do
+      nil -> :error
+      rel -> {:ok, rel.destination}
     end
+  rescue
+    _ -> :error
   end
 
   # Detect circular dependencies across all registered prototypes

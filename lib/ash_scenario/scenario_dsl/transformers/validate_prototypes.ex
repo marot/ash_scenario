@@ -71,17 +71,15 @@ defmodule AshScenario.ScenarioDsl.Transformers.ValidatePrototypes do
   end
 
   defp uses_ash_scenario_dsl?(module) do
-    try do
-      # Check if the module uses our DSL extension
-      case module.spark_dsl_config() do
-        %{extensions: extensions} ->
-          AshScenario.Dsl in extensions
+    # Check if the module uses our DSL extension
+    case module.spark_dsl_config() do
+      %{extensions: extensions} ->
+        AshScenario.Dsl in extensions
 
-        _ ->
-          false
-      end
-    rescue
-      _ -> false
+      _ ->
+        false
     end
+  rescue
+    _ -> false
   end
 end

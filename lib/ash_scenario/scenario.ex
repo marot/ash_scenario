@@ -84,8 +84,7 @@ defmodule AshScenario.Scenario do
         nil ->
           available_scenarios =
             AshScenario.ScenarioInfo.scenarios(test_module)
-            |> Enum.map(& &1.name)
-            |> Enum.join(", ")
+            |> Enum.map_join(", ", & &1.name)
 
           if available_scenarios == "" do
             {:error,
@@ -286,12 +285,10 @@ defmodule AshScenario.Scenario do
   end
 
   defp module_uses_ash_scenario_dsl?(module) do
-    try do
-      # Check if the module has prototypes defined (which means it uses our DSL)
-      AshScenario.Info.has_prototypes?(module)
-    rescue
-      _ -> false
-    end
+    # Check if the module has prototypes defined (which means it uses our DSL)
+    AshScenario.Info.has_prototypes?(module)
+  rescue
+    _ -> false
   end
 
   defp list_available_prototypes do
@@ -465,36 +462,34 @@ defmodule AshScenario.Scenario do
     do: {:ok, value}
 
   defp create_struct(module, attributes, _opts) do
-    try do
-      # Get primary key field(s)
-      primary_key = Ash.Resource.Info.primary_key(module)
+    # Get primary key field(s)
+    primary_key = Ash.Resource.Info.primary_key(module)
 
-      # Generate ID if needed and not provided
-      attributes_with_id =
-        case {primary_key, Map.has_key?(attributes, :id)} do
-          {[:id], false} ->
-            Map.put(attributes, :id, Ash.UUID.generate())
+    # Generate ID if needed and not provided
+    attributes_with_id =
+      case {primary_key, Map.has_key?(attributes, :id)} do
+        {[:id], false} ->
+          Map.put(attributes, :id, Ash.UUID.generate())
 
-          _ ->
-            attributes
-        end
+        _ ->
+          attributes
+      end
 
-      # Add timestamps if the resource has them and they're not provided
-      now = DateTime.utc_now()
+    # Add timestamps if the resource has them and they're not provided
+    now = DateTime.utc_now()
 
-      attributes_with_timestamps =
-        attributes_with_id
-        |> maybe_add_timestamp(:inserted_at, now, module)
-        |> maybe_add_timestamp(:updated_at, now, module)
+    attributes_with_timestamps =
+      attributes_with_id
+      |> maybe_add_timestamp(:inserted_at, now, module)
+      |> maybe_add_timestamp(:updated_at, now, module)
 
-      # Create the struct
-      struct = struct(module, attributes_with_timestamps)
+    # Create the struct
+    struct = struct(module, attributes_with_timestamps)
 
-      {:ok, struct}
-    rescue
-      error ->
-        {:error, "Failed to build struct: #{inspect(error)}"}
-    end
+    {:ok, struct}
+  rescue
+    error ->
+      {:error, "Failed to build struct: #{inspect(error)}"}
   end
 
   defp maybe_add_timestamp(attributes, field, default_value, resource_module) do
@@ -540,31 +535,25 @@ defmodule AshScenario.Scenario do
   defp resolve_single_reference(value, _attr_name, _module, _created_prototypes), do: {:ok, value}
 
   defp is_relationship_attribute?(resource_module, attr_name) do
-    try do
-      resource_module
-      |> Ash.Resource.Info.relationships()
-      |> Enum.any?(fn rel ->
-        rel.source_attribute == attr_name
-      end)
-    rescue
-      _ -> false
-    end
+    resource_module
+    |> Ash.Resource.Info.relationships()
+    |> Enum.any?(fn rel ->
+      rel.source_attribute == attr_name
+    end)
+  rescue
+    _ -> false
   end
 
   defp execute_custom_function({module, function, extra_args}, resolved_attributes, opts) do
-    try do
-      apply(module, function, [resolved_attributes, opts] ++ extra_args)
-    rescue
-      error -> {:error, "Custom function failed: #{inspect(error)}"}
-    end
+    apply(module, function, [resolved_attributes, opts] ++ extra_args)
+  rescue
+    error -> {:error, "Custom function failed: #{inspect(error)}"}
   end
 
   defp execute_custom_function(fun, resolved_attributes, opts) when is_function(fun, 2) do
-    try do
-      fun.(resolved_attributes, opts)
-    rescue
-      error -> {:error, "Custom function failed: #{inspect(error)}"}
-    end
+    fun.(resolved_attributes, opts)
+  rescue
+    error -> {:error, "Custom function failed: #{inspect(error)}"}
   end
 
   defp execute_custom_function(fun, _resolved_attributes, _opts) do
@@ -585,11 +574,9 @@ defmodule AshScenario.Scenario do
   end
 
   defp infer_domain(resource_module) do
-    try do
-      Ash.Resource.Info.domain(resource_module)
-    rescue
-      _ -> nil
-    end
+    Ash.Resource.Info.domain(resource_module)
+  rescue
+    _ -> nil
   end
 
   defp get_create_action(resource_module, preferred_action) do
@@ -610,32 +597,30 @@ defmodule AshScenario.Scenario do
   end
 
   defp build_changeset(resource_module, action_name, attributes, _opts) do
-    try do
-      # Drop nil values
-      sanitized_attributes =
-        attributes
-        |> Enum.reject(fn {_k, v} -> is_nil(v) end)
-        |> Map.new()
+    # Drop nil values
+    sanitized_attributes =
+      attributes
+      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+      |> Map.new()
 
-      require Logger
+    require Logger
 
-      Logger.debug(
-        "[scenario] build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} sanitized=#{inspect(sanitized_attributes)}"
-      )
+    Logger.debug(
+      "[scenario] build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} sanitized=#{inspect(sanitized_attributes)}"
+    )
 
-      changeset =
-        resource_module
-        |> Ash.Changeset.for_create(action_name, sanitized_attributes)
+    changeset =
+      resource_module
+      |> Ash.Changeset.for_create(action_name, sanitized_attributes)
 
-      require Logger
+    require Logger
 
-      Logger.debug(
-        "[scenario] built_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} changes=#{inspect(Map.get(changeset, :changes, %{}))}"
-      )
+    Logger.debug(
+      "[scenario] built_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} changes=#{inspect(Map.get(changeset, :changes, %{}))}"
+    )
 
-      {:ok, changeset}
-    rescue
-      error -> {:error, "Failed to build changeset: #{inspect(error)}"}
-    end
+    {:ok, changeset}
+  rescue
+    error -> {:error, "Failed to build changeset: #{inspect(error)}"}
   end
 end
