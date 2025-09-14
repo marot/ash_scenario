@@ -1,4 +1,10 @@
 defmodule AshScenario.ScenarioDsl.Transformers.ResolveInheritance do
+  @moduledoc """
+  Resolves scenario inheritance by merging extended scenarios with their base scenarios.
+
+  This transformer handles the `extends` option in scenarios, allowing scenarios to
+  inherit and override prototypes from other scenarios defined in the same module.
+  """
   use Spark.Dsl.Transformer
   alias Spark.Dsl.Transformer
 
@@ -53,20 +59,18 @@ defmodule AshScenario.ScenarioDsl.Transformers.ResolveInheritance do
 
       parents when is_list(parents) ->
         Enum.reduce_while(parents, :ok, fn parent, :ok ->
-          cond do
-            not Map.has_key?(scenario_map, parent) ->
-              {:halt,
-               {:error,
-                Spark.Error.DslError.exception(
-                  message: "Scenario '#{scenario.name}' extends unknown scenario '#{parent}'",
-                  path: [:scenarios, scenario.name]
-                )}}
-
-            true ->
-              case check_circular_dependency(scenario.name, parent, scenario_map) do
-                :ok -> {:cont, :ok}
-                error -> {:halt, error}
-              end
+          if Map.has_key?(scenario_map, parent) do
+            case check_circular_dependency(scenario.name, parent, scenario_map) do
+              :ok -> {:cont, :ok}
+              error -> {:halt, error}
+            end
+          else
+            {:halt,
+             {:error,
+              Spark.Error.DslError.exception(
+                message: "Scenario '#{scenario.name}' extends unknown scenario '#{parent}'",
+                path: [:scenarios, scenario.name]
+              )}}
           end
         end)
     end

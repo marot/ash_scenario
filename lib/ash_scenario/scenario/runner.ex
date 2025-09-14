@@ -3,9 +3,9 @@ defmodule AshScenario.Scenario.Runner do
   Executes resources and creates Ash resources with dependency resolution.
   """
 
-  alias AshScenario.Scenario.{Registry, Helpers}
-  require Logger
   alias AshScenario.Log
+  alias AshScenario.Scenario.{Helpers, Registry}
+  require Logger
 
   @doc """
   Run a single prototype by name from an Ash resource module.

@@ -4,8 +4,8 @@ defmodule AshScenario.Scenario.StructBuilder do
   Used for generating test data for stories and other non-persistent use cases.
   """
 
-  alias AshScenario.Scenario.{Registry, Helpers}
   alias AshScenario.Log
+  alias AshScenario.Scenario.{Helpers, Registry}
 
   @doc """
   Build a single prototype as a struct without persistence.
@@ -174,7 +174,7 @@ defmodule AshScenario.Scenario.StructBuilder do
                "Failed to create struct #{inspect(prototype.resource)} with custom function: #{inspect(error)}"}
           end
 
-        # Module-level custom function  
+        # Module-level custom function
         module_cfg.function != nil ->
           Log.debug(
             fn ->
@@ -257,7 +257,7 @@ defmodule AshScenario.Scenario.StructBuilder do
   # For struct mode, resolve to structs instead of IDs
   defp resolve_struct_attribute_value(value, attr_name, resource_module, created_structs)
        when is_atom(value) do
-    if Helpers.is_relationship_attribute?(resource_module, attr_name) do
+    if Helpers.relationship_attribute?(resource_module, attr_name) do
       case Helpers.related_module_for_attr(resource_module, attr_name) do
         {:ok, related_module} ->
           case Helpers.find_referenced_resource(value, related_module, created_structs) do

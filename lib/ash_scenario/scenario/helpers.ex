@@ -84,7 +84,7 @@ defmodule AshScenario.Scenario.Helpers do
   def resolve_attribute_value(value, attr_name, resource_module, created_resources)
       when is_atom(value) do
     # Only resolve atoms that correspond to relationship attributes
-    if is_relationship_attribute?(resource_module, attr_name) do
+    if relationship_attribute?(resource_module, attr_name) do
       case related_module_for_attr(resource_module, attr_name) do
         {:ok, related_module} ->
           case find_referenced_resource(value, related_module, created_resources) do
@@ -141,7 +141,7 @@ defmodule AshScenario.Scenario.Helpers do
   @doc """
   Check if an attribute name corresponds to a relationship.
   """
-  def is_relationship_attribute?(resource_module, attr_name) do
+  def relationship_attribute?(resource_module, attr_name) do
     resource_module
     |> Ash.Resource.Info.relationships()
     |> Enum.any?(fn rel ->

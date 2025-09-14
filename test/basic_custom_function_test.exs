@@ -157,7 +157,7 @@ defmodule AshScenario.BasicCustomFunctionTest do
 
       post = resources[{CustomPost, :factory_post}]
 
-      # blog_id should be resolved because it's a relationship attribute  
+      # blog_id should be resolved because it's a relationship attribute
       # UUID string
       assert is_binary(post.blog_id)
 

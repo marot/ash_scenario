@@ -1,4 +1,5 @@
 defmodule Blog do
+  @moduledoc false
   use Ash.Resource,
     domain: Domain,
     extensions: [AshScenario.Dsl]

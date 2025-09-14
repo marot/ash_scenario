@@ -437,7 +437,7 @@ defmodule AshScenario.Scenario do
   defp resolve_single_struct_reference(value, attr_name, module, created_structs)
        when is_atom(value) do
     # Only resolve atoms that correspond to relationship attributes
-    if is_relationship_attribute?(module, attr_name) do
+    if relationship_attribute?(module, attr_name) do
       # Always look for scoped key first since we store everything scoped
       # Need to find the right module for this prototype
       matching_struct =
@@ -520,7 +520,7 @@ defmodule AshScenario.Scenario do
   defp resolve_single_reference(value, attr_name, module, created_prototypes)
        when is_atom(value) do
     # Only resolve atoms that correspond to relationship attributes
-    if is_relationship_attribute?(module, attr_name) do
+    if relationship_attribute?(module, attr_name) do
       case created_prototypes[value] do
         # Not a reference, return as-is
         nil -> {:ok, value}
@@ -534,7 +534,7 @@ defmodule AshScenario.Scenario do
 
   defp resolve_single_reference(value, _attr_name, _module, _created_prototypes), do: {:ok, value}
 
-  defp is_relationship_attribute?(resource_module, attr_name) do
+  defp relationship_attribute?(resource_module, attr_name) do
     resource_module
     |> Ash.Resource.Info.relationships()
     |> Enum.any?(fn rel ->

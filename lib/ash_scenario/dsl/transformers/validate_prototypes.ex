@@ -17,9 +17,10 @@ defmodule AshScenario.Dsl.Transformers.ValidatePrototypes do
         _ -> false
       end)
 
-    with :ok <- process_prototypes(dsl_state, prototypes) do
-      {:ok, dsl_state}
-    else
+    case process_prototypes(dsl_state, prototypes) do
+      :ok ->
+        {:ok, dsl_state}
+
       {:error, error} ->
         {:error, error}
     end
@@ -64,9 +65,10 @@ defmodule AshScenario.Dsl.Transformers.ValidatePrototypes do
     relationship_entities =
       Transformer.get_entities(dsl_state, [:relationships])
       |> Enum.flat_map(fn item ->
-        cond do
-          is_map(item) and Map.has_key?(item, :entities) -> Map.get(item, :entities, [])
-          true -> [item]
+        if is_map(item) and Map.has_key?(item, :entities) do
+          Map.get(item, :entities, [])
+        else
+          [item]
         end
       end)
 

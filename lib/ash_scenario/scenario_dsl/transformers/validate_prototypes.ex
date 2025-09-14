@@ -1,4 +1,10 @@
 defmodule AshScenario.ScenarioDsl.Transformers.ValidatePrototypes do
+  @moduledoc """
+  Validates that scenario prototypes reference existing prototypes defined in resources.
+
+  This transformer ensures that all prototype references in scenarios point to valid
+  prototypes that have been defined in the corresponding resource modules.
+  """
   use Spark.Dsl.Transformer
   alias Spark.Dsl.Transformer
 
