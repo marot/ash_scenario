@@ -58,7 +58,7 @@ defmodule AshScenario do
   Register prototypes from a resource module.
   This is typically called automatically when the resource is compiled.
   """
-  @spec register_prototypes(module()) :: :ok
+  @spec register_prototypes(module()) :: :ok | {:error, String.t()}
   def register_prototypes(resource_module) do
     Registry.register_prototypes(resource_module)
   end

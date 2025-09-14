@@ -234,7 +234,6 @@ defmodule AshScenario.Scenario.Runner do
           case level do
             :prototype -> " (prototype override)"
             :default -> ""
-            _ -> " (#{level})"
           end
 
         "using_action#{level_desc} module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{inspect(action)}"

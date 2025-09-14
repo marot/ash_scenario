@@ -355,27 +355,24 @@ defmodule AshScenario.Scenario do
         merged_attributes = Map.merge(base_attrs, override_attrs)
 
         # 3. Resolve any prototype references to structs (not IDs)
-        case resolve_prototype_struct_references(merged_attributes, module, created_structs) do
-          {:ok, resolved_attributes} ->
-            # 4. Use module-level create configuration (custom function or action)
-            create_cfg = AshScenario.Info.create(module)
+        {:ok, resolved_attributes} =
+          resolve_prototype_struct_references(merged_attributes, module, created_structs)
 
-            result =
-              if create_cfg.function do
-                execute_custom_function(create_cfg.function, resolved_attributes, opts)
-              else
-                # Create struct without database persistence
-                create_struct(module, resolved_attributes, opts)
-              end
+        # 4. Use module-level create configuration (custom function or action)
+        create_cfg = AshScenario.Info.create(module)
 
-            # Add the scoped_key to the result
-            case result do
-              {:ok, struct} -> {:ok, scoped_key, struct}
-              error -> error
-            end
+        result =
+          if create_cfg.function do
+            execute_custom_function(create_cfg.function, resolved_attributes, opts)
+          else
+            # Create struct without database persistence
+            create_struct(module, resolved_attributes, opts)
+          end
 
-          error ->
-            error
+        # Add the scoped_key to the result
+        case result do
+          {:ok, struct} -> {:ok, scoped_key, struct}
+          error -> error
         end
 
       :not_found ->
@@ -393,24 +390,21 @@ defmodule AshScenario.Scenario do
         merged_attributes = Map.merge(base_attrs, override_attrs)
 
         # 3. Resolve any prototype references to actual IDs
-        case resolve_prototype_references(merged_attributes, module, created_resources) do
-          {:ok, resolved_attributes} ->
-            # 4. Use module-level create configuration (custom function or action)
-            create_cfg = AshScenario.Info.create(module)
+        {:ok, resolved_attributes} =
+          resolve_prototype_references(merged_attributes, module, created_resources)
 
-            if create_cfg.function do
-              execute_custom_function(create_cfg.function, resolved_attributes, opts)
-            else
-              create_ash_resource(
-                module,
-                resolved_attributes,
-                opts,
-                create_cfg.action || :create
-              )
-            end
+        # 4. Use module-level create configuration (custom function or action)
+        create_cfg = AshScenario.Info.create(module)
 
-          error ->
-            error
+        if create_cfg.function do
+          execute_custom_function(create_cfg.function, resolved_attributes, opts)
+        else
+          create_ash_resource(
+            module,
+            resolved_attributes,
+            opts,
+            create_cfg.action || :create
+          )
         end
 
       :not_found ->

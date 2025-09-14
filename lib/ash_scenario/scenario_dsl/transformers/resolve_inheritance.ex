@@ -8,7 +8,8 @@ defmodule AshScenario.ScenarioDsl.Transformers.ResolveInheritance do
   use Spark.Dsl.Transformer
   alias Spark.Dsl.Transformer
 
-  def after?(_), do: [AshScenario.ScenarioDsl.Transformers.ValidatePrototypes]
+  def after?(AshScenario.ScenarioDsl.Transformers.ValidatePrototypes), do: true
+  def after?(_), do: false
 
   def transform(dsl_state) do
     scenarios = Transformer.get_entities(dsl_state, [:scenarios])
