@@ -84,7 +84,7 @@ defmodule AshScenario.Dsl.Transformers.ValidatePrototypes do
             Map.get(rel, :attribute)
 
           is_map(rel) and is_atom(Map.get(rel, :name)) ->
-            String.to_atom("#{rel.name}_id")
+            String.to_existing_atom("#{rel.name}_id")
 
           true ->
             nil

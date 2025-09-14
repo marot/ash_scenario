@@ -1,18 +1,13 @@
 spark_locals_without_parens = [
-  ash_oban_trigger_name: 1,
-  async: 1,
-  attributes: 1,
-  define_update_action_for_manual_strategy?: 1,
-  description: 1,
-  embedding_model: 1,
-  identity: 1,
-  load: 1,
-  name: 1,
-  strategy: 1,
-  text: 1,
-  tool: 3,
-  tool: 4,
-  used_attributes: 1
+  action: 1,
+  attr: 2,
+  attr: 3,
+  create: 0,
+  create: 1,
+  function: 1,
+  prototype: 1,
+  prototype: 2,
+  virtual: 1
 ]
 
 [

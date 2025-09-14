@@ -207,4 +207,20 @@ defmodule AshScenario do
       end
     end
   end
+
+  @doc """
+  Returns the DSL sections provided by AshScenario.
+  Delegates to AshScenario.Dsl for the actual sections.
+  """
+  def sections do
+    AshScenario.Dsl.sections()
+  end
+
+  @doc """
+  Returns any DSL patches provided by AshScenario.
+  Currently returns an empty list as no patches are defined.
+  """
+  def dsl_patches do
+    []
+  end
 end
