@@ -74,6 +74,7 @@ defmodule AshScenario.MixProject do
       {:usage_rules, "~> 0.1", only: [:dev]},
       {:claude, "~> 0.5", only: [:dev], runtime: false},
       {:ash, ash_version("~> 3.5 and >= 3.5.5")},
+      {:spark, "~> 2.2"},
       # Dev/test dependencies
       {:git_hooks, "~> 0.8.0", only: [:dev], runtime: false},
       {:ex_check, "~> 0.12", only: [:dev, :test]},
@@ -87,6 +88,8 @@ defmodule AshScenario.MixProject do
 
   defp aliases do
     [
+      sync_usage_rules: "usage_rules.sync CLAUDE.md --all --inline usage_rules:all
+  --link-to-folder deps",
       "spark.formatter": "spark.formatter --extensions AshScenario",
       sobelow: "sobelow --skip",
       credo: "credo --strict",
