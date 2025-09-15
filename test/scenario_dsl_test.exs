@@ -12,6 +12,8 @@ defmodule AshScenario.ScenarioDslTest do
     AshScenario.clear_prototypes()
     AshScenario.register_prototypes(Post)
     AshScenario.register_prototypes(Blog)
+    AshScenario.register_prototypes(Category)
+    AshScenario.register_prototypes(FeaturedPost)
     :ok
   end
 
@@ -80,11 +82,17 @@ defmodule AshScenario.ScenarioDslTest do
     end
   end
 
+  scenario :diamond_setup do
+    prototype :featured_post do
+      attr(:title, "Scenario Featured")
+    end
+  end
+
   describe "scenario DSL functionality" do
     test "can define and access scenarios" do
       # Test that the scenario definition macro works
       scenarios = AshScenario.ScenarioInfo.scenarios(__MODULE__)
-      assert length(scenarios) == 6
+      assert length(scenarios) == 7
 
       scenario_names = scenarios |> Enum.map(fn %{name: name} -> name end)
       assert :basic_setup in scenario_names
@@ -93,6 +101,7 @@ defmodule AshScenario.ScenarioDslTest do
       assert :single_blog_only in scenario_names
       assert :base_scenario in scenario_names
       assert :extended_scenario in scenario_names
+      assert :diamond_setup in scenario_names
     end
 
     test "basic scenario creates resources with overrides" do
@@ -193,6 +202,21 @@ defmodule AshScenario.ScenarioDslTest do
       assert resources.another_post.blog_id == resources.example_blog.id
       # Make sure there's only one blog
       assert resources.example_blog.id
+    end
+
+    test "resolves diamond dependencies" do
+      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :diamond_setup, domain: Domain)
+
+      assert Map.has_key?(resources, :example_blog)
+      assert Map.has_key?(resources, :tech_category)
+      assert Map.has_key?(resources, :lifestyle_category)
+      assert Map.has_key?(resources, :featured_post)
+
+      assert resources.tech_category.blog_id == resources.example_blog.id
+      assert resources.lifestyle_category.blog_id == resources.example_blog.id
+      assert resources.featured_post.blog_id == resources.example_blog.id
+      assert resources.featured_post.primary_category_id == resources.tech_category.id
+      assert resources.featured_post.secondary_category_id == resources.lifestyle_category.id
     end
   end
 

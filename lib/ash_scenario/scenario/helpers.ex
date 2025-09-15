@@ -282,4 +282,38 @@ defmodule AshScenario.Scenario.Helpers do
   rescue
     error -> {:error, "Failed to build changeset: #{inspect(error)}"}
   end
+
+  @doc """
+  Create a resource using either a custom function or Ash.create, with proper tenant handling.
+  This is the common path for both Runner and Scenario DSL.
+  """
+  def create_resource_with_tenant(module, resolved_attributes, opts, create_cfg \\ nil) do
+    # Get create configuration if not provided
+    create_cfg = create_cfg || AshScenario.Info.create(module)
+
+    # Extract tenant info if the resource uses multitenancy
+    {:ok, tenant_value, _clean_attributes} =
+      AshScenario.Multitenancy.extract_tenant_info(module, resolved_attributes)
+
+    # Add tenant to opts
+    opts_with_tenant = AshScenario.Multitenancy.add_tenant_to_opts(opts, tenant_value)
+
+    # Execute creation via custom function or Ash.create
+    if create_cfg.function do
+      execute_custom_function(create_cfg.function, resolved_attributes, opts_with_tenant)
+    else
+      domain = Keyword.get(opts_with_tenant, :domain) || infer_domain(module)
+
+      with {:ok, create_action} <- get_create_action(module, create_cfg.action || :create),
+           {:ok, changeset, _tenant} <-
+             build_changeset(module, create_action, resolved_attributes, opts_with_tenant) do
+        create_opts = AshScenario.Multitenancy.add_tenant_to_opts([domain: domain], tenant_value)
+
+        case Ash.create(changeset, create_opts) do
+          {:ok, resource} -> {:ok, resource}
+          {:error, error} -> {:error, "Failed to create #{inspect(module)}: #{inspect(error)}"}
+        end
+      end
+    end
+  end
 end

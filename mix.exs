@@ -58,7 +58,7 @@ defmodule AshScenario.MixProject do
     [
       name: :ash_scenario,
       licenses: ["MIT"],
-      maintainers: "Marco Rotili",
+      maintainers: ["Marco Rotili"],
       files: ~w(lib .formatter.exs mix.exs README* LICENSE* usage-rules.md
       CHANGELOG* documentation),
       links: %{

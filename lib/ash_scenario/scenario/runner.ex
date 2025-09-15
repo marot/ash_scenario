@@ -51,42 +51,71 @@ defmodule AshScenario.Scenario.Runner do
         trace_id: trace
       )
 
-      Enum.reduce_while(ordered_prototypes, {:ok, %{}}, fn prototype, {:ok, created_resources} ->
-        case execute_prototype(
-               prototype,
-               Keyword.put(opts, :__overrides_map__, overrides_map),
-               created_resources
-             ) do
-          {:ok, created_resource} ->
-            key = {prototype.resource, prototype.ref}
-            created_resources = Map.put(created_resources, key, created_resource)
+      transaction_resources =
+        ordered_prototypes
+        |> Enum.map(& &1.resource)
+        |> Enum.uniq()
 
-            # Also index by the actual struct module returned, to support custom functions
-            struct_mod = created_resource.__struct__
+      Log.debug(
+        fn ->
+          "transaction_start resources=#{inspect(transaction_resources)}"
+        end,
+        component: :runner,
+        trace_id: trace
+      )
 
-            created_resources =
-              if struct_mod != prototype.resource do
-                Map.put(created_resources, {struct_mod, prototype.ref}, created_resource)
-              else
-                created_resources
-              end
+      transaction_fun = fn ->
+        Enum.reduce_while(ordered_prototypes, {:ok, %{}}, fn prototype,
+                                                             {:ok, created_resources} ->
+          case execute_prototype(
+                 prototype,
+                 Keyword.put(opts, :__overrides_map__, overrides_map),
+                 created_resources
+               ) do
+            {:ok, created_resource} ->
+              key = {prototype.resource, prototype.ref}
+              created_resources = Map.put(created_resources, key, created_resource)
 
-            {:cont, {:ok, created_resources}}
+              # Also index by the actual struct module returned, to support custom functions
+              struct_mod = created_resource.__struct__
 
-          {:error, reason} ->
-            Log.error(
-              fn ->
-                "run_prototypes halted module=#{inspect(prototype.resource)} ref=#{prototype.ref} reason=#{inspect(reason)}"
-              end,
-              component: :runner,
-              resource: prototype.resource,
-              ref: prototype.ref,
-              trace_id: trace
-            )
+              created_resources =
+                if struct_mod != prototype.resource do
+                  Map.put(created_resources, {struct_mod, prototype.ref}, created_resource)
+                else
+                  created_resources
+                end
 
-            {:halt, {:error, reason}}
-        end
-      end)
+              {:cont, {:ok, created_resources}}
+
+            {:error, reason} ->
+              Log.error(
+                fn ->
+                  "run_prototypes halted module=#{inspect(prototype.resource)} ref=#{prototype.ref} reason=#{inspect(reason)}"
+                end,
+                component: :runner,
+                resource: prototype.resource,
+                ref: prototype.ref,
+                trace_id: trace
+              )
+
+              {:halt, {:error, reason}}
+          end
+        end)
+      end
+
+      transaction_resources
+      |> Ash.transaction(transaction_fun)
+      |> case do
+        {:ok, {:ok, created_resources}} ->
+          {:ok, created_resources}
+
+        {:ok, {:error, reason}} ->
+          {:error, reason}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
       |> tap(fn _ ->
         duration = System.monotonic_time(:millisecond) - started_at
 

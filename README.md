@@ -20,6 +20,20 @@ When writing tests, you can define scenarios that override specific attributes f
 
 ## Quick Start
 
+### Examples directory
+
+For a self-contained demo, explore the Mix project in `examples/`:
+
+```bash
+cd examples
+mix deps.get
+mix test
+```
+
+It defines a multi-tenant launch workspace domain (organizations, projects,
+tasks, and checklist items) with scenarios that exercise dependency resolution,
+overrides, and tenant-aware updates.
+
 ### 1. Add the DSL to your resources
 
 ```elixir

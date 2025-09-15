@@ -94,6 +94,7 @@ defmodule AshScenario.Dsl do
     # If a nested `create` entity is present, map it to action/function
     {action_override, function_override} =
       case Map.get(prototype, :create) do
+        [%AshScenario.Dsl.Create{action: act, function: fun} | _] -> {act, fun}
         %AshScenario.Dsl.Create{action: act, function: fun} -> {act, fun}
         _ -> {nil, nil}
       end

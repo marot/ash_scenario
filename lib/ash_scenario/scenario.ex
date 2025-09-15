@@ -139,15 +139,37 @@ defmodule AshScenario.Scenario do
   end
 
   defp execute_scenario(overrides, opts) do
-    # 1. Extract explicitly referenced prototypes
-    explicitly_referenced = Map.keys(overrides)
+    # Convert both prototype refs and overrides to the format Runner expects
+    {runner_refs, runner_overrides} =
+      Enum.reduce(overrides, {[], %{}}, fn {name, attrs}, {refs, ovr} ->
+        # Find the module for this prototype
+        case search_for_prototype_in_registry(name) do
+          {:ok, {module, _def}} ->
+            ref = {module, name}
+            {[ref | refs], Map.put(ovr, ref, attrs)}
 
-    # 2. Find all dependencies and build complete prototype list
-    with {:ok, all_proto_names} <-
-           find_all_dependencies_for_overrides(explicitly_referenced, %{}),
-         {:ok, ordered_prototypes} <- resolve_dependency_order(all_proto_names) do
-      # 3. Create prototypes in dependency order with overrides applied
-      create_prototypes_in_order(ordered_prototypes, overrides, opts)
+          _ ->
+            {refs, ovr}
+        end
+      end)
+
+    runner_refs = Enum.reverse(runner_refs)
+
+    # Call the Runner with the converted prototype refs and overrides
+    opts_with_overrides = Keyword.put(opts, :overrides, runner_overrides)
+
+    case AshScenario.Scenario.Runner.run_prototypes(runner_refs, opts_with_overrides) do
+      {:ok, resources} ->
+        # Convert back from {module, atom} keys to atom keys for backward compatibility
+        converted =
+          Enum.reduce(resources, %{}, fn {{_module, name}, resource}, acc ->
+            Map.put(acc, name, resource)
+          end)
+
+        {:ok, converted}
+
+      error ->
+        error
     end
   end
 
@@ -164,61 +186,155 @@ defmodule AshScenario.Scenario do
     end
   end
 
+  # TODO: The functions below are only used by execute_scenario_structs
+  # which should also be refactored to use a common path once
+  # the Runner supports struct creation
+
+  @spec find_all_dependencies_for_overrides([atom()], map()) :: {:ok, [prototype_ref()]}
   defp find_all_dependencies_for_overrides(prototype_names, resource_map) do
+    # Normalize all names to {module, atom} format first
+    normalized_names =
+      Enum.map(prototype_names, fn name ->
+        case search_for_prototype_in_registry(name) do
+          {:ok, {module, _}} -> {module, name}
+          _ -> nil
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
+
     # Recursively build prototype map with dependencies
-    case build_complete_prototype_map(prototype_names, resource_map, MapSet.new()) do
+    case build_complete_prototype_map(normalized_names, resource_map, MapSet.new()) do
       {:ok, complete_map} ->
-        all_names = Map.keys(complete_map)
-        {:ok, all_names}
+        all_refs = Map.keys(complete_map)
+        {:ok, all_refs}
 
       error ->
         error
     end
   end
 
+  @spec build_complete_prototype_map([prototype_ref()], map(), MapSet.t()) ::
+          {:ok, map()} | {:error, String.t()}
   defp build_complete_prototype_map([], resource_map, _visited), do: {:ok, resource_map}
 
-  defp build_complete_prototype_map([prototype_name | rest], resource_map, visited) do
-    if MapSet.member?(visited, prototype_name) do
+  defp build_complete_prototype_map([{module, _name} = ref | rest], resource_map, visited) do
+    if MapSet.member?(visited, ref) do
       # Skip if already processed
       build_complete_prototype_map(rest, resource_map, visited)
     else
-      case search_for_prototype_in_registry(prototype_name) do
-        {:ok, {module, prototype_definition}} ->
+      case search_for_prototype_in_registry(ref) do
+        {:ok, {_module, prototype_definition}} ->
           deps = extract_direct_dependencies(prototype_definition, module)
-          proto_info = %{module: module, definition: prototype_definition, dependencies: deps}
+          # Normalize dependencies to {module, atom} format
+          normalized_deps =
+            Enum.map(deps, fn dep_name ->
+              case search_for_prototype_in_registry(dep_name) do
+                {:ok, {dep_module, _}} -> {dep_module, dep_name}
+                _ -> nil
+              end
+            end)
+            |> Enum.reject(&is_nil/1)
 
-          new_proto_map = Map.put(resource_map, prototype_name, proto_info)
-          new_visited = MapSet.put(visited, prototype_name)
+          proto_info = %{
+            module: module,
+            definition: prototype_definition,
+            dependencies: normalized_deps
+          }
+
+          new_proto_map = Map.put(resource_map, ref, proto_info)
+          new_visited = MapSet.put(visited, ref)
 
           # Add dependencies to the list to process
-          build_complete_prototype_map(rest ++ deps, new_proto_map, new_visited)
+          build_complete_prototype_map(rest ++ normalized_deps, new_proto_map, new_visited)
 
         :not_found ->
           {:error,
-           "Prototype #{inspect(prototype_name)} not found in any loaded resource modules. Available prototypes: #{list_available_prototypes()}"}
+           "Prototype #{inspect(ref)} not found in any loaded resource modules. Available prototypes: #{list_available_prototypes()}"}
       end
     end
   end
 
-  defp resolve_dependency_order(prototype_names) do
-    # Simple topological sort by dependency count
-    sorted =
-      prototype_names
-      |> Enum.map(fn name ->
-        case search_for_prototype_in_registry(name) do
-          {:ok, {mod, prototype_definition}} ->
-            deps = extract_direct_dependencies(prototype_definition, mod)
-            {name, length(deps)}
+  @type prototype_ref :: {module(), atom()}
+  @type created_resources_map :: %{prototype_ref() => struct()}
+
+  @spec resolve_dependency_order([prototype_ref()]) :: {:ok, [prototype_ref()]}
+  defp resolve_dependency_order(prototype_refs) do
+    # Build dependency graph
+    dep_graph =
+      prototype_refs
+      |> Enum.map(fn {module, _name} = ref ->
+        case search_for_prototype_in_registry(ref) do
+          {:ok, {_mod, prototype_definition}} ->
+            deps = extract_direct_dependencies(prototype_definition, module)
+            # Normalize dependencies to {module, atom} format
+            normalized_deps =
+              Enum.map(deps, fn dep_name ->
+                case search_for_prototype_in_registry(dep_name) do
+                  {:ok, {dep_module, _}} -> {dep_module, dep_name}
+                  _ -> nil
+                end
+              end)
+              |> Enum.reject(&is_nil/1)
+
+            {ref, normalized_deps}
 
           :not_found ->
-            {name, 0}
+            {ref, []}
         end
       end)
-      |> Enum.sort_by(fn {_name, dep_count} -> dep_count end)
-      |> Enum.map(fn {name, _dep_count} -> name end)
+      |> Map.new()
 
+    # Proper topological sort using Kahn's algorithm
+    sorted = topological_sort(dep_graph)
     {:ok, sorted}
+  end
+
+  defp topological_sort(dep_graph) do
+    # Build reverse dependency map (who depends on each node)
+    reverse_deps =
+      Enum.reduce(dep_graph, %{}, fn {node, deps}, acc ->
+        acc = Map.put_new(acc, node, MapSet.new())
+
+        Enum.reduce(deps, acc, fn dep, acc2 ->
+          Map.update(acc2, dep, MapSet.new([node]), &MapSet.put(&1, node))
+        end)
+      end)
+
+    # Find nodes with no dependencies
+    no_deps =
+      dep_graph
+      |> Enum.filter(fn {_node, deps} -> Enum.empty?(deps) end)
+      |> Enum.map(fn {node, _} -> node end)
+
+    do_topological_sort(no_deps, dep_graph, reverse_deps, [])
+  end
+
+  defp do_topological_sort([], _dep_graph, _reverse_deps, sorted), do: Enum.reverse(sorted)
+
+  defp do_topological_sort([node | rest], dep_graph, reverse_deps, sorted) do
+    # Add node to sorted list
+    new_sorted = [node | sorted]
+
+    # Find nodes that depended on this node
+    dependents = Map.get(reverse_deps, node, MapSet.new())
+
+    # Remove this node from their dependencies and add to queue if they have no more deps
+    {new_queue, new_dep_graph} =
+      Enum.reduce(dependents, {rest, dep_graph}, fn dependent, {queue, graph} ->
+        remaining_deps =
+          Map.get(graph, dependent, [])
+          |> Enum.reject(&(&1 == node))
+
+        new_graph = Map.put(graph, dependent, remaining_deps)
+
+        if Enum.empty?(remaining_deps) do
+          {[dependent | queue], new_graph}
+        else
+          {queue, new_graph}
+        end
+      end)
+
+    do_topological_sort(new_queue, new_dep_graph, reverse_deps, new_sorted)
   end
 
   defp extract_direct_dependencies(prototype_definition, module) do
@@ -232,14 +348,17 @@ defmodule AshScenario.Scenario do
 
     relationship_source_attributes = MapSet.new(Enum.map(relationships, & &1.source_attribute))
 
-    prototype_definition.attributes
-    |> Enum.reduce([], fn {key, value}, acc ->
-      if MapSet.member?(relationship_source_attributes, key) and is_atom(value) do
-        [value | acc]
-      else
-        acc
-      end
-    end)
+    deps =
+      prototype_definition.attributes
+      |> Enum.reduce([], fn {key, value}, acc ->
+        if MapSet.member?(relationship_source_attributes, key) and is_atom(value) do
+          [value | acc]
+        else
+          acc
+        end
+      end)
+
+    deps
     |> Enum.reverse()
   end
 
@@ -304,26 +423,13 @@ defmodule AshScenario.Scenario do
     |> Enum.join(", ")
   end
 
-  defp create_prototypes_in_order(ordered_prototype_names, overrides, opts) do
-    # Create each prototype in dependency order, applying overrides as needed
-    Enum.reduce_while(ordered_prototype_names, {:ok, %{}}, fn prototype_name,
-                                                              {:ok, created_resources} ->
-      case create_single_prototype(prototype_name, overrides, created_resources, opts) do
-        {:ok, resource} ->
-          updated_resources = Map.put(created_resources, prototype_name, resource)
-          {:cont, {:ok, updated_resources}}
-
-        {:error, reason} ->
-          {:halt, {:error, reason}}
-      end
-    end)
-  end
-
-  defp create_prototype_structs_in_order(ordered_prototype_names, overrides, opts) do
+  @spec create_prototype_structs_in_order([prototype_ref()], map(), keyword()) ::
+          {:ok, map()} | {:error, any()}
+  defp create_prototype_structs_in_order(ordered_prototype_refs, overrides, opts) do
     # Create each prototype struct in dependency order, applying overrides as needed
-    Enum.reduce_while(ordered_prototype_names, {:ok, %{}}, fn prototype_name,
-                                                              {:ok, created_structs} ->
-      case create_single_prototype_struct(prototype_name, overrides, created_structs, opts) do
+    Enum.reduce_while(ordered_prototype_refs, {:ok, %{}}, fn {_module, _name} = ref,
+                                                             {:ok, created_structs} ->
+      case create_single_prototype_struct(ref, overrides, created_structs, opts) do
         {:ok, scoped_key, struct} ->
           # Always store with the scoped key for consistency
           updated_structs = Map.put(created_structs, scoped_key, struct)
@@ -335,23 +441,16 @@ defmodule AshScenario.Scenario do
     end)
   end
 
-  defp create_single_prototype_struct(prototype_name, overrides, created_structs, opts) do
+  @spec create_single_prototype_struct(prototype_ref(), map(), map(), keyword()) ::
+          {:ok, prototype_ref(), struct()} | {:error, any()}
+  defp create_single_prototype_struct({module, name} = ref, overrides, created_structs, opts) do
     # 1. Get base prototype definition
-    case search_for_prototype_in_registry(prototype_name) do
-      {:ok, {module, prototype_definition}} ->
-        # 2. Determine the canonical scoped key for storage
-        # Always use {module, name} format for consistency
-        scoped_key =
-          case prototype_name do
-            # Already scoped, use the found module
-            {_mod, name} -> {module, name}
-            # Unscoped, add module
-            name when is_atom(name) -> {module, name}
-          end
-
-        # 3. Merge base attributes with overrides
+    case search_for_prototype_in_registry(ref) do
+      {:ok, {_module, prototype_definition}} ->
+        # 2. Merge base attributes with overrides
         base_attrs = Map.new(prototype_definition.attributes || [])
-        override_attrs = Map.new(overrides[prototype_name] || [])
+        # Overrides might be keyed by atom only or by {module, atom}
+        override_attrs = Map.new(overrides[ref] || overrides[name] || [])
         merged_attributes = Map.merge(base_attrs, override_attrs)
 
         # 3. Resolve any prototype references to structs (not IDs)
@@ -369,47 +468,14 @@ defmodule AshScenario.Scenario do
             create_struct(module, resolved_attributes, opts)
           end
 
-        # Add the scoped_key to the result
+        # Add the ref to the result
         case result do
-          {:ok, struct} -> {:ok, scoped_key, struct}
+          {:ok, struct} -> {:ok, ref, struct}
           error -> error
         end
 
       :not_found ->
-        {:error, "Prototype #{inspect(prototype_name)} not found"}
-    end
-  end
-
-  defp create_single_prototype(prototype_name, overrides, created_resources, opts) do
-    # 1. Get base prototype definition
-    case search_for_prototype_in_registry(prototype_name) do
-      {:ok, {module, prototype_definition}} ->
-        # 2. Merge base attributes with overrides
-        base_attrs = Map.new(prototype_definition.attributes || [])
-        override_attrs = Map.new(overrides[prototype_name] || [])
-        merged_attributes = Map.merge(base_attrs, override_attrs)
-
-        # 3. Resolve any prototype references to actual IDs
-        {:ok, resolved_attributes} =
-          resolve_prototype_references(merged_attributes, module, created_resources)
-
-        # 4. Use module-level create configuration (custom function or action)
-        create_cfg = AshScenario.Info.create(module)
-
-        if create_cfg.function do
-          execute_custom_function(create_cfg.function, resolved_attributes, opts)
-        else
-          create_ash_resource(
-            module,
-            resolved_attributes,
-            opts,
-            create_cfg.action || :create
-          )
-        end
-
-      :not_found ->
-        # Ensure atom names are displayed with a leading ':' for consistency
-        {:error, "Prototype #{inspect(prototype_name)} not found"}
+        {:error, "Prototype #{inspect(ref)} not found"}
     end
   end
 
@@ -498,36 +564,6 @@ defmodule AshScenario.Scenario do
     end
   end
 
-  defp resolve_prototype_references(attributes, module, created_prototypes) do
-    # Resolve any :prototype_name references to actual created record IDs
-    resolved =
-      attributes
-      |> Enum.map(fn {key, value} ->
-        {:ok, resolved_value} = resolve_single_reference(value, key, module, created_prototypes)
-        {key, resolved_value}
-      end)
-      |> Map.new()
-
-    {:ok, resolved}
-  end
-
-  defp resolve_single_reference(value, attr_name, module, created_prototypes)
-       when is_atom(value) do
-    # Only resolve atoms that correspond to relationship attributes
-    if relationship_attribute?(module, attr_name) do
-      case created_prototypes[value] do
-        # Not a reference, return as-is
-        nil -> {:ok, value}
-        prototype -> {:ok, prototype.id}
-      end
-    else
-      # Not a relationship attribute, keep the atom value as-is
-      {:ok, value}
-    end
-  end
-
-  defp resolve_single_reference(value, _attr_name, _module, _created_prototypes), do: {:ok, value}
-
   defp relationship_attribute?(resource_module, attr_name) do
     resource_module
     |> Ash.Resource.Info.relationships()
@@ -553,68 +589,5 @@ defmodule AshScenario.Scenario do
   defp execute_custom_function(fun, _resolved_attributes, _opts) do
     {:error,
      "Invalid custom function. Must be {module, function, args} or a 2-arity function, got: #{inspect(fun)}"}
-  end
-
-  defp create_ash_resource(module, attributes, opts, preferred_action) do
-    domain = Keyword.get(opts, :domain) || infer_domain(module)
-
-    with {:ok, create_action} <- get_create_action(module, preferred_action),
-         {:ok, changeset} <- build_changeset(module, create_action, attributes, opts) do
-      case Ash.create(changeset, domain: domain) do
-        {:ok, resource} -> {:ok, resource}
-        {:error, error} -> {:error, "Failed to create #{inspect(module)}: #{inspect(error)}"}
-      end
-    end
-  end
-
-  defp infer_domain(resource_module) do
-    Ash.Resource.Info.domain(resource_module)
-  rescue
-    _ -> nil
-  end
-
-  defp get_create_action(resource_module, preferred_action) do
-    actions = Ash.Resource.Info.actions(resource_module)
-
-    case Enum.find(actions, fn action ->
-           action.type == :create and action.name == preferred_action
-         end) do
-      nil ->
-        case Enum.find(actions, fn action -> action.type == :create end) do
-          nil -> {:error, "No create action found for #{inspect(resource_module)}"}
-          action -> {:ok, action.name}
-        end
-
-      action ->
-        {:ok, action.name}
-    end
-  end
-
-  defp build_changeset(resource_module, action_name, attributes, _opts) do
-    # Drop nil values
-    sanitized_attributes =
-      attributes
-      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
-      |> Map.new()
-
-    require Logger
-
-    Logger.debug(
-      "[scenario] build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} sanitized=#{inspect(sanitized_attributes)}"
-    )
-
-    changeset =
-      resource_module
-      |> Ash.Changeset.for_create(action_name, sanitized_attributes)
-
-    require Logger
-
-    Logger.debug(
-      "[scenario] built_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} changes=#{inspect(Map.get(changeset, :changes, %{}))}"
-    )
-
-    {:ok, changeset}
-  rescue
-    error -> {:error, "Failed to build changeset: #{inspect(error)}"}
   end
 end
