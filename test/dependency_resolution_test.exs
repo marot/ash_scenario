@@ -14,7 +14,7 @@ defmodule DependencyResolutionTest do
     test "run_resources automatically pulls in referenced dependencies" do
       # This should work: Only specify the post, blog should be created automatically
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             # References :example_blog in blog_id
             {Post, :example_post}
@@ -35,8 +35,9 @@ defmodule DependencyResolutionTest do
 
     test "run_prototype automatically pulls in referenced dependencies" do
       # Single resource should also pull in dependencies
-      {:ok, post} = AshScenario.run_prototype(Post, :example_post, domain: Domain)
+      {:ok, resources} = AshScenario.run([{Post, :example_post}], domain: Domain)
 
+      post = resources[{Post, :example_post}]
       assert post.title == "A post title"
       assert is_binary(post.blog_id), "blog_id should be resolved to UUID string"
     end
@@ -55,10 +56,10 @@ defmodule DependencyResolutionTest do
 
       # Both APIs should produce the same dependency resolution behavior
       {:ok, scenario_resources} =
-        AshScenario.Scenario.run(TestScenarioModule, :test_post, domain: Domain)
+        AshScenario.run_scenario(TestScenarioModule, :test_post, domain: Domain)
 
       {:ok, direct_resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {Post, :example_post}
           ],
@@ -108,7 +109,7 @@ defmodule DependencyResolutionTest do
 
       # Only request the comment - should pull in post and blog
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {Comment, :example_comment}
           ],
@@ -131,7 +132,7 @@ defmodule DependencyResolutionTest do
     test "explicit and implicit prototypes are both created" do
       # Mix explicit and implicit dependencies
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             # Explicitly requested
             {Blog, :tech_blog},

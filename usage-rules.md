@@ -97,12 +97,12 @@ end
 
 ```elixir
 # Only specify what you want - dependencies are created automatically!
-{:ok, resources} = AshScenario.run_prototypes([
+{:ok, resources} = AshScenario.run([
   {Post, :example_post}  # References :example_blog in blog_id
 ], domain: MyApp.Domain)
 
 # Both blog and post are created automatically
-blog = resources[{Blog, :example_blog}]  # Dependency created automatically  
+blog = resources[{Blog, :example_blog}]  # Dependency created automatically
 post = resources[{Post, :example_post}]   # Explicitly requested
 assert post.blog_id == blog.id
 ```
@@ -111,7 +111,8 @@ assert post.blog_id == blog.id
 
 ```elixir
 # Single prototype also pulls in all dependencies
-{:ok, post} = AshScenario.run_prototype(Post, :example_post, domain: MyApp.Domain)
+{:ok, resources} = AshScenario.run([{Post, :example_post}], domain: MyApp.Domain)
+post = resources[{Post, :example_post}]
 # The referenced blog was created automatically
 assert is_binary(post.blog_id)  # Resolved to actual UUID
 ```
@@ -120,7 +121,7 @@ assert is_binary(post.blog_id)  # Resolved to actual UUID
 
 ```elixir
 # Comment -> Post -> Blog chain resolved automatically
-{:ok, resources} = AshScenario.run_prototypes([
+{:ok, resources} = AshScenario.run([
   {Comment, :example_comment}  # Only specify the leaf node
 ], domain: MyApp.Domain)
 
@@ -152,7 +153,7 @@ defmodule MyTest do
   end
 
   test "my test" do
-    {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :basic_setup)
+    {:ok, resources} = AshScenario.run_scenario(__MODULE__, :basic_setup)
     assert resources.example_blog.name == "Custom blog name"
   end
 end
@@ -194,18 +195,29 @@ end
 
 ## API Usage Patterns
 
+### Strategy Options
+
+```elixir
+# Create with database persistence (default)
+{:ok, resources} = AshScenario.run(prototypes, strategy: :database)
+
+# Create as in-memory structs without persistence
+{:ok, resources} = AshScenario.run(prototypes, strategy: :struct)
+```
+
 ### Single Prototypes
 
 ```elixir
-# Create one prototype
-{:ok, blog} = AshScenario.run_prototype(Blog, :example_blog, domain: MyApp.Domain)
+# Create one prototype (returns a map)
+{:ok, resources} = AshScenario.run([{Blog, :example_blog}], domain: MyApp.Domain)
+blog = resources[{Blog, :example_blog}]
 ```
 
 ### Multiple Prototypes
 
 ```elixir
 # Create specific prototypes with dependencies
-{:ok, resources} = AshScenario.run_prototypes([
+{:ok, resources} = AshScenario.run([
   {Blog, :example_blog},
   {Post, :example_post}
 ], domain: MyApp.Domain)
@@ -215,7 +227,7 @@ end
 
 ```elixir
 # Create all defined prototypes in a module
-{:ok, resources} = AshScenario.run_all_prototypes(Blog, domain: MyApp.Domain)
+{:ok, resources} = AshScenario.run_all(Blog, domain: MyApp.Domain)
 ```
 
 ### Domain Inference
@@ -224,10 +236,11 @@ If not provided, domain is inferred from the resource module:
 
 ```elixir
 # Domain inferred from Blog module
-{:ok, blog} = AshScenario.run_prototype(Blog, :example_blog)
+{:ok, resources} = AshScenario.run([{Blog, :example_blog}])
+blog = resources[{Blog, :example_blog}]
 
 # Explicitly specify domain
-{:ok, blog} = AshScenario.run_prototype(Blog, :example_blog, domain: MyApp.Domain)
+{:ok, resources} = AshScenario.run([{Blog, :example_blog}], domain: MyApp.Domain)
 ```
 
 ## Common Patterns

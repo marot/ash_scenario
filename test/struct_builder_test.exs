@@ -85,9 +85,10 @@ defmodule AshScenario.StructBuilderTest do
     :ok
   end
 
-  describe "create_struct/3" do
+  describe "run with struct strategy" do
     test "creates a single struct without database persistence" do
-      {:ok, blog} = AshScenario.create_struct(Blog, :example_blog)
+      {:ok, resources} = AshScenario.run([{Blog, :example_blog}], strategy: :struct)
+      blog = resources[{Blog, :example_blog}]
 
       assert blog.__struct__ == Blog
       assert blog.name == "Example Blog"
@@ -97,20 +98,28 @@ defmodule AshScenario.StructBuilderTest do
     end
 
     test "creates a struct with overrides" do
-      {:ok, blog} =
-        AshScenario.create_struct(Blog, :example_blog, overrides: %{name: "Custom Blog"})
+      {:ok, resources} =
+        AshScenario.run([{Blog, :example_blog}],
+          strategy: :struct,
+          overrides: %{name: "Custom Blog"}
+        )
+
+      blog = resources[{Blog, :example_blog}]
 
       assert blog.name == "Custom Blog"
     end
   end
 
-  describe "create_structs/2" do
+  describe "run with struct strategy for multiple resources" do
     test "creates multiple structs with dependency resolution" do
       {:ok, structs} =
-        AshScenario.create_structs([
-          {Blog, :example_blog},
-          {Post, :example_post}
-        ])
+        AshScenario.run(
+          [
+            {Blog, :example_blog},
+            {Post, :example_post}
+          ],
+          strategy: :struct
+        )
 
       blog = structs[{Blog, :example_blog}]
       post = structs[{Post, :example_post}]
@@ -124,12 +133,12 @@ defmodule AshScenario.StructBuilderTest do
     end
   end
 
-  describe "Scenario.create_structs/3" do
+  describe "run_scenario with struct strategy" do
     test "creates structs from a scenario without persistence" do
       _scenarios = AshScenario.ScenarioInfo.scenarios(TestScenarioModule)
 
       {:ok, structs} =
-        AshScenario.Scenario.create_structs(__MODULE__.TestScenarioModule, :test_setup)
+        AshScenario.run_scenario(__MODULE__.TestScenarioModule, :test_setup, strategy: :struct)
 
       blog = structs.example_blog
       post = structs.example_post

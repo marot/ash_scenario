@@ -115,15 +115,16 @@ defmodule AshScenario.BasicCustomFunctionTest do
 
   describe "basic custom function support" do
     test "custom function creates prototype correctly" do
-      {:ok, blog} = AshScenario.run_prototype(CustomBlog, :factory_blog, domain: Domain)
+      {:ok, resources} = AshScenario.run([{CustomBlog, :factory_blog}], domain: Domain)
 
+      blog = resources[{CustomBlog, :factory_blog}]
       assert blog.name == "Factory Blog"
       assert blog.id != nil
     end
 
     test "custom function with dependency resolution" do
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {CustomBlog, :factory_blog},
             {CustomPost, :factory_post}
@@ -144,7 +145,7 @@ defmodule AshScenario.BasicCustomFunctionTest do
 
     test "hardened relationship resolution preserves non-relationship atoms" do
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {CustomBlog, :factory_blog},
             {CustomPost, :factory_post}

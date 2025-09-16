@@ -69,7 +69,7 @@ defmodule AshScenario.ModuleAttributeTest do
   describe "module attribute expansion" do
     test "scenario uses module attribute values correctly" do
       {:ok, resources} =
-        AshScenario.Scenario.run(__MODULE__, :with_module_attributes, domain: Domain)
+        AshScenario.run_scenario(__MODULE__, :with_module_attributes, domain: Domain)
 
       assert resources.example_blog.name == "Blog from Module Attribute"
       assert resources.example_post.title == "Title from Module Attribute"
@@ -78,14 +78,14 @@ defmodule AshScenario.ModuleAttributeTest do
 
     test "override with module attributes works" do
       {:ok, resources} =
-        AshScenario.Scenario.run(__MODULE__, :override_with_attributes, domain: Domain)
+        AshScenario.run_scenario(__MODULE__, :override_with_attributes, domain: Domain)
 
       assert resources.another_post.title == "Title from Module Attribute"
       assert resources.another_post.content == "Shared Value"
     end
 
     test "mixed literals and module attributes work together" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :mixed_values, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :mixed_values, domain: Domain)
 
       assert resources.tech_blog.name == "Literal Blog Name"
       assert resources.example_post.title == "Shared Value"
@@ -94,7 +94,7 @@ defmodule AshScenario.ModuleAttributeTest do
 
     test "module attributes work in scenario extension" do
       {:ok, resources} =
-        AshScenario.Scenario.run(__MODULE__, :extended_with_attribute, domain: Domain)
+        AshScenario.run_scenario(__MODULE__, :extended_with_attribute, domain: Domain)
 
       # Base scenario's module attribute should be used
       assert resources.example_blog.name == "Blog from Module Attribute"

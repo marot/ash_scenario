@@ -100,7 +100,7 @@ defmodule AshScenario.ScenarioDslTest do
     end
 
     test "basic scenario creates resources with overrides" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :basic_setup, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :basic_setup, domain: Domain)
 
       # Should create example_blog (dependency) and another_post (with override)
       assert Map.has_key?(resources, :example_blog)
@@ -117,7 +117,7 @@ defmodule AshScenario.ScenarioDslTest do
     end
 
     test "scenario with custom blog uses correct references" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :with_custom_blog, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :with_custom_blog, domain: Domain)
 
       # Should create tech_blog (custom) and another_post (referencing tech_blog)
       assert Map.has_key?(resources, :tech_blog)
@@ -142,7 +142,7 @@ defmodule AshScenario.ScenarioDslTest do
     end
 
     test "scenario with multiple posts creates all resources" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :multiple_posts, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :multiple_posts, domain: Domain)
 
       # Should create example_blog (dependency) and both posts
       assert Map.has_key?(resources, :example_blog)
@@ -159,7 +159,7 @@ defmodule AshScenario.ScenarioDslTest do
     end
 
     test "scenario with only blog creates just the blog" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :single_blog_only, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :single_blog_only, domain: Domain)
 
       # Should create only the blog
       assert Map.has_key?(resources, :example_blog)
@@ -170,7 +170,7 @@ defmodule AshScenario.ScenarioDslTest do
     end
 
     test "scenario only overrides specified attributes" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :basic_setup, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :basic_setup, domain: Domain)
 
       # another_post should have overridden title but default content
       assert resources.another_post.title == "Override title for basic setup"
@@ -181,7 +181,7 @@ defmodule AshScenario.ScenarioDslTest do
 
   describe "dependency resolution" do
     test "creates dependencies first" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :basic_setup, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :basic_setup, domain: Domain)
 
       # Blog should be created before post (dependency order)
       # We can't directly test timing, but we can verify both exist and are linked
@@ -190,7 +190,7 @@ defmodule AshScenario.ScenarioDslTest do
     end
 
     test "reuses existing dependencies" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :multiple_posts, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :multiple_posts, domain: Domain)
 
       # Both posts should reference the same blog instance
       assert resources.example_post.blog_id == resources.example_blog.id
@@ -200,7 +200,7 @@ defmodule AshScenario.ScenarioDslTest do
     end
 
     test "resolves diamond dependencies" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :diamond_setup, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :diamond_setup, domain: Domain)
 
       assert Map.has_key?(resources, :example_blog)
       assert Map.has_key?(resources, :tech_category)
@@ -217,14 +217,14 @@ defmodule AshScenario.ScenarioDslTest do
 
   describe "error handling" do
     test "returns descriptive error for non-existent scenario" do
-      result = AshScenario.Scenario.run(__MODULE__, :nonexistent, domain: Domain)
+      result = AshScenario.run_scenario(__MODULE__, :nonexistent, domain: Domain)
       assert {:error, message} = result
       assert message =~ "Scenario nonexistent not found"
       assert message =~ "Available scenarios: "
     end
 
     test "returns error for modules without scenarios" do
-      result = AshScenario.Scenario.run(String, :anything, domain: Domain)
+      result = AshScenario.run_scenario(String, :anything, domain: Domain)
       assert {:error, message} = result
       assert message =~ "does not define any scenarios"
       assert message =~ "use AshScenario.Scenario"
@@ -232,14 +232,14 @@ defmodule AshScenario.ScenarioDslTest do
 
     test "handles missing domain gracefully" do
       # Test without explicit domain - should infer from resource
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :basic_setup)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :basic_setup)
       assert Map.has_key?(resources, :another_post)
     end
   end
 
   describe "scenario extension (extends)" do
     test "extended scenario merges with base scenario" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :extended_scenario, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :extended_scenario, domain: Domain)
 
       # Should have base resources
       assert Map.has_key?(resources, :example_blog)
@@ -261,7 +261,7 @@ defmodule AshScenario.ScenarioDslTest do
     end
 
     test "base scenario works independently" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :base_scenario, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :base_scenario, domain: Domain)
 
       assert Map.has_key?(resources, :example_blog)
       assert Map.has_key?(resources, :example_post)
@@ -277,18 +277,19 @@ defmodule AshScenario.ScenarioDslTest do
   describe "integration with existing prototype API" do
     test "scenario DSL works alongside prototype definitions" do
       # Can still use the regular prototype API
-      {:ok, blog} = AshScenario.run_prototype(Blog, :example_blog, domain: Domain)
+      {:ok, resources} = AshScenario.run([{Blog, :example_blog}], domain: Domain)
+      blog = resources[{Blog, :example_blog}]
       assert blog.name == "Example name"
 
       # And the new scenario DSL
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :basic_setup, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :basic_setup, domain: Domain)
       assert resources.another_post.title == "Override title for basic setup"
     end
 
     test "backward compatibility with old API" do
       # Old scenario API still works
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {Blog, :example_blog},
             {Post, :another_post}

@@ -31,20 +31,23 @@ defmodule AshScenario do
 
   Then run scenarios:
 
-      <!--# Run a single prototype-->
-      AshScenario.run_prototype(MyApp.Post, :example_post)
-
-      # Run multiple prototypes with dependency resolution
-      AshScenario.run_prototypes([
+      # Run prototypes with database persistence (default)
+      AshScenario.run([
         {MyApp.Blog, :example_blog},
         {MyApp.Post, :example_post}
       ])
 
+      # Run prototypes as in-memory structs
+      AshScenario.run([
+        {MyApp.Post, :example_post}
+      ], strategy: :struct)
+
       # Run all prototypes for a resource
-      AshScenario.run_all_prototypes(MyApp.Post)
+      AshScenario.run_all(MyApp.Post)
   """
 
-  alias AshScenario.Scenario.{Registry, Runner, StructBuilder}
+  alias AshScenario.Scenario
+  alias AshScenario.Scenario.Registry
 
   @doc """
   Start the scenario registry (should be called in your application supervision tree).
@@ -64,56 +67,79 @@ defmodule AshScenario do
   end
 
   @doc """
-  Run a single prototype by name from a resource module.
+  Execute prototypes with the specified strategy.
+
+  ## Parameters
+
+    * `prototype_refs` - List of prototype references as `{Module, :prototype_name}` tuples
+    * `opts` - Options for execution
 
   ## Options
 
+    * `:strategy` - Execution strategy (`:database` or `:struct`, defaults to `:database`)
     * `:domain` - The Ash domain to use (will be inferred if not provided)
+    * `:overrides` - Map of attribute overrides keyed by prototype reference
 
   ## Examples
 
-      AshScenario.run_prototype(MyApp.Post, :example_post)
-      AshScenario.run_prototype(MyApp.Post, :example_post, domain: MyApp.Domain)
-  """
-  @spec run_prototype(module(), atom(), keyword()) :: {:ok, struct()} | {:error, term()}
-  def run_prototype(resource_module, prototype_name, opts \\ []) do
-    Runner.run_prototype(resource_module, prototype_name, opts)
-  end
-
-  @doc """
-  Run multiple prototypes with automatic dependency resolution.
-
-  ## Options
-
-    * `:domain` - The Ash domain to use (will be inferred if not provided)
-
-  ## Examples
-
-      AshScenario.run_prototypes([
-        {MyApp.Blog, :example_blog},
-        {MyApp.Post, :example_post}
+      # Execute with database persistence (default)
+      {:ok, resources} = AshScenario.run([
+        {User, :admin},
+        {Post, :published_post}
       ])
+
+      # Execute as in-memory structs
+      {:ok, structs} = AshScenario.run([
+        {User, :admin}
+      ], strategy: :struct)
+
+      # With overrides
+      {:ok, resources} = AshScenario.run([
+        {Post, :draft}
+      ], overrides: %{{Post, :draft} => %{title: "Custom Title"}})
   """
-  @spec run_prototypes([{module(), atom()}], keyword()) :: {:ok, map()} | {:error, term()}
-  def run_prototypes(prototype_refs, opts \\ []) when is_list(prototype_refs) do
-    Runner.run_prototypes(prototype_refs, opts)
-  end
+  @spec run(list({module(), atom()}), keyword()) :: {:ok, map()} | {:error, any()}
+  defdelegate run(prototype_refs, opts \\ []), to: Scenario
 
   @doc """
-  Run all prototypes defined in a resource module.
+  Execute all prototypes defined for a resource module.
+
+  ## Parameters
+
+    * `resource_module` - The Ash resource module containing prototype definitions
+    * `opts` - Options for execution
 
   ## Options
 
+    * `:strategy` - Execution strategy (`:database` or `:struct`, defaults to `:database`)
     * `:domain` - The Ash domain to use (will be inferred if not provided)
 
   ## Examples
 
-      AshScenario.run_all_prototypes(MyApp.Post)
+      {:ok, resources} = AshScenario.run_all(Post)
+      {:ok, structs} = AshScenario.run_all(Post, strategy: :struct)
   """
-  @spec run_all_prototypes(module(), keyword()) :: {:ok, map()} | {:error, term()}
-  def run_all_prototypes(resource_module, opts \\ []) do
-    Runner.run_all_prototypes(resource_module, opts)
-  end
+  @spec run_all(module(), keyword()) :: {:ok, map()} | {:error, any()}
+  defdelegate run_all(resource_module, opts \\ []), to: Scenario
+
+  @doc """
+  Run a named scenario from a test module.
+
+  This function works with the scenario DSL for defining named test setups.
+
+  ## Options
+
+    * `:domain` - The Ash domain to use (will be inferred if not provided)
+    * `:strategy` - Execution strategy (`:database` or `:struct`, defaults to `:database`)
+
+  ## Examples
+
+      {:ok, instances} = AshScenario.run_scenario(MyTest, :basic_setup)
+      {:ok, instances} = AshScenario.run_scenario(MyTest, :basic_setup, domain: MyApp.Domain)
+      {:ok, structs} = AshScenario.run_scenario(MyTest, :basic_setup, strategy: :struct)
+  """
+  @spec run_scenario(module(), atom(), keyword()) :: {:ok, map()} | {:error, String.t()}
+  defdelegate run_scenario(test_module, scenario_name, opts \\ []), to: Scenario
 
   @doc """
   Get prototype information from a resource module.
@@ -122,48 +148,6 @@ defmodule AshScenario do
   defdelegate prototype(resource, name), to: AshScenario.Info
   defdelegate has_prototypes?(resource), to: AshScenario.Info
   defdelegate prototype_names(resource), to: AshScenario.Info
-
-  @doc """
-  Create a single prototype as a struct without database persistence.
-
-  This is useful for generating test data for stories or other use cases
-  where you need the data structure but don't want to persist to the database.
-
-  ## Examples
-
-      AshScenario.create_struct(MyApp.Post, :example_post)
-      AshScenario.create_struct(MyApp.Post, :example_post, title: "Override")
-  """
-  def create_struct(resource_module, prototype_name, opts \\ []) do
-    StructBuilder.run_prototype_structs(resource_module, prototype_name, opts)
-  end
-
-  @doc """
-  Create multiple prototypes as structs with automatic dependency resolution.
-
-  All dependencies will be created as structs in memory without database persistence.
-
-  ## Examples
-
-      AshScenario.create_structs([
-        {MyApp.Blog, :example_blog},
-        {MyApp.Post, :example_post}
-      ])
-  """
-  def create_structs(prototype_refs, opts \\ []) when is_list(prototype_refs) do
-    StructBuilder.run_prototypes_structs(prototype_refs, opts)
-  end
-
-  @doc """
-  Create all prototypes defined in a resource module as structs.
-
-  ## Examples
-
-      AshScenario.create_all_structs(MyApp.Post)
-  """
-  def create_all_structs(resource_module, opts \\ []) do
-    StructBuilder.run_all_prototypes_structs(resource_module, opts)
-  end
 
   @doc """
   Clear all registered prototypes (useful for testing).

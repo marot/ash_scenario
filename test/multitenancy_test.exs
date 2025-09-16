@@ -165,7 +165,7 @@ defmodule AshScenario.MultitenancyTest do
       # 2. Extract organization_id as tenant
       # 3. Pass it via tenant: option to Ash.create
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {TenantPost, :tenant_post}
           ],
@@ -187,7 +187,7 @@ defmodule AshScenario.MultitenancyTest do
     test "creates non-tenant resource with organization reference" do
       # This should work normally without tenant extraction
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {NonTenantPost, :regular_post}
           ],
@@ -209,7 +209,7 @@ defmodule AshScenario.MultitenancyTest do
       # Should fail when trying to create a tenant resource without providing a tenant
       # This is correct behavior - tenant resources require a tenant unless global?: true
       assert {:error, reason} =
-               AshScenario.run_prototype(TenantPost, :standalone_post, domain: Domain)
+               AshScenario.run([{TenantPost, :standalone_post}], domain: Domain)
 
       # The error should be about missing tenant
       assert reason =~ "TenantRequired" or reason =~ "tenant"
@@ -217,7 +217,7 @@ defmodule AshScenario.MultitenancyTest do
 
     test "creates multiple tenant resources with dependencies" do
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {Organization, :test_org},
             {TenantPost, :tenant_post}
@@ -235,7 +235,7 @@ defmodule AshScenario.MultitenancyTest do
   describe "overrides with multitenancy" do
     test "overrides work with tenant resources" do
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {TenantPost, :tenant_post, %{title: "Overridden Title"}}
           ],
@@ -250,16 +250,18 @@ defmodule AshScenario.MultitenancyTest do
 
     test "can override tenant attribute" do
       # Create an org first
-      {:ok, org} = AshScenario.run_prototype(Organization, :test_org, domain: Domain)
+      {:ok, org_resources} = AshScenario.run([{Organization, :test_org}], domain: Domain)
+      org = org_resources[{Organization, :test_org}]
 
       # Override the tenant attribute directly
-      {:ok, post} =
-        AshScenario.run_prototype(
-          TenantPost,
-          :standalone_post,
+      {:ok, resources} =
+        AshScenario.run(
+          [{TenantPost, :standalone_post}],
           domain: Domain,
           overrides: %{organization_id: org.id}
         )
+
+      post = resources[{TenantPost, :standalone_post}]
 
       assert post.organization_id == org.id
     end
@@ -341,7 +343,7 @@ defmodule AshScenario.MultitenancyTest do
 
     test "custom functions receive tenant in opts" do
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {TenantPostWithCustom, :custom_post}
           ],
@@ -356,18 +358,21 @@ defmodule AshScenario.MultitenancyTest do
     end
   end
 
-  describe "struct builder with multitenancy" do
+  describe "struct strategy with multitenancy" do
     test "creates structs with tenant attributes" do
       {:ok, resources} =
-        AshScenario.create_structs([
-          {TenantPost, :tenant_post}
-        ])
+        AshScenario.run(
+          [
+            {TenantPost, :tenant_post}
+          ],
+          strategy: :struct
+        )
 
       post = resources[{TenantPost, :tenant_post}]
       org = resources[{Organization, :test_org}]
 
       assert post.title == "Test Post"
-      # For struct builder, relationships are kept as structs, not IDs
+      # For struct strategy, relationships are kept as structs, not IDs
       assert post.organization_id == org
       assert %TenantPost{} = post
       assert %Organization{} = org

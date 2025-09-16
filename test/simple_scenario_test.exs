@@ -25,7 +25,7 @@ defmodule AshScenario.SimpleScenarioTest do
     test "prototypes can be created with dependency resolution" do
       # Test that the existing runner works with new terminology
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {Blog, :example_blog},
             {Post, :example_post}
@@ -48,7 +48,7 @@ defmodule AshScenario.SimpleScenarioTest do
     test "backward compatibility with scenario names" do
       # Test that old API still works
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {Blog, :example_blog},
             {Post, :example_post}
@@ -61,7 +61,7 @@ defmodule AshScenario.SimpleScenarioTest do
     end
 
     test "all resources for a resource module can be created" do
-      {:ok, resources} = AshScenario.run_all_prototypes(Blog, domain: Domain)
+      {:ok, resources} = AshScenario.run_all(Blog, domain: Domain)
 
       assert Map.has_key?(resources, {Blog, :example_blog})
       assert Map.has_key?(resources, {Blog, :tech_blog})
@@ -80,11 +80,11 @@ defmodule AshScenario.SimpleScenarioTest do
       # For now, we'll use the existing resource-based approach
 
       # 1. Create blog dependency first
-      {:ok, _blog_resources} = AshScenario.run_prototype(Blog, :example_blog, domain: Domain)
+      {:ok, _blog_resources} = AshScenario.run([{Blog, :example_blog}], domain: Domain)
 
       # 2. Create post that references the blog
       {:ok, post_resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {Blog, :example_blog},
             {Post, :another_post}

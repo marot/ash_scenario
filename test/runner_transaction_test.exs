@@ -19,7 +19,7 @@ defmodule RunnerTransactionTest do
 
   test "previous creations are rolled back when a later prototype fails" do
     assert {:error, reason} =
-             AshScenario.run_prototypes(
+             AshScenario.run(
                [
                  {TransactionResource, :ok_entry},
                  {TransactionResource, :failing_entry}

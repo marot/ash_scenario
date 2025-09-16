@@ -116,11 +116,12 @@ end
 ### 2. Create prototypes in your code
 
 ```elixir
-# Create a single prototype
-{:ok, blog} = AshScenario.run_prototype(Blog, :example_blog, domain: Domain)
+# Create a single prototype (returns a map)
+{:ok, resources} = AshScenario.run([{Blog, :example_blog}], domain: Domain)
+blog = resources[{Blog, :example_blog}]
 
 # Create multiple prototypes with automatic dependency resolution
-{:ok, resources} = AshScenario.run_prototypes([
+{:ok, resources} = AshScenario.run([
   {Blog, :example_blog},
   {Post, :example_post}
 ], domain: Domain)
@@ -136,14 +137,16 @@ Overrides (first-class)
 You can override attributes inline when creating prototypes:
 
 ```elixir
-# Single prototype: pass a map of overrides
-{:ok, post} = AshScenario.run_prototype(Post, :example_post,
+# Single prototype with overrides
+{:ok, resources} = AshScenario.run(
+  [{Post, :example_post}],
   domain: Domain,
   overrides: %{title: "Custom title"}
 )
+post = resources[{Post, :example_post}]
 
 # Multiple prototypes: per-tuple overrides
-{:ok, resources} = AshScenario.run_prototypes([
+{:ok, resources} = AshScenario.run([
   {Blog, :example_blog, %{name: "Custom Blog"}},
   {Post, :example_post, %{title: "Custom Post"}}
 ], domain: Domain)
@@ -153,7 +156,7 @@ overrides = %{
   {Blog, :example_blog} => %{name: "Top-level Blog"},
   {Post, :example_post} => %{title: "Top-level Post"}
 }
-{:ok, resources} = AshScenario.run_prototypes([
+{:ok, resources} = AshScenario.run([
   {Blog, :example_blog},
   {Post, :example_post}
 ], domain: Domain, overrides: overrides)
@@ -190,7 +193,7 @@ defmodule MyTest do
   end
 
   test "basic scenario" do
-    {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :basic_setup)
+    {:ok, resources} = AshScenario.run_scenario(__MODULE__, :basic_setup)
     assert resources.another_post.title == "Custom title for this test"
     assert resources.example_blog.name == "Example Blog"  # From prototype defaults
   end
@@ -200,7 +203,7 @@ end
 You can also pass a specific `:domain` if you don't want it inferred from the resource modules:
 
 ```elixir
-{:ok, resources} = AshScenario.Scenario.run(MyTest, :basic_setup, domain: MyApp.Domain)
+{:ok, resources} = AshScenario.run_scenario(MyTest, :basic_setup, domain: MyApp.Domain)
 ```
 
 ### 4. Custom Functions
@@ -329,7 +332,7 @@ defmodule MyTest do
     end
 
   test "extended scenario" do
-    {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :extended_setup)
+    {:ok, resources} = AshScenario.run_scenario(__MODULE__, :extended_setup)
 
     # Has inherited resources
     assert resources.example_blog.name == "Base Blog"
@@ -412,7 +415,7 @@ use AshScenario.Scenario
   end
 
 # Run a scenario
-{:ok, resources} = AshScenario.Scenario.run(__MODULE__, :my_setup, domain: MyApp.Domain)
+{:ok, resources} = AshScenario.run_scenario(__MODULE__, :my_setup, domain: MyApp.Domain)
 
 # Access created resources by their prototype names (atoms)
 resources.example_post.title
@@ -430,10 +433,16 @@ resources.example_blog.id
 ### Prototype Management
 
 ```elixir
-# New API (recommended)
-AshScenario.run_prototype(Module, :prototype_name, opts)
-AshScenario.run_prototypes(prototype_list, opts)
-AshScenario.run_all_prototypes(Module, opts)
+# Create prototypes with database persistence (default)
+AshScenario.run(prototype_list, opts)
+AshScenario.run_all(Module, opts)
+
+# Create prototypes as in-memory structs (no database)
+AshScenario.run(prototype_list, strategy: :struct)
+AshScenario.run_all(Module, strategy: :struct)
+
+# Run named scenarios
+AshScenario.run_scenario(TestModule, :scenario_name, opts)
 ```
 
 ### Introspection

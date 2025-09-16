@@ -275,22 +275,24 @@ defmodule AshScenario.CustomFunctionTest do
 
   describe "custom function support" do
     test "MFA custom function creates prototype correctly" do
-      {:ok, blog} = AshScenario.run_prototype(CustomBlog, :factory_blog, domain: Domain)
+      {:ok, resources} = AshScenario.run([{CustomBlog, :factory_blog}], domain: Domain)
 
+      blog = resources[{CustomBlog, :factory_blog}]
       assert blog.name == "Factory Blog"
       assert blog.id != nil
     end
 
     test "anonymous function creates prototype correctly" do
-      {:ok, blog} = AshScenario.run_prototype(CustomBlogAnon, :anonymous_blog, domain: Domain)
+      {:ok, resources} = AshScenario.run([{CustomBlogAnon, :anonymous_blog}], domain: Domain)
 
+      blog = resources[{CustomBlogAnon, :anonymous_blog}]
       assert blog.name == "Anonymous Blog"
       assert blog.id != nil
     end
 
     test "custom function with dependency resolution" do
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {CustomBlog, :factory_blog},
             {CustomPost, :factory_post}
@@ -311,7 +313,7 @@ defmodule AshScenario.CustomFunctionTest do
 
     test "custom function with extra arguments" do
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {CustomBlog, :factory_blog},
             {PrefixedPost, :prefixed_post}
@@ -326,7 +328,7 @@ defmodule AshScenario.CustomFunctionTest do
     end
 
     test "error handling for failing custom function" do
-      {:error, message} = AshScenario.run_prototype(CustomBlogFail, :failing_blog, domain: Domain)
+      {:error, message} = AshScenario.run([{CustomBlogFail, :failing_blog}], domain: Domain)
 
       assert message =~ "Failed to create"
       assert message =~ "with custom function"
@@ -336,7 +338,7 @@ defmodule AshScenario.CustomFunctionTest do
     test "comparison between custom function and regular creation" do
       # Test that regular resources still work alongside custom function resources
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {CustomBlog, :factory_blog},
             # Uses default Ash.create
@@ -366,7 +368,7 @@ defmodule AshScenario.CustomFunctionTest do
   describe "hardened relationship resolution" do
     test "only relationship attributes are resolved, not other atoms" do
       {:ok, resources} =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {CustomBlog, :factory_blog},
             {CustomPost, :factory_post}
@@ -387,8 +389,9 @@ defmodule AshScenario.CustomFunctionTest do
 
     test "atoms that don't match prototype names are preserved" do
       # Test with a status that doesn't match any resource name
-      {:ok, post} = AshScenario.run_prototype(CustomPost, :factory_post, domain: Domain)
+      {:ok, resources} = AshScenario.run([{CustomPost, :factory_post}], domain: Domain)
 
+      post = resources[{CustomPost, :factory_post}]
       # :published doesn't match any resource name, should be preserved as atom
       assert post.status == :published
     end
@@ -411,7 +414,7 @@ defmodule AshScenario.CustomFunctionTest do
 
     test "scenarios work with custom functions" do
       {:ok, resources} =
-        AshScenario.Scenario.run(__MODULE__, :custom_function_scenario, domain: Domain)
+        AshScenario.run_scenario(__MODULE__, :custom_function_scenario, domain: Domain)
 
       assert resources.factory_blog.name == "Scenario Blog"
       assert resources.factory_post.title == "Scenario Post"

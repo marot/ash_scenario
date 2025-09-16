@@ -14,7 +14,7 @@ defmodule AshScenarioExamples.LaunchChecklistTest do
     AshScenario.register_prototypes(AshScenario.Examples.Project)
     AshScenario.register_prototypes(AshScenario.Examples.Task)
 
-    {:ok, resources} = AshScenario.Scenario.run(__MODULE__, tags[:scenario])
+    {:ok, resources} = AshScenario.Scenario.run_scenario(__MODULE__, tags[:scenario])
 
     {:ok, %{scenario: resources}}
   end

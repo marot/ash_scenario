@@ -34,17 +34,19 @@ Add the DSL to your Ash resources:
 
 Then run scenarios:
 
-    <!--# Run a single prototype-->
-    AshScenario.run_prototype(MyApp.Post, :example_post)
-
-    # Run multiple prototypes with dependency resolution
-    AshScenario.run_prototypes([
+    # Run prototypes with database persistence (default)
+    AshScenario.run([
       {MyApp.Blog, :example_blog},
       {MyApp.Post, :example_post}
     ])
 
+    # Run prototypes as in-memory structs
+    AshScenario.run([
+      {MyApp.Post, :example_post}
+    ], strategy: :struct)
+
     # Run all prototypes for a resource
-    AshScenario.run_all_prototypes(MyApp.Post)
+    AshScenario.run_all(MyApp.Post)
 
 
 ## prototypes

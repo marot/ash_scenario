@@ -25,18 +25,24 @@ defmodule AshScenario.AbsentValidationTest do
   end
 
   test "runner passes with library activity" do
-    assert {:ok, %Validated{}} =
-             AshScenario.run_prototype(Validated, :library_activity, domain: Domain)
+    assert {:ok, resources} =
+             AshScenario.run([{Validated, :library_activity}], domain: Domain)
+
+    activity = resources[{Validated, :library_activity}]
+    assert %Validated{} = activity
   end
 
   test "runner passes with custom activity" do
-    assert {:ok, %Validated{}} =
-             AshScenario.run_prototype(Validated, :custom_activity, domain: Domain)
+    assert {:ok, resources} =
+             AshScenario.run([{Validated, :custom_activity}], domain: Domain)
+
+    activity = resources[{Validated, :custom_activity}]
+    assert %Validated{} = activity
   end
 
   test "fails when neither library nor both custom provided" do
     assert {:error, _} =
-             AshScenario.run_prototype(Validated, :custom_activity,
+             AshScenario.run([{Validated, :custom_activity}],
                domain: Domain,
                overrides: %{custom_name: nil, custom_description: nil, activity_library_id: nil}
              )
@@ -44,7 +50,7 @@ defmodule AshScenario.AbsentValidationTest do
 
   test "fails when only one custom provided without library" do
     assert {:error, _} =
-             AshScenario.run_prototype(Validated, :custom_activity,
+             AshScenario.run([{Validated, :custom_activity}],
                domain: Domain,
                overrides: %{custom_description: nil, activity_library_id: nil}
              )
@@ -52,7 +58,7 @@ defmodule AshScenario.AbsentValidationTest do
 
   test "planned_end_time required when planned_start_time present" do
     assert {:error, _} =
-             AshScenario.run_prototype(Validated, :custom_activity,
+             AshScenario.run([{Validated, :custom_activity}],
                domain: Domain,
                overrides: %{planned_end_time: nil}
              )
@@ -60,7 +66,7 @@ defmodule AshScenario.AbsentValidationTest do
 
   test "planned_end_time must be after planned_start_time" do
     assert {:error, _} =
-             AshScenario.run_prototype(Validated, :custom_activity,
+             AshScenario.run([{Validated, :custom_activity}],
                domain: Domain,
                overrides: %{planned_end_time: ~T[14:00:00]}
              )
@@ -68,11 +74,11 @@ defmodule AshScenario.AbsentValidationTest do
 
   test "scenario DSL custom activity passes" do
     assert {:ok, %{custom_activity: %Validated{}}} =
-             AshScenario.Scenario.run(__MODULE__, :custom_valid, domain: Domain)
+             AshScenario.run_scenario(__MODULE__, :custom_valid, domain: Domain)
   end
 
   test "scenario DSL library activity passes" do
     assert {:ok, %{library_activity: %Validated{}}} =
-             AshScenario.Scenario.run(__MODULE__, :library_valid, domain: Domain)
+             AshScenario.run_scenario(__MODULE__, :library_valid, domain: Domain)
   end
 end

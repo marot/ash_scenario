@@ -64,13 +64,14 @@ defmodule AshScenarioTest do
     end
 
     test "single prototype can be run" do
-      assert {:ok, blog} = AshScenario.run_prototype(Blog, :example_blog, domain: Domain)
+      assert {:ok, resources} = AshScenario.run([{Blog, :example_blog}], domain: Domain)
+      blog = resources[{Blog, :example_blog}]
       assert blog.name == "Example name"
     end
 
     test "multiple prototypes can be run with dependency resolution" do
       result =
-        AshScenario.run_prototypes(
+        AshScenario.run(
           [
             {Blog, :example_blog},
             {Post, :example_post}
@@ -90,7 +91,7 @@ defmodule AshScenarioTest do
     end
 
     test "all prototypes for a resource can be run" do
-      assert {:ok, created_resources} = AshScenario.run_all_prototypes(Blog, domain: Domain)
+      assert {:ok, created_resources} = AshScenario.run_all(Blog, domain: Domain)
       assert map_size(created_resources) == 2
 
       example_blog = created_resources[{Blog, :example_blog}]
@@ -103,7 +104,7 @@ defmodule AshScenarioTest do
 
   describe "error handling" do
     test "running non-existent prototype returns error" do
-      result = AshScenario.run_prototype(Post, :nonexistent, domain: Domain)
+      result = AshScenario.run([{Post, :nonexistent}], domain: Domain)
       assert {:error, message} = result
       assert message =~ "Prototype :nonexistent not found"
     end

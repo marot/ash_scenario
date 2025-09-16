@@ -61,7 +61,7 @@ defmodule AshScenario.SimpleCompileTimeTest do
 
   describe "module attributes" do
     test "module attributes work correctly" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :attributes_only, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :attributes_only, domain: Domain)
 
       assert resources.example_post.title == "Title from attribute"
       assert resources.example_post.content == "Content from attribute"
@@ -70,7 +70,7 @@ defmodule AshScenario.SimpleCompileTimeTest do
 
   describe "function calls" do
     test "simple remote function calls are evaluated" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :simple_functions, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :simple_functions, domain: Domain)
 
       assert resources.tech_blog.name == "from_helper_function"
       assert resources.another_post.title == "from_helper_function"
@@ -80,7 +80,7 @@ defmodule AshScenario.SimpleCompileTimeTest do
 
   describe "date sigils" do
     test "date sigils work correctly at runtime" do
-      {:ok, resources} = AshScenario.Scenario.run(__MODULE__, :date_sigil, domain: Domain)
+      {:ok, resources} = AshScenario.run_scenario(__MODULE__, :date_sigil, domain: Domain)
 
       assert resources.example_post.publication_date == ~D[2016-04-12]
       assert %Date{year: 2016, month: 4, day: 12} = resources.example_post.publication_date

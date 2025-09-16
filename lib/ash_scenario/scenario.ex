@@ -2,11 +2,27 @@ defmodule AshScenario.Scenario do
   @moduledoc """
   Test scenario DSL for creating named data setups with overrides.
 
-  This module provides a macro-based DSL for defining named scenarios in test modules.
-  Each scenario can reference prototypes from your prototype definitions and override
-  specific attributes while maintaining automatic dependency resolution.
+  This module provides both a macro-based DSL for defining named scenarios in test modules
+  and direct functions for executing prototypes with different strategies.
 
-  ## Usage
+  ## Direct Execution
+
+  Execute prototypes directly without named scenarios:
+
+      # Create resources in the database (default)
+      {:ok, resources} = AshScenario.run([
+        {Post, :published_post},
+        {User, :admin}
+      ])
+
+      # Create in-memory structs without persistence
+      {:ok, structs} = AshScenario.run([
+        {Post, :published_post}
+      ], strategy: :struct)
+
+  ## Named Scenarios
+
+  Define reusable scenarios in test modules:
 
       defmodule MyTest do
         use ExUnit.Case
@@ -18,19 +34,9 @@ defmodule AshScenario.Scenario do
           end
         end
 
-        scenario :with_multiple_posts do
-          example_post do
-            title "First post"
-          end
-          another_post do
-            title "Second post"
-          end
-        end
-
         test "basic scenario" do
-          {:ok, instances} = AshScenario.Scenario.run(__MODULE__, :basic_setup)
+          {:ok, instances} = AshScenario.run_scenario(__MODULE__, :basic_setup)
           assert instances.another_post.title == "Custom title for this test"
-          assert instances.example_blog.name == "Example name"  # From prototype defaults
         end
       end
   """
@@ -40,45 +46,108 @@ defmodule AshScenario.Scenario do
       extensions: [AshScenario.ScenarioDsl]
     ]
 
+  alias AshScenario.Scenario.Executor
+
+  @doc """
+  Execute prototypes with the specified strategy.
+
+  ## Parameters
+
+    * `prototype_refs` - List of prototype references as `{Module, :prototype_name}` tuples
+    * `opts` - Options for execution
+
+  ## Options
+
+    * `:strategy` - Execution strategy (`:database` or `:struct`, defaults to `:database`)
+    * `:domain` - The Ash domain to use (will be inferred if not provided)
+    * `:overrides` - Map of attribute overrides keyed by prototype reference
+
+  ## Examples
+
+      # Execute with database persistence (default)
+      {:ok, resources} = AshScenario.run([
+        {User, :admin},
+        {Post, :published_post}
+      ])
+
+      # Execute as in-memory structs
+      {:ok, structs} = AshScenario.run([
+        {User, :admin}
+      ], strategy: :struct)
+
+      # With overrides
+      {:ok, resources} = AshScenario.run([
+        {Post, :draft}
+      ], overrides: %{{Post, :draft} => %{title: "Custom Title"}})
+  """
+  @spec run(list({module(), atom()}), keyword()) :: {:ok, map()} | {:error, any()}
+  def run(prototype_refs, opts \\ []) when is_list(prototype_refs) do
+    strategy = get_strategy(opts)
+    Executor.execute_prototypes(prototype_refs, opts, strategy)
+  end
+
+  @doc """
+  Execute all prototypes defined for a resource module.
+
+  ## Parameters
+
+    * `resource_module` - The Ash resource module containing prototype definitions
+    * `opts` - Options for execution (same as `run/2`)
+
+  ## Examples
+
+      {:ok, resources} = AshScenario.run_all(Post)
+      {:ok, structs} = AshScenario.run_all(Post, strategy: :struct)
+  """
+  @spec run_all(module(), keyword()) :: {:ok, map()} | {:error, any()}
+  def run_all(resource_module, opts \\ []) do
+    strategy = get_strategy(opts)
+    Executor.execute_all_prototypes(resource_module, opts, strategy)
+  end
+
   @doc """
   Run a named scenario from a test module.
+
+  This function is for compatibility with the scenario DSL.
 
   ## Options
 
     * `:domain` - The Ash domain to use (will be inferred if not provided)
+    * `:strategy` - Execution strategy (`:database` or `:struct`, defaults to `:database`)
 
   ## Examples
 
-      {:ok, instances} = AshScenario.Scenario.run(MyTest, :basic_setup)
-      {:ok, instances} = AshScenario.Scenario.run(MyTest, :basic_setup, domain: MyApp.Domain)
+      {:ok, instances} = AshScenario.run_scenario(MyTest, :basic_setup)
+      {:ok, instances} = AshScenario.run_scenario(MyTest, :basic_setup, domain: MyApp.Domain)
+      {:ok, structs} = AshScenario.run_scenario(MyTest, :basic_setup, strategy: :struct)
   """
-  @spec run(module(), atom(), keyword()) :: {:ok, map()} | {:error, String.t()}
-  def run(test_module, scenario_name, opts \\ []) do
+  @spec run_scenario(module(), atom(), keyword()) :: {:ok, map()} | {:error, String.t()}
+  def run_scenario(test_module, scenario_name, opts \\ []) do
     with {:ok, overrides} <- get_scenario_with_validation(test_module, scenario_name),
          {:ok, _} <- validate_prototypes_exist(overrides, test_module) do
       execute_scenario(overrides, opts, test_module)
     end
   end
 
-  @doc """
-  Create structs for a named scenario from a test module without database persistence.
+  # Private Functions
 
-  This is useful for generating test data for stories or other use cases
-  where you need the data structure but don't want to persist to the database.
+  defp get_strategy(opts) do
+    case Keyword.get(opts, :strategy, :database) do
+      :database ->
+        AshScenario.Scenario.Executor.DatabaseStrategy
 
-  ## Examples
+      :struct ->
+        AshScenario.Scenario.Executor.StructStrategy
 
-      {:ok, structs} = AshScenario.Scenario.create_structs(MyTest, :basic_setup)
-  """
-  @spec create_structs(module(), atom(), keyword()) :: {:ok, map()} | {:error, String.t()}
-  def create_structs(test_module, scenario_name, opts \\ []) do
-    with {:ok, overrides} <- get_scenario_with_validation(test_module, scenario_name),
-         {:ok, _} <- validate_prototypes_exist(overrides, test_module) do
-      execute_scenario_structs(overrides, opts, test_module)
+      # Allow custom strategies
+      strategy when is_atom(strategy) ->
+        strategy
+
+      invalid ->
+        raise ArgumentError,
+              "Invalid strategy: #{inspect(invalid)}. Expected :database or :struct"
     end
   end
-
-  # Private Functions
 
   defp get_scenario_with_validation(test_module, scenario_name) do
     if function_exported?(test_module, :spark_dsl_config, 0) do
@@ -163,8 +232,8 @@ defmodule AshScenario.Scenario do
 
   @spec execute_scenario(map(), keyword(), module()) :: {:ok, map()} | {:error, String.t()}
   defp execute_scenario(overrides, opts, test_module) do
-    # Convert both prototype refs and overrides to the format Runner expects
-    {runner_refs, runner_overrides} =
+    # Convert both prototype refs and overrides to the format Executor expects
+    {refs, normalized_overrides} =
       Enum.reduce(overrides, {[], %{}}, fn {ref_or_name, attrs}, {refs, ovr} ->
         # Handle both atom names and {module, name} tuples
         normalized_ref =
@@ -194,67 +263,17 @@ defmodule AshScenario.Scenario do
         end
       end)
 
-    runner_refs = Enum.reverse(runner_refs)
+    refs = Enum.reverse(refs)
 
-    # Call the Runner with the converted prototype refs and overrides
-    opts_with_overrides = Keyword.put(opts, :overrides, runner_overrides)
+    # Call run with the converted prototype refs and overrides
+    opts_with_overrides = Keyword.put(opts, :overrides, normalized_overrides)
+    strategy = get_strategy(opts)
 
-    case AshScenario.Scenario.Runner.run_prototypes(runner_refs, opts_with_overrides) do
+    case Executor.execute_prototypes(refs, opts_with_overrides, strategy) do
       {:ok, resources} ->
         # Convert from {module, atom} keys to atom keys for simpler access
         converted =
           Enum.reduce(resources, %{}, fn {{_module, name}, resource}, acc ->
-            Map.put(acc, name, resource)
-          end)
-
-        {:ok, converted}
-
-      error ->
-        error
-    end
-  end
-
-  @spec execute_scenario_structs(map(), keyword(), module()) ::
-          {:ok, map()} | {:error, String.t()}
-  defp execute_scenario_structs(overrides, opts, _test_module) do
-    # Convert overrides map to the format StructBuilder expects
-    {runner_refs, runner_overrides} =
-      Enum.reduce(overrides, {[], %{}}, fn {ref_or_name, attrs}, {refs, ovr} ->
-        # Handle both atom names and {module, name} tuples
-        normalized_ref =
-          case ref_or_name do
-            {module, name} when is_atom(module) and is_atom(name) ->
-              # Already a module-scoped reference
-              {module, name}
-
-            name when is_atom(name) ->
-              # Simple name - shouldn't happen in scenario context
-              nil
-
-            _ ->
-              nil
-          end
-
-        if normalized_ref do
-          {[normalized_ref | refs], Map.put(ovr, normalized_ref, attrs)}
-        else
-          {refs, ovr}
-        end
-      end)
-
-    runner_refs = Enum.reverse(runner_refs)
-
-    # Use StructBuilder which properly uses Registry for dependency resolution
-    opts_with_overrides = Keyword.put(opts, :overrides, runner_overrides)
-
-    case AshScenario.Scenario.StructBuilder.run_prototypes_structs(
-           runner_refs,
-           opts_with_overrides
-         ) do
-      {:ok, structs} ->
-        # Convert from {module, atom} keys to atom keys for simpler access
-        converted =
-          Enum.reduce(structs, %{}, fn {{_module, name}, resource}, acc ->
             Map.put(acc, name, resource)
           end)
 
