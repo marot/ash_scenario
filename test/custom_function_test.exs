@@ -40,6 +40,18 @@ defmodule AshScenario.CustomFunctionTest do
       {:ok, post}
     end
 
+    def create_blog_with_prefix(attributes, _opts, prefix) do
+      blog =
+        struct!(
+          AshScenario.CustomFunctionTest.PerPrototypeFunctionBlog,
+          id: Ash.UUID.generate(),
+          name: "#{prefix}: #{attributes[:name]}",
+          created_by: "factory_with_prefix"
+        )
+
+      {:ok, blog}
+    end
+
     def failing_function(_attributes, _opts) do
       {:error, "This function always fails"}
     end
@@ -264,6 +276,118 @@ defmodule AshScenario.CustomFunctionTest do
     end
   end
 
+  # Resource with multiple create actions to test per-prototype action override
+  defmodule MultiActionBlog do
+    use Ash.Resource,
+      domain: Domain,
+      extensions: [AshScenario.Dsl]
+
+    attributes do
+      uuid_primary_key :id
+
+      attribute :name, :string do
+        public? true
+      end
+
+      attribute :status, :atom do
+        public? true
+        default :draft
+      end
+    end
+
+    actions do
+      defaults [:read]
+
+      create :create do
+        accept [:name]
+        change set_attribute(:status, :draft)
+      end
+
+      create :publish do
+        accept [:name]
+        change set_attribute(:status, :published)
+      end
+
+      create :archive do
+        accept [:name]
+        change set_attribute(:status, :archived)
+      end
+    end
+
+    prototypes do
+      # Uses default :create action
+      prototype :draft_blog do
+        attr(:name, "Draft Blog")
+      end
+
+      # Override to use :publish action
+      prototype :published_blog do
+        create action: :publish
+        attr(:name, "Published Blog")
+      end
+
+      # Override to use :archive action
+      prototype :archived_blog do
+        create action: :archive
+        attr(:name, "Archived Blog")
+      end
+    end
+  end
+
+  # Resource to test per-prototype function override
+  defmodule PerPrototypeFunctionBlog do
+    use Ash.Resource,
+      domain: Domain,
+      extensions: [AshScenario.Dsl]
+
+    attributes do
+      uuid_primary_key :id
+
+      attribute :name, :string do
+        public? true
+      end
+
+      attribute :created_by, :string do
+        public? true
+      end
+    end
+
+    actions do
+      defaults [:read]
+
+      create :create do
+        accept [:name, :created_by]
+      end
+    end
+
+    prototypes do
+      # Uses default Ash.create
+      prototype :default_blog do
+        attr(:name, "Default Blog")
+      end
+
+      # Override with a custom function
+      prototype :factory_override_blog do
+        create function: {TestFactory, :create_blog_with_prefix, ["OVERRIDE"]}
+        attr(:name, "Factory Override Blog")
+      end
+
+      # Override with an anonymous function
+      prototype :anon_override_blog do
+        create function: fn attrs, _opts ->
+                 {:ok,
+                  %__MODULE__{
+                    id: Ash.UUID.generate(),
+                    name: "ANON: #{attrs[:name]}",
+                    created_by: "anonymous"
+                  }}
+               end
+
+        attr(:name, "Anonymous Blog")
+      end
+    end
+  end
+
   setup do
     case AshScenario.start_registry() do
       {:ok, _pid} -> :ok
@@ -394,6 +518,64 @@ defmodule AshScenario.CustomFunctionTest do
       post = resources[{CustomPost, :factory_post}]
       # :published doesn't match any resource name, should be preserved as atom
       assert post.status == :published
+    end
+  end
+
+  describe "per-prototype create configuration" do
+    test "per-prototype create action override works" do
+      # Create all three blogs with different actions
+      {:ok, resources} =
+        AshScenario.run(
+          [
+            {MultiActionBlog, :draft_blog},
+            {MultiActionBlog, :published_blog},
+            {MultiActionBlog, :archived_blog}
+          ],
+          domain: Domain
+        )
+
+      draft_blog = resources[{MultiActionBlog, :draft_blog}]
+      published_blog = resources[{MultiActionBlog, :published_blog}]
+      archived_blog = resources[{MultiActionBlog, :archived_blog}]
+
+      # Verify each used the correct create action based on status
+      assert draft_blog.status == :draft
+      assert draft_blog.name == "Draft Blog"
+
+      assert published_blog.status == :published
+      assert published_blog.name == "Published Blog"
+
+      assert archived_blog.status == :archived
+      assert archived_blog.name == "Archived Blog"
+    end
+
+    test "per-prototype create function override works" do
+      # Create blogs with different creation methods
+      {:ok, resources} =
+        AshScenario.run(
+          [
+            {PerPrototypeFunctionBlog, :default_blog},
+            {PerPrototypeFunctionBlog, :factory_override_blog},
+            {PerPrototypeFunctionBlog, :anon_override_blog}
+          ],
+          domain: Domain
+        )
+
+      default_blog = resources[{PerPrototypeFunctionBlog, :default_blog}]
+      factory_blog = resources[{PerPrototypeFunctionBlog, :factory_override_blog}]
+      anon_blog = resources[{PerPrototypeFunctionBlog, :anon_override_blog}]
+
+      # Default blog uses Ash.create
+      assert default_blog.name == "Default Blog"
+      assert default_blog.created_by == nil
+
+      # Factory override blog uses custom function with prefix
+      assert factory_blog.name == "OVERRIDE: Factory Override Blog"
+      assert factory_blog.created_by == "factory_with_prefix"
+
+      # Anonymous function blog
+      assert anon_blog.name == "ANON: Anonymous Blog"
+      assert anon_blog.created_by == "anonymous"
     end
   end
 

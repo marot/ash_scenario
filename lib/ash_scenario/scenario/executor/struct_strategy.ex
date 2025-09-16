@@ -8,7 +8,6 @@ defmodule AshScenario.Scenario.Executor.StructStrategy do
 
   @behaviour AshScenario.Scenario.Executor
 
-  alias AshScenario.Log
   alias AshScenario.Scenario.Helpers
 
   @impl true
@@ -60,14 +59,6 @@ defmodule AshScenario.Scenario.Executor.StructStrategy do
   extracting IDs like the database strategy does.
   """
   def resolve_attributes(attributes, resource_module, created_structs) do
-    Log.debug(
-      fn ->
-        "resolve_struct_attributes module=#{inspect(resource_module)} attrs=#{inspect(attributes)}"
-      end,
-      component: :struct_builder,
-      resource: resource_module
-    )
-
     resolved =
       attributes
       |> Enum.map(fn {key, value} ->

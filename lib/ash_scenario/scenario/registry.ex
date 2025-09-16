@@ -6,7 +6,6 @@ defmodule AshScenario.Scenario.Registry do
 
   use GenServer
   require Logger
-  alias AshScenario.Log
 
   @type prototype_ref :: {module(), atom()}
   @type prototype_data :: %{
@@ -25,14 +24,6 @@ defmodule AshScenario.Scenario.Registry do
   """
   def register_prototypes(resource_module) do
     prototypes = AshScenario.Info.prototypes(resource_module)
-    names = Enum.map(prototypes, & &1.ref)
-
-    Log.debug(
-      fn -> "register_prototypes module=#{inspect(resource_module)} names=#{inspect(names)}" end,
-      component: :registry,
-      resource: resource_module
-    )
-
     GenServer.call(__MODULE__, {:register_prototypes, resource_module, prototypes})
   end
 
@@ -40,13 +31,6 @@ defmodule AshScenario.Scenario.Registry do
   Get a prototype by reference (resource_module, prototype_name).
   """
   def get_prototype({resource_module, prototype_name}) do
-    Log.debug(
-      fn -> "get_prototype module=#{inspect(resource_module)} ref=#{prototype_name}" end,
-      component: :registry,
-      resource: resource_module,
-      ref: prototype_name
-    )
-
     GenServer.call(__MODULE__, {:get_prototype, resource_module, prototype_name})
   end
 
@@ -54,12 +38,6 @@ defmodule AshScenario.Scenario.Registry do
   Get all prototypes for a resource module.
   """
   def get_prototypes(resource_module) do
-    Log.debug(
-      fn -> "get_prototypes module=#{inspect(resource_module)}" end,
-      component: :registry,
-      resource: resource_module
-    )
-
     GenServer.call(__MODULE__, {:get_prototypes, resource_module})
   end
 
@@ -67,7 +45,6 @@ defmodule AshScenario.Scenario.Registry do
   Resolve prototype dependencies and return execution order.
   """
   def resolve_dependencies(refs) when is_list(refs) do
-    Log.debug(fn -> "resolve_dependencies input=#{inspect(refs)}" end, component: :registry)
     GenServer.call(__MODULE__, {:resolve_dependencies, refs})
   end
 
@@ -75,7 +52,6 @@ defmodule AshScenario.Scenario.Registry do
   Clear all registered prototypes (useful for tests).
   """
   def clear_all do
-    Log.debug(fn -> "clear_all" end, component: :registry)
     GenServer.call(__MODULE__, :clear_all)
   end
 
@@ -112,14 +88,6 @@ defmodule AshScenario.Scenario.Registry do
     # Check for circular dependencies after all prototypes are registered
     case detect_circular_dependencies(updated_state) do
       :ok ->
-        Log.info(
-          fn ->
-            "registered_prototypes module=#{inspect(resource_module)} count=#{length(prototypes)}"
-          end,
-          component: :registry,
-          resource: resource_module
-        )
-
         {:reply, :ok, updated_state}
 
       {:error, cycle_info} ->
@@ -156,21 +124,9 @@ defmodule AshScenario.Scenario.Registry do
 
     case build_dependency_graph(prototype_refs, state) do
       {:ok, ordered_prototypes} ->
-        Log.debug(
-          fn ->
-            "resolved_order=#{Enum.map(ordered_prototypes, &{&1.resource, &1.ref}) |> inspect()}"
-          end,
-          component: :registry
-        )
-
         {:reply, {:ok, ordered_prototypes}, state}
 
       {:error, reason} ->
-        Log.error(
-          fn -> "resolve_dependencies_error reason=#{inspect(reason)}" end,
-          component: :registry
-        )
-
         {:reply, {:error, reason}, state}
     end
   end
@@ -254,14 +210,6 @@ defmodule AshScenario.Scenario.Registry do
           |> Map.put_new(resource_module, %{})
           |> put_in([resource_module, prototype.ref], prototype_data)
         end)
-
-      Log.info(
-        fn ->
-          "auto_registered_prototypes module=#{inspect(resource_module)} count=#{length(prototypes)}"
-        end,
-        component: :registry,
-        resource: resource_module
-      )
 
       {updated_state, true}
     end
@@ -400,11 +348,6 @@ defmodule AshScenario.Scenario.Registry do
 
         {rev, indeg}
       end)
-
-    Log.debug(
-      fn -> "toposort indegree=#{inspect(indegree)} rev_edges=#{inspect(reverse_edges)}" end,
-      component: :registry
-    )
 
     queue =
       indegree

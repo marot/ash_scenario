@@ -8,7 +8,6 @@ defmodule AshScenario.Scenario.Executor.DatabaseStrategy do
 
   @behaviour AshScenario.Scenario.Executor
 
-  alias AshScenario.Log
   alias AshScenario.Scenario.Helpers
 
   @impl true
@@ -32,21 +31,11 @@ defmodule AshScenario.Scenario.Executor.DatabaseStrategy do
   end
 
   @impl true
-  def wrap_execution(ordered_prototypes, opts, execution_fn) do
-    {_opts, trace} = Log.ensure_trace(opts)
-
+  def wrap_execution(ordered_prototypes, _opts, execution_fn) do
     transaction_resources =
       ordered_prototypes
       |> Enum.map(& &1.resource)
       |> Enum.uniq()
-
-    Log.debug(
-      fn ->
-        "transaction_start resources=#{inspect(transaction_resources)}"
-      end,
-      component: :runner,
-      trace_id: trace
-    )
 
     transaction_fn = fn ->
       execution_fn.()

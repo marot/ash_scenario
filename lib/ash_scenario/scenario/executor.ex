@@ -7,7 +7,6 @@ defmodule AshScenario.Scenario.Executor do
   delegate the actual resource creation to different implementations.
   """
 
-  alias AshScenario.Log
   alias AshScenario.Scenario.Helpers
   require Logger
 
@@ -38,50 +37,19 @@ defmodule AshScenario.Scenario.Executor do
     * `{:error, reason}` - Error if execution fails
   """
   def execute_prototypes(prototype_refs, opts, strategy) when is_list(prototype_refs) do
-    {opts, trace} = Log.ensure_trace(opts)
-    started_at = System.monotonic_time(:millisecond)
-
     {normalized_refs, overrides_map} = Helpers.normalize_refs_and_overrides(prototype_refs, opts)
-    debug_refs = Enum.map(normalized_refs, fn {m, r} -> {m, r} end)
-
-    component = strategy_component(strategy)
-
-    Log.debug(
-      fn ->
-        "execute_prototypes start strategy=#{inspect(strategy)} refs=#{inspect(debug_refs)} overrides=#{inspect(overrides_map)}"
-      end,
-      component: component,
-      trace_id: trace
-    )
 
     with {:ok, ordered_prototypes} <-
            AshScenario.Scenario.Registry.resolve_dependencies(normalized_refs) do
-      Log.debug(
-        fn ->
-          "dependency_order=#{Enum.map(ordered_prototypes, &{&1.resource, &1.ref}) |> inspect()}"
-        end,
-        component: component,
-        trace_id: trace
-      )
-
       execution_fn = fn ->
         execute_ordered_prototypes(
           ordered_prototypes,
           Keyword.put(opts, :__overrides_map__, overrides_map),
-          strategy,
-          trace
+          strategy
         )
       end
 
       strategy.wrap_execution(ordered_prototypes, opts, execution_fn)
-      |> tap(fn _ ->
-        duration = System.monotonic_time(:millisecond) - started_at
-
-        Log.info(fn -> "execute_prototypes finished duration_ms=#{duration}" end,
-          component: component,
-          trace_id: trace
-        )
-      end)
     end
   end
 
@@ -106,9 +74,7 @@ defmodule AshScenario.Scenario.Executor do
 
   # Private Functions
 
-  defp execute_ordered_prototypes(ordered_prototypes, opts, strategy, trace) do
-    component = strategy_component(strategy)
-
+  defp execute_ordered_prototypes(ordered_prototypes, opts, strategy) do
     Enum.reduce_while(ordered_prototypes, {:ok, %{}}, fn prototype, {:ok, created_resources} ->
       case execute_prototype(prototype, opts, created_resources, strategy) do
         {:ok, created_resource} ->
@@ -128,35 +94,13 @@ defmodule AshScenario.Scenario.Executor do
           {:cont, {:ok, created_resources}}
 
         {:error, reason} ->
-          Log.error(
-            fn ->
-              "execute_prototypes halted module=#{inspect(prototype.resource)} ref=#{prototype.ref} reason=#{inspect(reason)}"
-            end,
-            component: component,
-            resource: prototype.resource,
-            ref: prototype.ref,
-            trace_id: trace
-          )
-
           {:halt, {:error, reason}}
       end
     end)
   end
 
   defp execute_prototype(prototype, opts, created_resources, strategy) do
-    {opts, trace} = Log.ensure_trace(opts)
     domain = Keyword.get(opts, :domain) || Helpers.infer_domain(prototype.resource)
-    component = strategy_component(strategy)
-
-    Log.debug(
-      fn ->
-        "execute_prototype start module=#{inspect(prototype.resource)} ref=#{prototype.ref} domain=#{inspect(domain)}"
-      end,
-      component: component,
-      resource: prototype.resource,
-      ref: prototype.ref,
-      trace_id: trace
-    )
 
     with {:ok, attributes, explicit_nil_keys} <- prepare_attributes(prototype, opts),
          {:ok, resolved_attributes} <-
@@ -167,7 +111,6 @@ defmodule AshScenario.Scenario.Executor do
         explicit_nil_keys: explicit_nil_keys,
         opts: opts,
         domain: domain,
-        trace: trace,
         strategy: strategy
       }
 
@@ -226,13 +169,12 @@ defmodule AshScenario.Scenario.Executor do
     end
   end
 
-  defp execute_with_custom_function(context, function, level) do
+  defp execute_with_custom_function(context, function, _level) do
     %{
       prototype: prototype,
       resolved_attributes: resolved_attributes,
       opts: opts,
-      trace: trace,
-      strategy: strategy
+      strategy: _strategy
     } = context
 
     # Extract tenant info for custom functions
@@ -241,57 +183,25 @@ defmodule AshScenario.Scenario.Executor do
 
     # Add tenant to opts for custom functions
     opts_with_tenant = AshScenario.Multitenancy.add_tenant_to_opts(opts, tenant_value)
-    component = strategy_component(strategy)
-
-    Log.debug(
-      fn ->
-        level_desc = if level == :prototype, do: " (prototype override)", else: " (module-level)"
-
-        "using_custom_function#{level_desc} module=#{inspect(prototype.resource)} ref=#{prototype.ref} function=#{inspect(function)} tenant=#{inspect(tenant_value)}"
-      end,
-      component: component,
-      resource: prototype.resource,
-      ref: prototype.ref,
-      trace_id: trace
-    )
 
     case Helpers.execute_custom_function(function, resolved_attributes, opts_with_tenant) do
       {:ok, created_resource} ->
-        handle_creation_success(created_resource, prototype, trace, :custom_function, strategy)
+        handle_creation_success(created_resource, prototype, :custom_function)
 
       {:error, error} ->
-        handle_creation_error(error, prototype, trace, :custom_function, strategy)
+        handle_creation_error(error, prototype, :custom_function)
     end
   end
 
-  defp execute_with_action(context, action, level) do
+  defp execute_with_action(context, action, _level) do
     %{
       prototype: prototype,
       resolved_attributes: resolved_attributes,
       explicit_nil_keys: explicit_nil_keys,
       opts: opts,
       domain: domain,
-      trace: trace,
       strategy: strategy
     } = context
-
-    component = strategy_component(strategy)
-
-    Log.debug(
-      fn ->
-        level_desc =
-          case level do
-            :prototype -> " (prototype override)"
-            :default -> ""
-          end
-
-        "using_action#{level_desc} module=#{inspect(prototype.resource)} ref=#{prototype.ref} action=#{inspect(action)}"
-      end,
-      component: component,
-      resource: prototype.resource,
-      ref: prototype.ref,
-      trace_id: trace
-    )
 
     opts_with_nil_keys = Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys)
 
@@ -302,52 +212,19 @@ defmodule AshScenario.Scenario.Executor do
            Keyword.merge(opts_with_nil_keys, domain: domain, action: action)
          ) do
       {:ok, created_resource} ->
-        handle_creation_success(created_resource, prototype, trace, action, strategy)
+        handle_creation_success(created_resource, prototype, action)
 
       {:error, error} ->
-        handle_creation_error(error, prototype, trace, action, strategy)
+        handle_creation_error(error, prototype, action)
     end
   end
 
-  defp handle_creation_success(created_resource, prototype, trace, method, strategy) do
+  defp handle_creation_success(created_resource, prototype, _method) do
     Helpers.track_created_resource(created_resource, prototype)
-    component = strategy_component(strategy)
-
-    Log.info(
-      fn ->
-        method_desc = if is_atom(method), do: "action=#{method}", else: "method=#{method}"
-
-        id_part =
-          if Map.has_key?(created_resource, :id),
-            do: " id=#{Map.get(created_resource, :id)}",
-            else: ""
-
-        "create_success module=#{inspect(prototype.resource)} ref=#{prototype.ref} #{method_desc}#{id_part}"
-      end,
-      component: component,
-      resource: prototype.resource,
-      ref: prototype.ref,
-      trace_id: trace
-    )
-
     {:ok, created_resource}
   end
 
-  defp handle_creation_error(error, prototype, trace, method, strategy) do
-    component = strategy_component(strategy)
-
-    Log.error(
-      fn ->
-        method_desc = if is_atom(method), do: "action=#{method}", else: "method=#{method}"
-
-        "create_failed module=#{inspect(prototype.resource)} ref=#{prototype.ref} #{method_desc} error=#{inspect(error)}"
-      end,
-      component: component,
-      resource: prototype.resource,
-      ref: prototype.ref,
-      trace_id: trace
-    )
-
+  defp handle_creation_error(error, prototype, method) do
     error_context =
       case method do
         :custom_function -> " with custom function"
@@ -356,13 +233,5 @@ defmodule AshScenario.Scenario.Executor do
       end
 
     {:error, "Failed to create #{inspect(prototype.resource)}#{error_context}: #{inspect(error)}"}
-  end
-
-  defp strategy_component(strategy) do
-    case strategy do
-      AshScenario.Scenario.Executor.DatabaseStrategy -> :runner
-      AshScenario.Scenario.Executor.StructStrategy -> :struct_builder
-      _ -> :executor
-    end
   end
 end

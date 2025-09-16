@@ -3,7 +3,6 @@ defmodule AshScenario.Scenario.Helpers do
   Shared helper functions for resource creation, used by both Runner and StructBuilder.
   """
 
-  alias AshScenario.Log
   require Logger
 
   @doc """
@@ -61,14 +60,6 @@ defmodule AshScenario.Scenario.Helpers do
   Resolve all attributes, handling relationship references.
   """
   def resolve_attributes(attributes, resource_module, created_resources) do
-    Log.debug(
-      fn ->
-        "resolve_attributes module=#{inspect(resource_module)} attrs=#{inspect(attributes)}"
-      end,
-      component: :helpers,
-      resource: resource_module
-    )
-
     resolved =
       attributes
       |> Enum.map(fn {key, value} ->
@@ -96,48 +87,18 @@ defmodule AshScenario.Scenario.Helpers do
         {:ok, related_module} ->
           case find_referenced_resource(value, related_module, created_resources) do
             {:ok, resource} ->
-              Log.debug(
-                fn ->
-                  "resolved_relationship attr=#{attr_name} value=#{value} -> id=#{Map.get(resource, :id)} related_module=#{inspect(related_module)}"
-                end,
-                component: :helpers,
-                resource: resource_module
-              )
-
               {:ok, resource.id}
 
             :not_found ->
-              Log.debug(
-                fn ->
-                  "unresolved_relationship attr=#{attr_name} value=#{value} (keeping as atom) related_module=#{inspect(related_module)}"
-                end,
-                component: :helpers,
-                resource: resource_module
-              )
-
               {:ok, value}
           end
 
         :error ->
           # Relationship not found (unexpected) — preserve original value
-          Log.warn(
-            fn ->
-              "relationship_not_found attr=#{attr_name} value=#{inspect(value)} (keeping as-is)"
-            end,
-            component: :helpers,
-            resource: resource_module
-          )
-
           {:ok, value}
       end
     else
       # Not a relationship attribute, keep the atom value as-is
-      Log.debug(
-        fn -> "non_relationship_atom attr=#{attr_name} value=#{inspect(value)}" end,
-        component: :helpers,
-        resource: resource_module
-      )
-
       {:ok, value}
     end
   end
@@ -265,62 +226,12 @@ defmodule AshScenario.Scenario.Helpers do
     {:ok, tenant_value, clean_attributes} =
       AshScenario.Multitenancy.extract_tenant_info(resource_module, sanitized_attributes)
 
-    Log.debug(
-      fn ->
-        "build_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} attrs_in=#{inspect(attributes)} sanitized=#{inspect(sanitized_attributes)} tenant=#{inspect(tenant_value)} clean_attrs=#{inspect(clean_attributes)}"
-      end,
-      component: :helpers,
-      resource: resource_module
-    )
-
     changeset =
       resource_module
       |> Ash.Changeset.for_create(action_name, clean_attributes)
 
-    Log.debug(
-      fn ->
-        "built_changeset resource=#{inspect(resource_module)} action=#{inspect(action_name)} changes=#{inspect(Map.get(changeset, :changes, %{}))} tenant=#{inspect(tenant_value)}"
-      end,
-      component: :helpers,
-      resource: resource_module
-    )
-
     {:ok, changeset, tenant_value}
   rescue
     error -> {:error, "Failed to build changeset: #{inspect(error)}"}
-  end
-
-  @doc """
-  Create a resource using either a custom function or Ash.create, with proper tenant handling.
-  This is the common path for both Runner and Scenario DSL.
-  """
-  def create_resource_with_tenant(module, resolved_attributes, opts, create_cfg \\ nil) do
-    # Get create configuration if not provided
-    create_cfg = create_cfg || AshScenario.Info.create(module)
-
-    # Extract tenant info if the resource uses multitenancy
-    {:ok, tenant_value, _clean_attributes} =
-      AshScenario.Multitenancy.extract_tenant_info(module, resolved_attributes)
-
-    # Add tenant to opts
-    opts_with_tenant = AshScenario.Multitenancy.add_tenant_to_opts(opts, tenant_value)
-
-    # Execute creation via custom function or Ash.create
-    if create_cfg.function do
-      execute_custom_function(create_cfg.function, resolved_attributes, opts_with_tenant)
-    else
-      domain = Keyword.get(opts_with_tenant, :domain) || infer_domain(module)
-
-      with {:ok, create_action} <- get_create_action(module, create_cfg.action || :create),
-           {:ok, changeset, _tenant} <-
-             build_changeset(module, create_action, resolved_attributes, opts_with_tenant) do
-        create_opts = AshScenario.Multitenancy.add_tenant_to_opts([domain: domain], tenant_value)
-
-        case Ash.create(changeset, create_opts) do
-          {:ok, resource} -> {:ok, resource}
-          {:error, error} -> {:error, "Failed to create #{inspect(module)}: #{inspect(error)}"}
-        end
-      end
-    end
   end
 end

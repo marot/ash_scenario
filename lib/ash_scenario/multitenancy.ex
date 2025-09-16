@@ -7,8 +7,6 @@ defmodule AshScenario.Multitenancy do
   to prototype or scenario definitions.
   """
 
-  alias AshScenario.Log
-
   @doc """
   Extracts tenant information from attributes for a given resource.
 
@@ -37,14 +35,6 @@ defmodule AshScenario.Multitenancy do
         tenant_attr = Ash.Resource.Info.multitenancy_attribute(resource)
         tenant_value = Map.get(attributes, tenant_attr)
 
-        Log.debug(
-          fn ->
-            "multitenancy_detected resource=#{inspect(resource)} strategy=:attribute tenant_attr=#{tenant_attr} tenant_value=#{inspect(tenant_value)}"
-          end,
-          component: :multitenancy,
-          resource: resource
-        )
-
         # Remove tenant attribute from attributes that will go in changeset
         clean_attrs = Map.delete(attributes, tenant_attr)
 
@@ -52,26 +42,10 @@ defmodule AshScenario.Multitenancy do
 
       :context ->
         # Context-based multitenancy is handled differently and not through attributes
-        Log.debug(
-          fn ->
-            "multitenancy_detected resource=#{inspect(resource)} strategy=:context (no attribute extraction needed)"
-          end,
-          component: :multitenancy,
-          resource: resource
-        )
-
         {:ok, nil, attributes}
 
       nil ->
         # No multitenancy configured
-        Log.debug(
-          fn ->
-            "no_multitenancy resource=#{inspect(resource)}"
-          end,
-          component: :multitenancy,
-          resource: resource
-        )
-
         {:ok, nil, attributes}
     end
   end
@@ -141,13 +115,6 @@ defmodule AshScenario.Multitenancy do
   def add_tenant_to_opts(opts, nil), do: opts
 
   def add_tenant_to_opts(opts, tenant_value) do
-    Log.debug(
-      fn ->
-        "adding_tenant_to_opts tenant=#{inspect(tenant_value)}"
-      end,
-      component: :multitenancy
-    )
-
     Keyword.put(opts, :tenant, tenant_value)
   end
 end

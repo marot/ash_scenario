@@ -34,6 +34,15 @@ defmodule AshScenario.MixProject do
         "test.generate_migrations": :test,
         "test.reset": :test,
         "test.full_reset": :test
+      ],
+      test_coverage: [
+        summary: [threshold: 80],
+        ignore_modules: [
+          AshScenario.PreCommit.Formatter,
+          ~r/^Inspect\./,
+          ~r/^AshScenario.Dsl\./,
+          ~r/^AshScenario.ScenarioDsl\./
+        ]
       ]
     ]
   end
@@ -58,8 +67,8 @@ defmodule AshScenario.MixProject do
     [
       name: :ash_scenario,
       licenses: ["MIT"],
-      maintainers: ["Marco Rotili"],
       files: ~w(lib .formatter.exs mix.exs README* LICENSE* usage-rules.md
+      links: %{"GitHub" => "https://github.com/marot/ash_scenario"}
       CHANGELOG* documentation),
       links: %{
         "GitHub" => @source_url,
