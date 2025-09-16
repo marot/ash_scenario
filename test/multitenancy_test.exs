@@ -122,11 +122,6 @@ defmodule AshScenario.MultitenancyTest do
       {:error, {:already_started, _pid}} -> :ok
     end
 
-    # Register our test resources
-    AshScenario.register_prototypes(Organization)
-    AshScenario.register_prototypes(TenantPost)
-    AshScenario.register_prototypes(NonTenantPost)
-
     :ok
   end
 
@@ -342,9 +337,6 @@ defmodule AshScenario.MultitenancyTest do
     end
 
     test "custom functions receive tenant in opts" do
-      # Register the resource with custom function
-      AshScenario.register_prototypes(TenantPostWithCustom)
-
       {:ok, resources} =
         AshScenario.run_prototypes(
           [

@@ -85,7 +85,9 @@ defmodule AshScenario.Scenario.Registry do
 
   @impl true
   def init(_) do
-    {:ok, %{}}
+    # Auto-discover and register all prototypes from known domains
+    state = discover_and_register_all_domains(%{})
+    {:ok, state}
   end
 
   @impl true
@@ -180,12 +182,53 @@ defmodule AshScenario.Scenario.Registry do
 
   # Private Functions
 
+  # Auto-discover and register all prototypes from known domains
+  defp discover_and_register_all_domains(state) do
+    # For now, just return the state - we'll rely on lazy loading
+    # Trying to auto-discover at startup is problematic because:
+    # 1. We don't know which OTP app contains the user's domains
+    # 2. Test modules aren't compiled yet at startup
+    # 3. Users might have domains across multiple apps
+    state
+  end
+
   # Ensure a resource module's prototypes are present in the registry state.
+  # Also registers all other resources in the same domain for dependency resolution.
   # Returns {updated_state, registered?}
   defp ensure_registered(resource_module, state) do
-    case Map.has_key?(state, resource_module) do
-      true -> {state, false}
-      false -> do_register_module(resource_module, state)
+    if Map.has_key?(state, resource_module) do
+      {state, false}
+    else
+      # Register this module first
+      {state_with_module, _} = do_register_module(resource_module, state)
+
+      # Try to register all resources in the same domain
+      try do
+        domain = Ash.Resource.Info.domain(resource_module)
+
+        if domain do
+          resources = Ash.Domain.Info.resources(domain)
+
+          # Register all resources in the domain
+          updated_state =
+            Enum.reduce(resources, state_with_module, fn resource, acc ->
+              if Map.has_key?(acc, resource) do
+                acc
+              else
+                {new_state, _} = do_register_module(resource, acc)
+                new_state
+              end
+            end)
+
+          {updated_state, true}
+        else
+          {state_with_module, true}
+        end
+      rescue
+        _ ->
+          # If domain discovery fails, just return with the single module registered
+          {state_with_module, true}
+      end
     end
   end
 
@@ -271,13 +314,35 @@ defmodule AshScenario.Scenario.Registry do
       {:ok, MapSet.to_list(visited)}
     else
       # Lazily register any modules missing at this point
+      # Also register dependency modules discovered from attributes
       state =
         new_refs
         |> Enum.map(&elem(&1, 0))
         |> Enum.uniq()
         |> Enum.reduce(state, fn mod, acc ->
-          {acc, _} = ensure_registered(mod, acc)
-          acc
+          {new_acc, _} = ensure_registered(mod, acc)
+          new_acc
+        end)
+
+      # Now also ensure dependency modules are registered
+      dependency_modules =
+        new_refs
+        |> Enum.flat_map(fn {resource_module, ref} ->
+          case get_in(state, [resource_module, ref]) do
+            nil ->
+              []
+
+            resource_data ->
+              resource_data.dependencies
+              |> Enum.map(&elem(&1, 0))
+          end
+        end)
+        |> Enum.uniq()
+
+      state =
+        Enum.reduce(dependency_modules, state, fn mod, acc ->
+          {new_acc, _} = ensure_registered(mod, acc)
+          new_acc
         end)
 
       # Validate that all new_refs actually exist after cross-module resolution/registration

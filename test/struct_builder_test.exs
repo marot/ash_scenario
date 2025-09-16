@@ -82,10 +82,6 @@ defmodule AshScenario.StructBuilderTest do
   end
 
   setup do
-    # Clear any existing prototypes and re-register
-    AshScenario.clear_prototypes()
-    AshScenario.register_prototypes(Blog)
-    AshScenario.register_prototypes(Post)
     :ok
   end
 
@@ -130,13 +126,13 @@ defmodule AshScenario.StructBuilderTest do
 
   describe "Scenario.create_structs/3" do
     test "creates structs from a scenario without persistence" do
-      scenarios = AshScenario.ScenarioInfo.scenarios(TestScenarioModule)
+      _scenarios = AshScenario.ScenarioInfo.scenarios(TestScenarioModule)
 
       {:ok, structs} =
         AshScenario.Scenario.create_structs(__MODULE__.TestScenarioModule, :test_setup)
 
-      blog = structs[{AshScenario.StructBuilderTest.Blog, :example_blog}]
-      post = structs[{AshScenario.StructBuilderTest.Post, :example_post}]
+      blog = structs.example_blog
+      post = structs.example_post
 
       assert blog.__struct__ == Blog
       assert blog.name == "Test Blog"

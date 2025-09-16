@@ -7,8 +7,6 @@ defmodule PrototypeOverrideTest do
       {:error, {:already_started, _pid}} -> :ok
     end
 
-    AshScenario.clear_prototypes()
-    AshScenario.register_prototypes(OverrideResource)
     :ok
   end
 

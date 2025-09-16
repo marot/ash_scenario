@@ -8,7 +8,6 @@ defmodule AshScenarioTest do
       {:error, {:already_started, _pid}} -> :ok
     end
 
-    AshScenario.clear_prototypes()
     :ok
   end
 
@@ -45,9 +44,6 @@ defmodule AshScenarioTest do
 
   describe "scenario registry" do
     test "prototypes are registered automatically" do
-      AshScenario.register_prototypes(Post)
-      AshScenario.register_prototypes(Blog)
-
       post_prototypes = AshScenario.Scenario.Registry.get_prototypes(Post)
       assert length(post_prototypes) == 2
 
@@ -56,8 +52,6 @@ defmodule AshScenarioTest do
     end
 
     test "specific prototypes can be retrieved" do
-      AshScenario.register_prototypes(Post)
-
       prototype = AshScenario.Scenario.Registry.get_prototype({Post, :example_post})
       assert prototype.ref == :example_post
       assert prototype.resource == Post
@@ -66,8 +60,6 @@ defmodule AshScenarioTest do
 
   describe "scenario execution" do
     setup do
-      AshScenario.register_prototypes(Post)
-      AshScenario.register_prototypes(Blog)
       :ok
     end
 
@@ -111,8 +103,6 @@ defmodule AshScenarioTest do
 
   describe "error handling" do
     test "running non-existent prototype returns error" do
-      AshScenario.register_prototypes(Post)
-
       result = AshScenario.run_prototype(Post, :nonexistent, domain: Domain)
       assert {:error, message} = result
       assert message =~ "Prototype :nonexistent not found"

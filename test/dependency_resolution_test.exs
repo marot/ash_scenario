@@ -7,12 +7,6 @@ defmodule DependencyResolutionTest do
       {:error, {:already_started, _pid}} -> :ok
     end
 
-    AshScenario.clear_prototypes()
-
-    # Register our test resources
-    AshScenario.register_prototypes(Blog)
-    AshScenario.register_prototypes(Post)
-
     :ok
   end
 
@@ -63,10 +57,6 @@ defmodule DependencyResolutionTest do
       {:ok, scenario_resources} =
         AshScenario.Scenario.run(TestScenarioModule, :test_post, domain: Domain)
 
-      AshScenario.clear_prototypes()
-      AshScenario.register_prototypes(Blog)
-      AshScenario.register_prototypes(Post)
-
       {:ok, direct_resources} =
         AshScenario.run_prototypes(
           [
@@ -115,9 +105,6 @@ defmodule DependencyResolutionTest do
           end
         end
       end
-
-      # Register the new resource
-      AshScenario.register_prototypes(Comment)
 
       # Only request the comment - should pull in post and blog
       {:ok, resources} =

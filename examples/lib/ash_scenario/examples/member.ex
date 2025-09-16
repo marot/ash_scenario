@@ -30,11 +30,6 @@ defmodule AshScenario.Examples.Member do
       allow_nil?(false)
       public?(true)
     end
-
-    attribute :organization_id, :uuid do
-      allow_nil?(false)
-      public?(true)
-    end
   end
 
   relationships do
@@ -52,10 +47,6 @@ defmodule AshScenario.Examples.Member do
   end
 
   prototypes do
-    create do
-      function {__MODULE__, :test, []}
-    end
-
     prototype :product_manager do
       attr(:name, "Jordan Rivers")
       attr(:role, "Product Manager")
@@ -69,12 +60,5 @@ defmodule AshScenario.Examples.Member do
       attr(:email, "sasha@acme.test")
       attr(:organization_id, :acme_corp)
     end
-  end
-
-  def test(attrs, ctx) do
-    dbg(attrs)
-    dbg(ctx)
-
-    Ash.create(__MODULE__, attrs, ctx)
   end
 end

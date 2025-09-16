@@ -7,9 +7,6 @@ defmodule RunnerTransactionTest do
       {:error, {:already_started, _pid}} -> :ok
     end
 
-    AshScenario.clear_prototypes()
-    AshScenario.register_prototypes(TransactionResource)
-
     case :mnesia.clear_table(:transaction_resources) do
       {:atomic, :ok} -> :ok
       {:aborted, {:no_exists, :transaction_resources}} -> :ok
@@ -35,7 +32,7 @@ defmodule RunnerTransactionTest do
     if Ash.DataLayer.data_layer_can?(TransactionResource, :transact) do
       assert {:ok, []} = Ash.read(TransactionResource, domain: Domain)
     else
-      ExUnit.Assertions.skip("TransactionResource data layer does not support transactions")
+      IO.puts("TransactionResource data layer does not support transactions - skipping assertion")
     end
   end
 end

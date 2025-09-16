@@ -110,9 +110,6 @@ defmodule AshScenario.BasicCustomFunctionTest do
       {:error, {:already_started, _pid}} -> :ok
     end
 
-    AshScenario.clear_prototypes()
-    AshScenario.register_prototypes(CustomBlog)
-    AshScenario.register_prototypes(CustomPost)
     :ok
   end
 

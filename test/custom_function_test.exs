@@ -4,34 +4,38 @@ defmodule AshScenario.CustomFunctionTest do
   # Test support module for custom functions
   defmodule TestFactory do
     def create_blog(attributes, _opts) do
-      blog = %Blog{
-        id: Ash.UUID.generate(),
-        name: attributes[:name] || "Default Blog"
-      }
+      blog =
+        struct!(
+          AshScenario.CustomFunctionTest.CustomBlog,
+          id: Ash.UUID.generate(),
+          name: attributes[:name] || "Default Blog"
+        )
 
       {:ok, blog}
     end
 
     def create_post(attributes, _opts) do
-      post = %Post{
-        id: Ash.UUID.generate(),
-        title: attributes[:title] || "Default Title",
-        content: attributes[:content] || "Default Content",
-        blog_id: attributes[:blog_id],
-        status: attributes[:status] || :draft
-      }
+      post =
+        struct!(
+          AshScenario.CustomFunctionTest.CustomPost,
+          id: Ash.UUID.generate(),
+          title: attributes[:title] || "Default Title",
+          content: attributes[:content] || "Default Content",
+          blog_id: attributes[:blog_id],
+          status: attributes[:status] || :draft
+        )
 
       {:ok, post}
     end
 
     def create_post_with_extra_args(attributes, _opts, prefix) do
-      post = %Post{
-        id: Ash.UUID.generate(),
-        title: "#{prefix}: #{attributes[:title]}",
-        content: attributes[:content] || "Default Content",
-        blog_id: attributes[:blog_id],
-        status: attributes[:status] || :draft
-      }
+      post =
+        struct!(
+          AshScenario.CustomFunctionTest.PrefixedPost,
+          id: Ash.UUID.generate(),
+          title: "#{prefix}: #{attributes[:title]}",
+          blog_id: attributes[:blog_id]
+        )
 
       {:ok, post}
     end
@@ -157,7 +161,7 @@ defmodule AshScenario.CustomFunctionTest do
     end
 
     relationships do
-      belongs_to :blog, Blog do
+      belongs_to :blog, CustomBlog do
         public? true
       end
     end
@@ -196,7 +200,7 @@ defmodule AshScenario.CustomFunctionTest do
     end
 
     relationships do
-      belongs_to :blog, Blog do
+      belongs_to :blog, CustomBlog do
         public? true
       end
     end
@@ -237,7 +241,7 @@ defmodule AshScenario.CustomFunctionTest do
     end
 
     relationships do
-      belongs_to :blog, Blog do
+      belongs_to :blog, CustomBlog do
         public? true
       end
     end
@@ -266,15 +270,6 @@ defmodule AshScenario.CustomFunctionTest do
       {:error, {:already_started, _pid}} -> :ok
     end
 
-    AshScenario.clear_prototypes()
-    AshScenario.register_prototypes(CustomBlog)
-    AshScenario.register_prototypes(CustomBlogAnon)
-    AshScenario.register_prototypes(CustomBlogFail)
-    AshScenario.register_prototypes(CustomPost)
-    AshScenario.register_prototypes(PrefixedPost)
-    AshScenario.register_prototypes(RegularPost)
-    # For regular creation comparison
-    AshScenario.register_prototypes(Blog)
     :ok
   end
 

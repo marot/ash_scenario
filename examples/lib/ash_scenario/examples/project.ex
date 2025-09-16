@@ -46,10 +46,6 @@ defmodule AshScenario.Examples.Project do
   end
 
   prototypes do
-    create do
-      function {__MODULE__, :test, []}
-    end
-
     prototype :launch_hub do
       attr(:name, "Launch Readiness")
       attr(:launch_date, ~D[2024-05-01])
@@ -61,12 +57,5 @@ defmodule AshScenario.Examples.Project do
       attr(:launch_date, ~D[2024-06-01])
       attr(:organization_id, :globex)
     end
-  end
-
-  def test(attrs, ctx) do
-    dbg(attrs)
-    dbg(ctx)
-
-    Ash.create(__MODULE__, attrs, ctx)
   end
 end

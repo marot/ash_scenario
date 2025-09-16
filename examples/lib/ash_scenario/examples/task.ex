@@ -32,11 +32,6 @@ defmodule AshScenario.Examples.Task do
       public?(true)
     end
 
-    attribute :organization_id, :uuid do
-      allow_nil?(false)
-      public?(true)
-    end
-
     attribute :project_id, :uuid do
       allow_nil?(false)
       public?(true)
@@ -57,6 +52,9 @@ defmodule AshScenario.Examples.Task do
     belongs_to :assignee, AshScenario.Examples.Member do
       public?(true)
       attribute_writable?(true)
+    end
+
+    belongs_to :organization, AshScenario.Examples.Organization do
     end
   end
 

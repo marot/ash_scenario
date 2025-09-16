@@ -8,11 +8,6 @@ defmodule AshScenario.AbsentValidationTest do
       {:error, {:already_started, _pid}} -> :ok
     end
 
-    # Ensure a clean registry and register our support resources
-    AshScenario.clear_prototypes()
-    AshScenario.register_prototypes(Blog)
-    AshScenario.register_prototypes(Post)
-    AshScenario.register_prototypes(Validated)
     :ok
   end
 

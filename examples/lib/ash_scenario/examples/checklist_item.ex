@@ -27,11 +27,6 @@ defmodule AshScenario.Examples.ChecklistItem do
       public?(true)
     end
 
-    attribute :organization_id, :uuid do
-      allow_nil?(false)
-      public?(true)
-    end
-
     attribute :task_id, :uuid do
       allow_nil?(false)
       public?(true)

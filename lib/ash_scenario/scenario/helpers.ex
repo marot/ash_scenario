@@ -37,7 +37,14 @@ defmodule AshScenario.Scenario.Helpers do
       cond do
         is_map(top_level) and length(normalized_refs) == 1 ->
           [{only_mod, only_ref}] = normalized_refs
-          %{{only_mod, only_ref} => top_level}
+          # Check if it's already keyed by the prototype ref
+          if Map.has_key?(top_level, {only_mod, only_ref}) do
+            # Already properly keyed, use as-is
+            top_level
+          else
+            # Bare map of attributes, wrap it
+            %{{only_mod, only_ref} => top_level}
+          end
 
         is_map(top_level) ->
           # Must be a map keyed by {Module, :ref}

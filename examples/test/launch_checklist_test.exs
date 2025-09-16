@@ -8,6 +8,12 @@ defmodule AshScenarioExamples.LaunchChecklistTest do
   setup tags do
     TestHelpers.reset_examples()
 
+    AshScenario.register_prototypes(AshScenario.Examples.Organization)
+    AshScenario.register_prototypes(AshScenario.Examples.ChecklistItem)
+    AshScenario.register_prototypes(AshScenario.Examples.Member)
+    AshScenario.register_prototypes(AshScenario.Examples.Project)
+    AshScenario.register_prototypes(AshScenario.Examples.Task)
+
     {:ok, resources} = AshScenario.Scenario.run(__MODULE__, tags[:scenario])
 
     {:ok, %{scenario: resources}}
@@ -15,6 +21,7 @@ defmodule AshScenarioExamples.LaunchChecklistTest do
 
   describe "update/1" do
     scenario :go_live_checklist do
+      # prototype :acme_corp do end
       prototype :review_copy do
       end
     end

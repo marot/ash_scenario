@@ -7,9 +7,6 @@ defmodule AshScenario.SimpleScenarioTest do
       {:error, {:already_started, _pid}} -> :ok
     end
 
-    AshScenario.clear_prototypes()
-    AshScenario.register_prototypes(Post)
-    AshScenario.register_prototypes(Blog)
     :ok
   end
 

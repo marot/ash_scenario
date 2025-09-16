@@ -9,11 +9,6 @@ defmodule AshScenario.ScenarioDslTest do
       {:error, {:already_started, _pid}} -> :ok
     end
 
-    AshScenario.clear_prototypes()
-    AshScenario.register_prototypes(Post)
-    AshScenario.register_prototypes(Blog)
-    AshScenario.register_prototypes(Category)
-    AshScenario.register_prototypes(FeaturedPost)
     :ok
   end
 
