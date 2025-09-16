@@ -113,7 +113,7 @@ defmodule AshScenario.Scenario.Registry do
   @impl true
   def handle_call({:resolve_dependencies, prototype_refs}, _from, state) do
     # Lazily register any resource modules referenced in the request
-    state =
+    updated_state =
       prototype_refs
       |> Enum.map(&elem(&1, 0))
       |> Enum.uniq()
@@ -122,12 +122,12 @@ defmodule AshScenario.Scenario.Registry do
         acc
       end)
 
-    case build_dependency_graph(prototype_refs, state) do
-      {:ok, ordered_prototypes} ->
-        {:reply, {:ok, ordered_prototypes}, state}
+    case build_dependency_graph(prototype_refs, updated_state) do
+      {:ok, ordered_prototypes, final_state} ->
+        {:reply, {:ok, ordered_prototypes}, final_state}
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+      {:error, reason, final_state} ->
+        {:reply, {:error, reason}, final_state}
     end
   end
 
@@ -232,16 +232,22 @@ defmodule AshScenario.Scenario.Registry do
 
   defp build_dependency_graph(prototype_refs, state) do
     # First, expand the prototype refs to include all transitive dependencies
-    with {:ok, expanded_refs} <- expand_dependencies(prototype_refs, state) do
-      prototypes =
-        expanded_refs
-        |> Enum.map(fn {resource, ref} -> get_in(state, [resource, ref]) end)
-        |> Enum.reject(&is_nil/1)
+    case expand_dependencies(prototype_refs, state) do
+      {:ok, expanded_refs, final_state} ->
+        prototypes =
+          expanded_refs
+          |> Enum.map(fn {resource, ref} ->
+            get_in(final_state, [resource, ref])
+          end)
+          |> Enum.reject(&is_nil/1)
 
-      # Now do topological sort on the complete set
-      # Cycles should be caught at compile time, so we can simplify this
-      {:ok, sorted} = topological_sort(prototypes)
-      {:ok, sorted}
+        # Now do topological sort on the complete set
+        # Cycles should be caught at compile time, so we can simplify this
+        {:ok, sorted} = topological_sort(prototypes)
+        {:ok, sorted, final_state}
+
+      {:error, msg, final_state} ->
+        {:error, msg, final_state}
     end
   end
 
@@ -259,11 +265,11 @@ defmodule AshScenario.Scenario.Registry do
     new_refs = Enum.map(new_refs, &resolve_cross_module_ref(&1, state))
 
     if new_refs == [] do
-      {:ok, MapSet.to_list(visited)}
+      {:ok, MapSet.to_list(visited), state}
     else
       # Lazily register any modules missing at this point
       # Also register dependency modules discovered from attributes
-      state =
+      state_with_refs =
         new_refs
         |> Enum.map(&elem(&1, 0))
         |> Enum.uniq()
@@ -276,7 +282,7 @@ defmodule AshScenario.Scenario.Registry do
       dependency_modules =
         new_refs
         |> Enum.flat_map(fn {resource_module, ref} ->
-          case get_in(state, [resource_module, ref]) do
+          case get_in(state_with_refs, [resource_module, ref]) do
             nil ->
               []
 
@@ -287,18 +293,19 @@ defmodule AshScenario.Scenario.Registry do
         end)
         |> Enum.uniq()
 
-      state =
-        Enum.reduce(dependency_modules, state, fn mod, acc ->
+      state_with_deps =
+        Enum.reduce(dependency_modules, state_with_refs, fn mod, acc ->
           {new_acc, _} = ensure_registered(mod, acc)
           new_acc
         end)
 
       # Validate that all new_refs actually exist after cross-module resolution/registration
       case Enum.find(new_refs, fn {resource_module, ref} ->
-             get_in(state, [resource_module, ref]) == nil
+             get_in(state_with_deps, [resource_module, ref]) == nil
            end) do
         {missing_module, missing_ref} ->
-          {:error, "Prototype #{inspect(missing_ref)} not found in #{inspect(missing_module)}"}
+          {:error, "Prototype #{inspect(missing_ref)} not found in #{inspect(missing_module)}",
+           state_with_deps}
 
         nil ->
           updated_visited = Enum.reduce(new_refs, visited, &MapSet.put(&2, &1))
@@ -306,11 +313,11 @@ defmodule AshScenario.Scenario.Registry do
           dependencies =
             new_refs
             |> Enum.flat_map(fn {resource_module, ref} ->
-              resource_data = get_in(state, [resource_module, ref])
+              resource_data = get_in(state_with_deps, [resource_module, ref])
               resource_data.dependencies
             end)
 
-          expand_dependencies_recursive(dependencies, updated_visited, state)
+          expand_dependencies_recursive(dependencies, updated_visited, state_with_deps)
       end
     end
   end
