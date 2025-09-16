@@ -485,6 +485,35 @@ end
 # 4) module-level create.action (default :create)
 ```
 
+## Clarity Integration
+
+AshScenario ships with an optional `Clarity.Introspector` implementation that
+adds a **Prototypes** tab to each Ash resource page inside Clarity. From there
+you can run prototypes (database or struct strategy) without leaving the
+dashboard.
+
+1. Add the introspector to your Clarity configuration:
+
+   ```elixir
+   # config/config.exs or the Clarity umbrella config
+   config :my_app, :clarity_introspectors, [
+     AshScenario.Clarity.Introspector
+   ]
+   ```
+
+2. Compile with both `ash_scenario` and `clarity` available. When Clarity is
+   running you'll see a new **Prototypes** tab for any resource that defines
+   prototypes via `AshScenario.Dsl`.
+
+3. Use the provided buttons to create individual prototypes (database or struct
+   strategy) or run the entire set for the resource. Each card also renders a
+   sample struct (using `AshScenario.run_all/2` with the `:struct` strategy) so
+   you can see the default values that will be generated.
+
+The integration is completely optional—`AshScenario` avoids a direct dependency
+on Clarity and only defines the modules when Clarity (and Phoenix LiveView) are
+present at compile time.
+
 ## Architecture
 
 - **Dependency Graph**: Prototypes are analyzed for dependencies and created in topological order
