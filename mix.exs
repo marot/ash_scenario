@@ -67,9 +67,8 @@ defmodule AshScenario.MixProject do
     [
       name: :ash_scenario,
       licenses: ["MIT"],
-      files: ~w(lib .formatter.exs mix.exs README* LICENSE* usage-rules.md
-      links: %{"GitHub" => "https://github.com/marot/ash_scenario"}
-      CHANGELOG* documentation),
+      files:
+        ~w(lib .formatter.exs mix.exs README* LICENSE* usage-rules.md CHANGELOG* documentation),
       links: %{
         "GitHub" => @source_url,
         "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
