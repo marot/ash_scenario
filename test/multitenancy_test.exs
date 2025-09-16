@@ -273,12 +273,15 @@ defmodule AshScenario.MultitenancyTest do
 
         if tenant do
           # Simulate custom creation with tenant awareness
-          struct = %TenantPost{
-            id: Ash.UUID.generate(),
-            title: attributes[:title] || "Custom Title",
-            content: attributes[:content] || "Custom Content",
-            organization_id: tenant
-          }
+          # Using struct!/2 to avoid compile-time dependency
+          struct =
+            struct!(
+              AshScenario.MultitenancyTest.TenantPostWithCustom,
+              id: Ash.UUID.generate(),
+              title: attributes[:title] || "Custom Title",
+              content: attributes[:content] || "Custom Content",
+              organization_id: tenant
+            )
 
           {:ok, struct}
         else
