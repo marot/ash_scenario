@@ -3,11 +3,11 @@ defmodule AshScenario.StructBuilderTest.TestScenarioModule do
   use AshScenario.Scenario
 
   scenario :test_setup do
-    prototype {AshScenario.StructBuilderTest.Blog, :example_blog} do
+    prototype {AshScenario.StructBuilderTest.Blog, :struct_test_blog} do
       attr(:name, "Test Blog")
     end
 
-    prototype {AshScenario.StructBuilderTest.Post, :example_post} do
+    prototype {AshScenario.StructBuilderTest.Post, :struct_test_post} do
       attr(:title, "Test Post")
       attr(:content, "Test Content")
     end
@@ -44,7 +44,7 @@ defmodule AshScenario.StructBuilderTest do
     end
 
     prototypes do
-      prototype :example_blog do
+      prototype :struct_test_blog do
         attr(:name, "Example Blog")
       end
     end
@@ -73,10 +73,10 @@ defmodule AshScenario.StructBuilderTest do
     end
 
     prototypes do
-      prototype :example_post do
+      prototype :struct_test_post do
         attr(:title, "Example Post")
         attr(:content, "This is example content")
-        attr(:blog_id, :example_blog)
+        attr(:blog_id, :struct_test_blog)
       end
     end
   end
@@ -87,8 +87,8 @@ defmodule AshScenario.StructBuilderTest do
 
   describe "run with struct strategy" do
     test "creates a single struct without database persistence" do
-      {:ok, resources} = AshScenario.run([{Blog, :example_blog}], strategy: :struct)
-      blog = resources[{Blog, :example_blog}]
+      {:ok, resources} = AshScenario.run([{Blog, :struct_test_blog}], strategy: :struct)
+      blog = resources[{Blog, :struct_test_blog}]
 
       assert blog.__struct__ == Blog
       assert blog.name == "Example Blog"
@@ -99,12 +99,12 @@ defmodule AshScenario.StructBuilderTest do
 
     test "creates a struct with overrides" do
       {:ok, resources} =
-        AshScenario.run([{Blog, :example_blog}],
+        AshScenario.run([{Blog, :struct_test_blog}],
           strategy: :struct,
           overrides: %{name: "Custom Blog"}
         )
 
-      blog = resources[{Blog, :example_blog}]
+      blog = resources[{Blog, :struct_test_blog}]
 
       assert blog.name == "Custom Blog"
     end
@@ -115,14 +115,14 @@ defmodule AshScenario.StructBuilderTest do
       {:ok, structs} =
         AshScenario.run(
           [
-            {Blog, :example_blog},
-            {Post, :example_post}
+            {Blog, :struct_test_blog},
+            {Post, :struct_test_post}
           ],
           strategy: :struct
         )
 
-      blog = structs[{Blog, :example_blog}]
-      post = structs[{Post, :example_post}]
+      blog = structs[{Blog, :struct_test_blog}]
+      post = structs[{Post, :struct_test_post}]
 
       assert blog.__struct__ == Blog
       assert post.__struct__ == Post
@@ -140,8 +140,8 @@ defmodule AshScenario.StructBuilderTest do
       {:ok, structs} =
         AshScenario.run_scenario(__MODULE__.TestScenarioModule, :test_setup, strategy: :struct)
 
-      blog = structs.example_blog
-      post = structs.example_post
+      blog = structs.struct_test_blog
+      post = structs.struct_test_post
 
       assert blog.__struct__ == Blog
       assert blog.name == "Test Blog"
