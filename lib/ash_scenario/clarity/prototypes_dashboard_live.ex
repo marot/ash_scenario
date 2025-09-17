@@ -304,8 +304,9 @@ defmodule AshScenario.Clarity.PrototypesDashboardLive do
       {:ok, modules} = :application.get_key(app, :modules)
       modules
     end)
-    |> Enum.filter(&ash_resource?/1)
-    |> Enum.filter(&Info.has_prototypes?/1)
+    |> Enum.filter(fn module ->
+      ash_resource?(module) && Info.has_prototypes?(module)
+    end)
     |> Enum.map(fn resource ->
       {resource, Info.prototypes(resource)}
     end)

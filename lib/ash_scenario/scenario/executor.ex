@@ -39,8 +39,12 @@ defmodule AshScenario.Scenario.Executor do
   def execute_prototypes(prototype_refs, opts, strategy) when is_list(prototype_refs) do
     {normalized_refs, overrides_map} = Helpers.normalize_refs_and_overrides(prototype_refs, opts)
 
+    # Extract additional dependencies from overrides (like actor references)
+    additional_refs = extract_override_dependencies(overrides_map)
+    all_refs = Enum.uniq(normalized_refs ++ additional_refs)
+
     with {:ok, ordered_prototypes} <-
-           AshScenario.Scenario.Registry.resolve_dependencies(normalized_refs) do
+           AshScenario.Scenario.Registry.resolve_dependencies(all_refs) do
       execution_fn = fn ->
         execute_ordered_prototypes(
           ordered_prototypes,
@@ -51,6 +55,26 @@ defmodule AshScenario.Scenario.Executor do
 
       strategy.wrap_execution(ordered_prototypes, opts, execution_fn)
     end
+  end
+
+  defp extract_override_dependencies(overrides_map) do
+    overrides_map
+    |> Enum.flat_map(fn {_ref, overrides} ->
+      overrides
+      |> Enum.filter(fn
+        {:actor, {_module, _ref}} -> true
+        {:actor, value} when is_atom(value) and not is_nil(value) -> true
+        _ -> false
+      end)
+      |> Enum.map(fn {:actor, value} ->
+        case value do
+          {module, ref} -> {module, ref}
+          # Just the atom - will be resolved globally
+          ref when is_atom(ref) -> ref
+        end
+      end)
+    end)
+    |> Enum.uniq()
   end
 
   @doc """
