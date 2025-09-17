@@ -463,7 +463,7 @@ defmodule AshScenario.Clarity.PrototypeLive do
     String.to_existing_atom(string)
   rescue
     ArgumentError ->
-      raise ArgumentError, "Unknown resource module #{string}"
+      reraise ArgumentError, "Unknown resource module #{string}", __STACKTRACE__
   end
 
   defp safe_to_existing_atom(key) do
@@ -473,20 +473,18 @@ defmodule AshScenario.Clarity.PrototypeLive do
   end
 
   defp get_relationships(resource) do
-    try do
-      resource
-      |> Ash.Resource.Info.relationships()
-      |> Enum.map(fn rel ->
-        dest = rel.destination
-        has_prototypes = Info.has_prototypes?(dest)
-        {rel.name, dest, has_prototypes}
-      end)
-      |> Enum.filter(fn {_, dest, _} ->
-        Code.ensure_loaded?(dest) && function_exported?(dest, :spark_is, 0) &&
-          dest.spark_is() == Ash.Resource
-      end)
-    rescue
-      _ -> []
-    end
+    resource
+    |> Ash.Resource.Info.relationships()
+    |> Enum.map(fn rel ->
+      dest = rel.destination
+      has_prototypes = Info.has_prototypes?(dest)
+      {rel.name, dest, has_prototypes}
+    end)
+    |> Enum.filter(fn {_, dest, _} ->
+      Code.ensure_loaded?(dest) && function_exported?(dest, :spark_is, 0) &&
+        dest.spark_is() == Ash.Resource
+    end)
+  rescue
+    _ -> []
   end
 end

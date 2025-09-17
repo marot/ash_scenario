@@ -84,6 +84,7 @@ defmodule AshScenario.MixProject do
       {:ash, "~> 3.5 and >= 3.5.5"},
       {:spark, "~> 2.2"},
       # Dev/test dependencies
+      {:picosat_elixir, "~> 0.2", only: [:dev, :test]},
       {:git_hooks, "~> 0.8.0", only: [:dev], runtime: false},
       {:ex_check, "~> 0.12", only: [:dev, :test]},
       {:git_ops, "~> 2.9", only: [:dev]},

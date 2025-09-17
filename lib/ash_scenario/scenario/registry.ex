@@ -113,10 +113,15 @@ defmodule AshScenario.Scenario.Registry do
   @impl true
   def handle_call({:resolve_dependencies, prototype_refs}, _from, state) do
     # Lazily register any resource modules referenced in the request
-    updated_state =
+    # Extract modules from tuple refs only (bare atoms will be resolved later)
+    modules_to_register =
       prototype_refs
+      |> Enum.filter(&is_tuple/1)
       |> Enum.map(&elem(&1, 0))
       |> Enum.uniq()
+
+    updated_state =
+      modules_to_register
       |> Enum.reduce(state, fn mod, acc ->
         {acc, _} = ensure_registered(mod, acc)
         acc
@@ -218,13 +223,31 @@ defmodule AshScenario.Scenario.Registry do
   defp extract_dependencies(resource_module, attributes) do
     attributes
     |> Enum.reduce([], fn {key, value}, acc ->
-      if is_atom(value) do
-        case related_module_for_attr(resource_module, key) do
-          {:ok, related_module} -> [{related_module, value} | acc]
-          :error -> acc
-        end
-      else
-        acc
+      cond do
+        # Special case for actor field - it's a reference to another prototype
+        key == :actor ->
+          case value do
+            {module, ref} ->
+              [{module, ref} | acc]
+
+            ref when is_atom(ref) ->
+              # Just the atom - will be resolved globally across all modules
+              [ref | acc]
+
+            _ ->
+              acc
+          end
+
+        # Regular relationship attributes
+        is_atom(value) ->
+          case related_module_for_attr(resource_module, key) do
+            {:ok, related_module} -> [{related_module, value} | acc]
+            :error -> acc
+          end
+
+        # Skip non-atom values
+        true ->
+          acc
       end
     end)
     |> Enum.reverse()
@@ -269,10 +292,15 @@ defmodule AshScenario.Scenario.Registry do
     else
       # Lazily register any modules missing at this point
       # Also register dependency modules discovered from attributes
-      state_with_refs =
+      # Extract modules from the resolved refs (skipping bare atoms that couldn't be resolved)
+      modules_to_register =
         new_refs
+        |> Enum.filter(&is_tuple/1)
         |> Enum.map(&elem(&1, 0))
         |> Enum.uniq()
+
+      state_with_refs =
+        modules_to_register
         |> Enum.reduce(state, fn mod, acc ->
           {new_acc, _} = ensure_registered(mod, acc)
           new_acc
@@ -281,6 +309,7 @@ defmodule AshScenario.Scenario.Registry do
       # Now also ensure dependency modules are registered
       dependency_modules =
         new_refs
+        |> Enum.filter(&is_tuple/1)
         |> Enum.flat_map(fn {resource_module, ref} ->
           case get_in(state_with_refs, [resource_module, ref]) do
             nil ->
@@ -288,6 +317,7 @@ defmodule AshScenario.Scenario.Registry do
 
             resource_data ->
               resource_data.dependencies
+              |> Enum.filter(&is_tuple/1)
               |> Enum.map(&elem(&1, 0))
           end
         end)
@@ -300,7 +330,10 @@ defmodule AshScenario.Scenario.Registry do
         end)
 
       # Validate that all new_refs actually exist after cross-module resolution/registration
-      case Enum.find(new_refs, fn {resource_module, ref} ->
+      # Filter to only check tuples - bare atoms that couldn't be resolved are errors
+      refs_to_validate = Enum.filter(new_refs, &is_tuple/1)
+
+      case Enum.find(refs_to_validate, fn {resource_module, ref} ->
              get_in(state_with_deps, [resource_module, ref]) == nil
            end) do
         {missing_module, missing_ref} ->
@@ -308,16 +341,25 @@ defmodule AshScenario.Scenario.Registry do
            state_with_deps}
 
         nil ->
-          updated_visited = Enum.reduce(new_refs, visited, &MapSet.put(&2, &1))
+          # Check if any bare atoms couldn't be resolved
+          unresolved = Enum.filter(new_refs, &is_atom/1)
 
-          dependencies =
-            new_refs
-            |> Enum.flat_map(fn {resource_module, ref} ->
-              resource_data = get_in(state_with_deps, [resource_module, ref])
-              resource_data.dependencies
-            end)
+          if unresolved != [] do
+            {:error, "Could not resolve prototype references: #{inspect(unresolved)}",
+             state_with_deps}
+          else
+            updated_visited = Enum.reduce(new_refs, visited, &MapSet.put(&2, &1))
 
-          expand_dependencies_recursive(dependencies, updated_visited, state_with_deps)
+            dependencies =
+              new_refs
+              |> Enum.filter(&is_tuple/1)
+              |> Enum.flat_map(fn {resource_module, ref} ->
+                resource_data = get_in(state_with_deps, [resource_module, ref])
+                resource_data.dependencies
+              end)
+
+            expand_dependencies_recursive(dependencies, updated_visited, state_with_deps)
+          end
       end
     end
   end
@@ -333,6 +375,18 @@ defmodule AshScenario.Scenario.Registry do
 
       _ ->
         tuple
+    end
+  end
+
+  # Handle bare atom refs - find them globally
+  defp resolve_cross_module_ref(ref, state) when is_atom(ref) do
+    case Enum.find(Map.keys(state), fn mod -> get_in(state, [mod, ref]) end) do
+      nil ->
+        # If not found, return as-is (might be resolved later)
+        ref
+
+      mod ->
+        {mod, ref}
     end
   end
 
