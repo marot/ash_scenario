@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: "en-US"
+early_access: true
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: false
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "*"
+      instructions: |
+        Ensure the following:
+        - Type specs are used
+        - The code is idiomatic Elixir
+        - Tests are modified or added for changes
+        - Modified and added public functions contain documentation with examples
+        - Don't use complex else clauses in with expressions
+        - Prefer to use pattern matching
+        - Use with expressions to chain conditional logic
+        - Don't mix extraction and pattern matching/guard checking, move the extraction inside the body instead.
+        - Don't create dynamic atoms
+        - Avoid long parameter lists
+        - Avoid alternative return types
+        - Use atoms over boolean flags
+
+chat:
+  auto_reply: true
