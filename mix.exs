@@ -90,7 +90,10 @@ defmodule AshScenario.MixProject do
       {:ex_doc, "~> 0.34", only: [:dev], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false}
+      {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
+      {:phoenix, "~> 1.8.1", optional: true},
+      {:phoenix_live_view, "~> 1.1.8", optional: true},
+      {:clarity, "~> 0.1", optional: true}
     ]
   end
 
