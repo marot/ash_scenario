@@ -68,7 +68,7 @@ defmodule AshScenario.MixProject do
       name: :ash_scenario,
       licenses: ["MIT"],
       files:
-        ~w(lib .formatter.exs mix.exs README* LICENSE* usage-rules.md CHANGELOG* documentation),
+        ~w(lib priv .formatter.exs mix.exs README* LICENSE* usage-rules.md CHANGELOG* documentation),
       links: %{
         "GitHub" => @source_url,
         "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
@@ -81,19 +81,20 @@ defmodule AshScenario.MixProject do
     [
       {:usage_rules, "~> 0.1", only: [:dev]},
       {:claude, "~> 0.5", only: [:dev], runtime: false},
-      {:ash, ash_version("~> 3.5 and >= 3.5.5")},
+      {:ash, "~> 3.5 and >= 3.5.5"},
       {:spark, "~> 2.2"},
       # Dev/test dependencies
       {:git_hooks, "~> 0.8.0", only: [:dev], runtime: false},
       {:ex_check, "~> 0.12", only: [:dev, :test]},
-      {:git_ops, "~> 2.6.1", only: [:dev]},
+      {:git_ops, "~> 2.9", only: [:dev]},
       {:ex_doc, "~> 0.34", only: [:dev], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
       {:phoenix, "~> 1.8.1", optional: true},
       {:phoenix_live_view, "~> 1.1.8", optional: true},
-      {:clarity, "~> 0.1", optional: true}
+      {:clarity, "~> 0.1", optional: true},
+      {:tailwind, "~> 0.4.0", optional: true, override: true}
     ]
   end
 
@@ -113,16 +114,10 @@ defmodule AshScenario.MixProject do
       "test.create": "ash_postgres.create",
       "test.full_reset": ["test.generate_migrations", "test.reset"],
       "test.reset": ["test.drop", "test.create", "test.migrate", "ash_postgres.migrate --tenants"],
-      "test.drop": "ash_postgres.drop"
+      "test.drop": "ash_postgres.drop",
+      # Asset building
+      "assets.build": ["tailwind ash_scenario"],
+      "assets.deploy": ["tailwind ash_scenario --minify"]
     ]
-  end
-
-  defp ash_version(default_version) do
-    case System.get_env("ASH_VERSION") do
-      nil -> default_version
-      "local" -> [path: "../ash", override: true]
-      "main" -> [git: "https://github.com/ash-project/ash.git", override: true]
-      version -> "~> #{version}"
-    end
   end
 end

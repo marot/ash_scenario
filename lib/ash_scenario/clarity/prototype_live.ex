@@ -97,6 +97,9 @@ defmodule AshScenario.Clarity.PrototypeLive do
   @impl Phoenix.LiveView
   def render(assigns) do
     ~H"""
+    <%= if Code.ensure_loaded?(AshScenario.Tailwind.Assets) && AshScenario.Tailwind.Assets.available?() do %>
+      <%= AshScenario.Tailwind.Assets.inject(inline: true) %>
+    <% end %>
     <div class="min-h-screen bg-gradient-to-br from-base-light-50 to-base-light-100 dark:from-base-dark-900 dark:to-base-dark-800">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Header -->
