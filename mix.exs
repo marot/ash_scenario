@@ -94,8 +94,9 @@ defmodule AshScenario.MixProject do
       {:sobelow, "~> 0.13", only: [:dev, :test], runtime: false},
       {:phoenix, "~> 1.8.1", optional: true},
       {:phoenix_live_view, "~> 1.1.8", optional: true},
-      {:clarity, "~> 0.1", optional: true},
-      {:tailwind, "~> 0.4.0", optional: true, override: true}
+      # Disabled for now as we use tailwind 0.4
+      # {:clarity, "~> 0.1", optional: true},
+      {:tailwind, "~> 0.4.0", optional: true}
     ]
   end
 
