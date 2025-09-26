@@ -143,12 +143,12 @@ defmodule MyTest do
   use AshScenario.Scenario  # Required for scenarios
 
   scenario :basic_setup do
-    example_blog do
-      name "Custom blog name"
+    prototype :example_blog do
+      attr :name, "Custom blog name"
     end
-    
-    example_post do
-      title "Custom post title" 
+
+    prototype :example_post do
+      attr :title, "Custom post title"
     end
   end
 
@@ -165,24 +165,26 @@ Build hierarchical scenarios using `extends`:
 
 ```elixir
 scenario :base_setup do
-  example_blog do
-    name "Base Blog"
+  prototype :example_blog do
+    attr :name, "Base Blog"
   end
-  
-  example_post do
-    title "Base Post"
-    content "Base content"
+
+  prototype :example_post do
+    attr :title, "Base Post"
+    attr :content, "Base content"
   end
 end
 
-scenario :extended_setup, extends: :base_setup do
-  example_post do
-    title "Extended Post"  # Overrides title
+scenario :extended_setup do
+  extends :base_setup
+
+  prototype :example_post do
+    attr :title, "Extended Post"  # Overrides title
     # content is inherited as "Base content"
   end
-  
-  another_post do  # Adds new prototype
-    title "Additional post"
+
+  prototype :another_post do  # Adds new prototype
+    attr :title, "Additional post"
   end
 end
 ```
@@ -324,6 +326,7 @@ end
 8. **Custom functions for complex logic**: Use custom functions when default Ash actions aren't sufficient
 9. **Explicit domains when needed**: Specify domain explicitly if inference doesn't work
 10. **Use virtual attributes for action args**: Mark non-persisted inputs (e.g., `password`) with `virtual: true`
+11. **Use actors for authorization testing**: Define actors as prototypes and reference them with the `:actor` field to test authorization policies
 
 ### Virtual Attributes Example
 
@@ -339,6 +342,136 @@ prototypes do
   end
 end
 ```
+
+## Authorization Support
+
+AshScenario supports Ash authorization policies by allowing you to specify an actor (the user performing the action) and control whether authorization is enforced.
+
+### Actor Field
+
+Use the `:actor` field to specify which user prototype should be used as the actor when creating a resource. The actor field is a virtual attribute that references another prototype.
+
+```elixir
+prototypes do
+  prototype :admin_post do
+    attr :title, "Admin Post"
+    attr :content, "Content"
+    attr :author_id, :admin_user
+    attr :actor, :admin_user, virtual: true  # Use admin as actor
+  end
+end
+```
+
+**Key points:**
+- The `:actor` field must be marked as `virtual: true`
+- It can reference a prototype using an atom (`:admin_user`) or a tuple (`{User, :admin_user}`)
+- The actor prototype is automatically included in dependency resolution
+- When an actor is specified, `authorize?` defaults to `true`
+
+### Authorize Field
+
+Control whether authorization policies are enforced using the `:authorize?` field:
+
+```elixir
+prototypes do
+  prototype :restricted_post do
+    attr :title, "Restricted Content"
+    attr :author_id, :admin_user
+    attr :actor, :admin_user, virtual: true
+    attr :authorize?, true, virtual: true  # Explicitly enable authorization
+  end
+
+  prototype :test_post do
+    attr :title, "Test Post"
+    attr :author_id, :test_user
+    attr :authorize?, false, virtual: true  # Bypass authorization for testing
+  end
+end
+```
+
+**Defaults:**
+- When `:actor` is provided, `:authorize?` defaults to `true`
+- When `:actor` is not provided, `:authorize?` defaults to `false`
+- Explicitly setting `:authorize?` overrides the default behavior
+
+### Actor Dependency Resolution
+
+Actor prototypes are automatically resolved as dependencies and created before the dependent resources:
+
+```elixir
+# Only specify the post - the actor user is created automatically
+{:ok, resources} = AshScenario.run([{Post, :admin_post}], domain: MyApp.Domain)
+
+# Both the actor and post are available
+admin_user = resources[{User, :admin_user}]  # Created automatically
+admin_post = resources[{Post, :admin_post}]   # Created with admin as actor
+```
+
+### Runtime Actor Overrides
+
+Override the actor at runtime using the `:overrides` option:
+
+```elixir
+# Override with atom reference
+{:ok, resources} = AshScenario.run(
+  [{Post, :admin_post}],
+  domain: MyApp.Domain,
+  overrides: %{
+    {Post, :admin_post} => %{
+      actor: :moderator_user,
+      title: "Modified by Moderator"
+    }
+  }
+)
+
+# Override with module-scoped reference
+{:ok, resources} = AshScenario.run(
+  [{Post, :admin_post}],
+  domain: MyApp.Domain,
+  overrides: %{
+    {Post, :admin_post} => %{
+      actor: {User, :regular_user}
+    }
+  }
+)
+```
+
+Runtime actor overrides automatically create the new actor as a dependency.
+
+### Cross-Module Actor References
+
+Actor references work across modules, similar to relationship references:
+
+```elixir
+# User module
+defmodule User do
+  use Ash.Resource, extensions: [AshScenario.Dsl]
+
+  prototypes do
+    prototype :admin_user do
+      attr :email, "admin@example.com"
+      attr :role, "admin"
+    end
+  end
+end
+
+# Post module
+defmodule Post do
+  use Ash.Resource, extensions: [AshScenario.Dsl]
+
+  prototypes do
+    prototype :admin_post do
+      attr :title, "Admin Post"
+      attr :author_id, :admin_user     # Relationship reference
+      attr :actor, :admin_user, virtual: true  # Actor reference
+    end
+  end
+end
+```
+
+Both `:author_id` and `:actor` reference the same prototype, but:
+- `:author_id` is resolved to the user's ID and stored in the database
+- `:actor` is passed to `Ash.create/2` to authorize the action
 
 ### Per-Prototype Overrides
 

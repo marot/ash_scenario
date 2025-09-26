@@ -282,7 +282,7 @@ Your custom function must:
 - Handle the resolved attributes where relationship references are already converted to IDs
 
 Notes:
-- You can configure creation at the module level (via `create ...`) or per resource (via `action:`/`function:` on a specific `resource`).
+- You can configure creation at the module level (via `create ...`) or per prototype (via `action:`/`function:` on a specific `prototype`).
 - Precedence: resource.function > resource.action > module-level create.function > module-level create.action (default `:create`).
 
 ```elixir
@@ -298,6 +298,85 @@ def my_custom_function(resolved_attributes, opts) do
   {:ok, created_resource}
 end
 ```
+
+### Authorization Support
+
+AshScenario supports Ash authorization policies by allowing you to specify an actor and control authorization enforcement:
+
+```elixir
+defmodule User do
+  use Ash.Resource,
+    domain: Domain,
+    extensions: [AshScenario.Dsl]
+
+  prototypes do
+    prototype :admin_user do
+      attr :email, "admin@example.com"
+      attr :role, "admin"
+    end
+
+    prototype :regular_user do
+      attr :email, "user@example.com"
+      attr :role, "user"
+    end
+  end
+end
+
+defmodule Post do
+  use Ash.Resource,
+    domain: Domain,
+    extensions: [AshScenario.Dsl],
+    authorizers: [Ash.Policy.Authorizer]
+
+  policies do
+    policy action(:create) do
+      authorize_if actor_present()
+    end
+  end
+
+  prototypes do
+    prototype :admin_post do
+      attr :title, "Admin Post"
+      attr :content, "Content by admin"
+      attr :author_id, :admin_user
+      attr :actor, :admin_user, virtual: true  # Actor for authorization
+    end
+
+    prototype :user_post do
+      attr :title, "User Post"
+      attr :author_id, :regular_user
+      attr :actor, :regular_user, virtual: true
+    end
+
+    prototype :unauthorized_post do
+      attr :title, "Post Without Actor"
+      attr :author_id, :regular_user
+      # No actor - will fail if authorize? is true
+    end
+  end
+end
+
+# Run with authorization
+{:ok, resources} = AshScenario.run([{Post, :admin_post}], domain: Domain)
+admin_user = resources[{User, :admin_user}]  # Created automatically
+admin_post = resources[{Post, :admin_post}]   # Created with admin as actor
+
+# Override actor at runtime
+{:ok, resources} = AshScenario.run(
+  [{Post, :admin_post}],
+  domain: Domain,
+  overrides: %{
+    {Post, :admin_post} => %{actor: :regular_user}
+  }
+)
+```
+
+Key features:
+- Use `:actor` field (virtual) to specify which user prototype performs the action
+- Actor prototypes are automatically created as dependencies
+- `:authorize?` defaults to `true` when actor is present, `false` otherwise
+- Override actors at runtime using the `:overrides` option
+- Supports both atom references (`:admin_user`) and tuple references (`{User, :admin_user}`)
 
 ### Scenario Extension (Inheritance)
 
@@ -355,6 +434,7 @@ end
 - **Override Support**: Test scenarios can override specific attributes while keeping defaults
 - **Scenario Extension**: Build hierarchical scenarios using `extends: :base_scenario`
 - **Custom Functions**: Use any function as an alternative to the default create action
+- **Authorization Support**: Specify actors and control authorization enforcement for testing policies
 - **Hardened Resolution**: Only relationship attributes are resolved; other atoms are preserved
 - **Virtual Attributes**: Pass action arguments (not stored attributes) via `virtual: true`
 
