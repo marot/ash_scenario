@@ -10,7 +10,8 @@ defmodule AshScenario.Dsl.Attr do
     # and pass this key/value through to the create action as an argument.
     # Useful for virtual inputs like passwords that are not stored attributes.
     :virtual,
-    :__identifier__
+    :__identifier__,
+    __spark_metadata__: nil
   ]
 
   @type t :: %__MODULE__{

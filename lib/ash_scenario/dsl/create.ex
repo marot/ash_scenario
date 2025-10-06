@@ -9,7 +9,8 @@ defmodule AshScenario.Dsl.Create do
   defstruct [
     :function,
     :action,
-    :__identifier__
+    :__identifier__,
+    __spark_metadata__: nil
   ]
 
   @type t :: %__MODULE__{

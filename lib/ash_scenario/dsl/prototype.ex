@@ -20,7 +20,8 @@ defmodule AshScenario.Dsl.Prototype do
     :function,
     # Nested create entity (mirrors module-level `create`)
     :create,
-    :__identifier__
+    :__identifier__,
+    __spark_metadata__: nil
   ]
 
   @type t :: %__MODULE__{
