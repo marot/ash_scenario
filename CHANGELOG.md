@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-10-06
+
 ### Added
-- Optional Clarity introspector that exposes resource prototypes with inline
-  create/run buttons inside the Clarity UI and renders sample struct data for
-  each prototype.
+- Authorization support for prototypes with `actor` and `authorize?` fields in the prototype DSL
+- Authorization examples and documentation
+
+### Fixed
+- Fixed usage of library without Clarity dependency
 
 ## [0.1.0] - 2025-09-15
 
