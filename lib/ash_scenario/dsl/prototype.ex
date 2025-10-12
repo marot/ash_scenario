@@ -15,6 +15,8 @@ defmodule AshScenario.Dsl.Prototype do
     :attr,
     # Names of attributes marked as virtual (skipped by compile-time validation)
     :virtuals,
+    # Actor prototype reference for authorization
+    :actor,
     # Per-prototype overrides for creation behavior
     :action,
     :function,
@@ -31,6 +33,7 @@ defmodule AshScenario.Dsl.Prototype do
           attrs: list() | nil,
           attr: list() | nil,
           virtuals: MapSet.t() | list() | nil,
+          actor: atom() | {module(), atom()} | nil,
           action: atom() | nil,
           function:
             ({map(), keyword()} -> {:ok, any()} | {:error, any()})

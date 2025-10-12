@@ -81,28 +81,27 @@ defmodule AuthorizedPost do
 
   prototypes do
     prototype :admin_post do
+      actor :admin_user
       attr(:title, "Admin Only Post")
       attr(:content, "This post was created by an admin")
       attr(:restricted, true)
       attr(:author_id, :admin_user)
-      attr(:actor, :admin_user, virtual: true)
     end
 
     prototype :user_post do
+      actor :regular_user
       attr(:title, "User Post")
       attr(:content, "This post was created by a regular user")
       attr(:restricted, false)
       attr(:author_id, :regular_user)
-      attr(:actor, :regular_user, virtual: true)
     end
 
     prototype :restricted_post do
+      actor :admin_user
       attr(:title, "Restricted Post")
       attr(:content, "This is a restricted post")
       attr(:restricted, true)
       attr(:author_id, :admin_user)
-      attr(:actor, :admin_user, virtual: true)
-      attr(:authorize?, true, virtual: true)
     end
 
     prototype :unauthorized_post do

@@ -185,7 +185,23 @@ defmodule AshScenario.Scenario do
         |> Enum.map(fn attr -> {attr.name, attr.value} end)
         |> Map.new()
 
-      Map.put(acc, prototype_override.ref, attrs_map)
+      # Extract actor from actor entity
+      actor_value =
+        case Map.get(prototype_override, :actor) do
+          [%AshScenario.Dsl.Actor{value: value} | _] -> value
+          %AshScenario.Dsl.Actor{value: value} -> value
+          _ -> nil
+        end
+
+      # Include actor override if present
+      attrs_with_actor =
+        if actor_value do
+          Map.put(attrs_map, :actor, actor_value)
+        else
+          attrs_map
+        end
+
+      Map.put(acc, prototype_override.ref, attrs_with_actor)
     end)
   end
 

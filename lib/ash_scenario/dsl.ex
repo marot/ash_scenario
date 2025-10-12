@@ -23,6 +23,21 @@ defmodule AshScenario.Dsl do
     ]
   }
 
+  @actor %Spark.Dsl.Entity{
+    name: :actor,
+    target: AshScenario.Dsl.Actor,
+    args: [:value],
+    identifier: nil,
+    schema: [
+      value: [
+        type: {:or, [:atom, {:tuple, [:atom, :atom]}]},
+        required: true,
+        doc:
+          "Actor prototype reference for authorization (e.g., :admin_user or {User, :admin_user})"
+      ]
+    ]
+  }
+
   @create %Spark.Dsl.Entity{
     name: :create,
     target: AshScenario.Dsl.Create,
@@ -64,6 +79,7 @@ defmodule AshScenario.Dsl do
     ],
     entities: [
       values: [@attr],
+      actor: [@actor],
       create: [@create]
     ]
   }
@@ -84,6 +100,14 @@ defmodule AshScenario.Dsl do
 
     base_attributes = prototype.attributes || []
     attributes = Keyword.merge(base_attributes, nested_values)
+
+    # Extract actor from actor entity
+    actor_value =
+      case Map.get(prototype, :actor) do
+        [%AshScenario.Dsl.Actor{value: value} | _] -> value
+        %AshScenario.Dsl.Actor{value: value} -> value
+        _ -> nil
+      end
 
     virtuals =
       attr_entities
@@ -108,6 +132,7 @@ defmodule AshScenario.Dsl do
        prototype
        | attributes: attributes,
          virtuals: virtuals,
+         actor: actor_value,
          action: final_action,
          function: final_function
      }}

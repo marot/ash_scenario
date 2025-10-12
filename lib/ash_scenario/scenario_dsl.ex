@@ -21,6 +21,21 @@ defmodule AshScenario.ScenarioDsl do
     ]
   }
 
+  @actor %Spark.Dsl.Entity{
+    name: :actor,
+    target: AshScenario.Dsl.Actor,
+    args: [:value],
+    identifier: nil,
+    schema: [
+      value: [
+        type: {:or, [:atom, {:tuple, [:atom, :atom]}]},
+        required: true,
+        doc:
+          "Override actor prototype reference for authorization (e.g., :admin_user or {User, :admin_user})"
+      ]
+    ]
+  }
+
   @prototype %Spark.Dsl.Entity{
     name: :prototype,
     target: AshScenario.ScenarioDsl.PrototypeOverride,
@@ -33,7 +48,8 @@ defmodule AshScenario.ScenarioDsl do
       ]
     ],
     entities: [
-      attributes: [@attr]
+      attributes: [@attr],
+      actor: [@actor]
     ]
   }
 

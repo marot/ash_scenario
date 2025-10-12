@@ -13,20 +13,11 @@ defmodule AuthorizationTest do
   describe "actor field in prototype DSL" do
     test "prototype accepts actor field as a reference to another prototype" do
       # This test verifies that the DSL accepts the actor field
-      # It should fail initially since we haven't implemented the feature yet
       prototypes = AshScenario.prototypes(AuthorizedPost)
       admin_post = Enum.find(prototypes, &(&1.ref == :admin_post))
 
-      # The actor field should be present in the prototype attributes
-      assert admin_post.attributes[:actor] == :admin_user
-    end
-
-    test "prototype accepts authorize? field" do
-      prototypes = AshScenario.prototypes(AuthorizedPost)
-      restricted_post = Enum.find(prototypes, &(&1.ref == :restricted_post))
-
-      # The authorize? field should be present
-      assert restricted_post.attributes[:authorize?] == true
+      # The actor field should be present in the prototype struct
+      assert admin_post.actor == :admin_user
     end
 
     test "actor prototype is resolved as a dependency" do

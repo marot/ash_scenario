@@ -15,10 +15,17 @@ defmodule AshScenario.Scenario.Executor.DatabaseStrategy do
     action = Keyword.get(opts, :action, :create)
     domain = Keyword.get(opts, :domain)
     explicit_nil_keys = Keyword.get(opts, :__explicit_nil_keys__, [])
+    prototype = Keyword.get(opts, :__prototype__)
+    created_resources = Keyword.get(opts, :__created_resources__, %{})
 
-    # Extract actor and authorize? from attributes
-    {actor, attributes} = Map.pop(attributes, :actor)
-    # Only default authorize? to true if an actor was explicitly provided
+    # Get actor from runtime override (attributes) or prototype definition
+    {actor_override, attributes} = Map.pop(attributes, :actor)
+    actor_ref = actor_override || (prototype && Map.get(prototype, :actor))
+
+    # Resolve actor reference to actual resource
+    actor = resolve_actor(actor_ref, created_resources)
+
+    # Get authorize? from attributes override, default based on actor presence
     {authorize?, attributes} = Map.pop(attributes, :authorize?, !is_nil(actor))
 
     with {:ok, create_action} <- Helpers.get_create_action(resource_module, action),
@@ -36,6 +43,20 @@ defmodule AshScenario.Scenario.Executor.DatabaseStrategy do
 
       Ash.create(changeset, create_opts)
     end
+  end
+
+  defp resolve_actor(nil, _created_resources), do: nil
+
+  defp resolve_actor({module, ref}, created_resources) do
+    Map.get(created_resources, {module, ref})
+  end
+
+  defp resolve_actor(ref, created_resources) when is_atom(ref) do
+    # Search for the actor in created_resources by ref name
+    Enum.find_value(created_resources, fn
+      {{_module, ^ref}, resource} -> resource
+      _ -> nil
+    end)
   end
 
   defp maybe_add_actor(opts, nil, false) do

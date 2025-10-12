@@ -75,7 +75,7 @@ defmodule AshScenario.Scenario.Registry do
           ref: prototype.ref,
           resource: resource_module,
           attributes: prototype.attributes,
-          dependencies: extract_dependencies(resource_module, prototype.attributes),
+          dependencies: extract_dependencies(resource_module, prototype),
           action: Map.get(prototype, :action),
           function: Map.get(prototype, :function)
         }
@@ -206,7 +206,7 @@ defmodule AshScenario.Scenario.Registry do
             ref: prototype.ref,
             resource: resource_module,
             attributes: prototype.attributes,
-            dependencies: extract_dependencies(resource_module, prototype.attributes),
+            dependencies: extract_dependencies(resource_module, prototype),
             action: Map.get(prototype, :action),
             function: Map.get(prototype, :function)
           }
@@ -220,36 +220,43 @@ defmodule AshScenario.Scenario.Registry do
     end
   end
 
-  defp extract_dependencies(resource_module, attributes) do
-    attributes
-    |> Enum.reduce([], fn {key, value}, acc ->
-      cond do
-        # Special case for actor field - it's a reference to another prototype
-        key == :actor ->
-          case value do
-            {module, ref} ->
-              [{module, ref} | acc]
+  defp extract_dependencies(resource_module, prototype) do
+    # Extract actor dependency from prototype.actor field
+    actor_deps =
+      case Map.get(prototype, :actor) do
+        nil ->
+          []
 
-            ref when is_atom(ref) ->
-              # Just the atom - will be resolved globally across all modules
-              [ref | acc]
+        {module, ref} ->
+          [{module, ref}]
 
-            _ ->
-              acc
-          end
+        ref when is_atom(ref) ->
+          # Just the atom - will be resolved globally across all modules
+          [ref]
 
-        # Regular relationship attributes
-        is_atom(value) ->
-          case related_module_for_attr(resource_module, key) do
-            {:ok, related_module} -> [{related_module, value} | acc]
-            :error -> acc
-          end
-
-        # Skip non-atom values
-        true ->
-          acc
+        _ ->
+          []
       end
-    end)
+
+    # Extract relationship dependencies from attributes
+    attribute_deps =
+      prototype.attributes
+      |> Enum.reduce([], fn {key, value}, acc ->
+        cond do
+          # Regular relationship attributes
+          is_atom(value) ->
+            case related_module_for_attr(resource_module, key) do
+              {:ok, related_module} -> [{related_module, value} | acc]
+              :error -> acc
+            end
+
+          # Skip non-atom values
+          true ->
+            acc
+        end
+      end)
+
+    (actor_deps ++ attribute_deps)
     |> Enum.reverse()
   end
 

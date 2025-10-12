@@ -58,6 +58,8 @@ defmodule AshScenario.Scenario.Executor do
   end
 
   defp extract_override_dependencies(overrides_map) do
+    # Actor dependencies are now handled by the registry through prototype.actor
+    # This only handles runtime actor overrides in the overrides map
     overrides_map
     |> Enum.flat_map(fn {_ref, overrides} ->
       overrides
@@ -135,7 +137,8 @@ defmodule AshScenario.Scenario.Executor do
         explicit_nil_keys: explicit_nil_keys,
         opts: opts,
         domain: domain,
-        strategy: strategy
+        strategy: strategy,
+        created_resources: created_resources
       }
 
       execute_by_strategy(execution_context)
@@ -224,16 +227,26 @@ defmodule AshScenario.Scenario.Executor do
       explicit_nil_keys: explicit_nil_keys,
       opts: opts,
       domain: domain,
-      strategy: strategy
+      strategy: strategy,
+      created_resources: created_resources
     } = context
 
     opts_with_nil_keys = Keyword.put(opts, :__explicit_nil_keys__, explicit_nil_keys)
 
-    # Delegate creation to strategy - let the strategy handle tenant extraction
+    # Pass prototype and created_resources to strategy for actor resolution
+    opts_with_context =
+      Keyword.merge(opts_with_nil_keys,
+        domain: domain,
+        action: action,
+        __prototype__: prototype,
+        __created_resources__: created_resources
+      )
+
+    # Delegate creation to strategy - let the strategy handle tenant extraction and actor resolution
     case strategy.create_resource(
            prototype.resource,
            resolved_attributes,
-           Keyword.merge(opts_with_nil_keys, domain: domain, action: action)
+           opts_with_context
          ) do
       {:ok, created_resource} ->
         handle_creation_success(created_resource, prototype, action)
