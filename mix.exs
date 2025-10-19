@@ -5,7 +5,7 @@ defmodule AshScenario.MixProject do
   Reusable test data generation for Ash applications with dependency resolution and scenario composition.
   """
 
-  @version "0.3.0"
+  @version "0.4.0"
 
   @source_url "https://github.com/marot/ash_scenario"
 
