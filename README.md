@@ -430,6 +430,7 @@ end
 
 - **Automatic Dependency Resolution**: Resources are created in the correct order based on relationships
 - **Reference Resolution**: `:resource_name` references are automatically resolved to actual IDs
+- **Runtime Attribute Evaluation**: MFA tuples `{Module, :function, [args]}` for unique/random data generation
 - **Reusable Definitions**: Define resources once, use them in multiple contexts
 - **Override Support**: Test scenarios can override specific attributes while keeping defaults
 - **Scenario Extension**: Build hierarchical scenarios using `extends: :base_scenario`
@@ -483,23 +484,98 @@ Notes:
 - They are included in the map passed to `Ash.Changeset.for_create/3`, so if your create action defines corresponding `argument`s, Ash will consume them correctly.
 - This also plays nicely with custom `create function:` usage; your factory function receives the same key/value pairs.
 
-```elixir
-# Enable the Scenario DSL in a test module
-use AshScenario.Scenario
+### Runtime Attribute Evaluation (MFA Tuples)
 
-# Define scenarios
-  scenario :my_setup do
-    prototype :example_post do
-      attr(:title, "Overridden title")
+Attribute values can be defined as `{Module, :function, [args]}` tuples that are evaluated at runtime. This is useful for generating unique or random data in tests.
+
+#### Basic Example
+
+```elixir
+defmodule User do
+  use Ash.Resource,
+    extensions: [AshScenario.Dsl]
+
+  prototypes do
+    prototype :test_user do
+      # Evaluated once per prototype creation
+      attr :email, {System, :unique_integer, [[:positive]]}
+      attr :display_name, "Test User"
     end
   end
+end
+```
 
-# Run a scenario
-{:ok, resources} = AshScenario.run_scenario(__MODULE__, :my_setup, domain: MyApp.Domain)
+#### Function Arities
 
-# Access created resources by their prototype names (atoms)
-resources.example_post.title
-resources.example_blog.id
+Your function can accept different parameters:
+
+**Arity 0**: No runtime parameters
+```elixir
+attr :status, {MyModule, :random_status, []}
+
+def random_status, do: Enum.random([:active, :pending])
+```
+
+**Arity 1**: Sequence index
+```elixir
+attr :email, {MyModule, :unique_email, []}
+
+def unique_email(index), do: "user#{index}@example.com"
+```
+
+**Arity 2**: Sequence index + context
+```elixir
+attr :username, {MyModule, :contextual_username, []}
+
+def contextual_username(index, context) do
+  "#{context.prototype_ref}_#{index}"
+end
+```
+
+**Context Structure**:
+```elixir
+%{
+  prototype_ref: :test_user,           # The prototype name
+  resource: User,                       # The resource module
+  created_resources: %{...},           # Previously created resources
+  opts: [...]                          # Options passed to run()
+}
+```
+
+#### Sequences
+
+Each attribute gets its own sequence counter:
+- Key: `{ResourceModule, :prototype_ref, :attr_name}`
+- Starts at 0
+- Automatically reset between tests (add `AshScenario.Sequence.reset()` to your test setup)
+
+#### Example with Helper Module
+
+```elixir
+defmodule MyApp.TestHelpers do
+  def unique_email(i), do: "test#{i}@example.com"
+  def random_age(_i), do: Enum.random(18..65)
+  def timestamped(i, _ctx), do: "user_#{i}_#{System.system_time()}"
+end
+
+prototypes do
+  prototype :user do
+    attr :email, {MyApp.TestHelpers, :unique_email, []}
+    attr :age, {MyApp.TestHelpers, :random_age, []}
+    attr :username, {MyApp.TestHelpers, :timestamped, []}
+  end
+end
+```
+
+#### Test Setup
+
+To ensure proper sequence isolation between tests, add this to your test setup:
+
+```elixir
+setup do
+  AshScenario.Sequence.reset()
+  :ok
+end
 ```
 
 ### Identifiers

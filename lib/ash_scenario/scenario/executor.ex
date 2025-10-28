@@ -152,18 +152,81 @@ defmodule AshScenario.Scenario.Executor do
     base_attributes = normalize_attributes(prototype.attributes)
     merged_attributes = Map.merge(base_attributes, per_ref_overrides)
 
+    # Build context for MFA evaluation
+    created_resources = Keyword.get(opts, :__created_resources__, %{})
+
+    context = %{
+      prototype_ref: prototype.ref,
+      resource: prototype.resource,
+      opts: opts,
+      created_resources: created_resources
+    }
+
+    # Evaluate MFA tuples in attributes
+    evaluated_attributes =
+      Enum.map(merged_attributes, fn {key, value} ->
+        {key, evaluate_mfa(value, key, context)}
+      end)
+      |> Map.new()
+
     explicit_nil_keys =
       per_ref_overrides
       |> Enum.filter(fn {_k, v} -> is_nil(v) end)
       |> Enum.map(&elem(&1, 0))
 
-    {:ok, merged_attributes, explicit_nil_keys}
+    {:ok, evaluated_attributes, explicit_nil_keys}
   end
 
   defp normalize_attributes(attributes) when is_map(attributes), do: attributes
   defp normalize_attributes(attributes) when is_list(attributes), do: Map.new(attributes)
   defp normalize_attributes(nil), do: %{}
   defp normalize_attributes(_), do: %{}
+
+  # Evaluate MFA (Module-Function-Args) tuples in attribute values at runtime.
+  #
+  # Supports functions with arities 0, 1, and 2:
+  # - Arity 0: Just extra args from the tuple
+  # - Arity 1: Extra args + sequence index
+  # - Arity 2: Extra args + sequence index + context
+  defp evaluate_mfa({module, function, extra_args}, attr_name, context)
+       when is_atom(module) and is_atom(function) and is_list(extra_args) do
+    # Get sequence index for this specific attribute
+    sequence_key = {context.resource, context.prototype_ref, attr_name}
+    index = AshScenario.Sequence.next(sequence_key)
+
+    # Determine arity and call appropriately
+    cond do
+      # Try arity: extra_args + index + context
+      function_exported?(module, function, length(extra_args) + 2) ->
+        apply(module, function, extra_args ++ [index, context])
+
+      # Try arity: extra_args + index
+      function_exported?(module, function, length(extra_args) + 1) ->
+        apply(module, function, extra_args ++ [index])
+
+      # Try arity: just extra_args
+      function_exported?(module, function, length(extra_args)) ->
+        apply(module, function, extra_args)
+
+      true ->
+        raise ArgumentError, """
+        MFA evaluation failed for attribute #{inspect(attr_name)}.
+        Function #{inspect(module)}.#{function}/#{length(extra_args)} does not exist.
+        Expected one of: /#{length(extra_args)}, /#{length(extra_args) + 1}, or /#{length(extra_args) + 2}
+        """
+    end
+  rescue
+    e ->
+      reraise ArgumentError,
+              """
+              Error evaluating MFA for attribute #{inspect(attr_name)}:
+              MFA: {#{inspect(module)}, :#{function}, #{inspect(extra_args)}}
+              Error: #{Exception.message(e)}
+              """,
+              __STACKTRACE__
+  end
+
+  defp evaluate_mfa(value, _attr_name, _context), do: value
 
   defp resolve_attributes(attributes, resource_module, created_resources, strategy) do
     # Use strategy-specific resolution if available
