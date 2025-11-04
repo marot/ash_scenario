@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- changelog -->
 
+## [v0.6.0](https://github.com/marot/ash_scenario/compare/v0.5.0...v0.6.0) (2025-11-04)
+
+
+
+
+### Features:
+
+* add runtime MFA evaluation for prototype attributes by Marco Rotili
+
 ## [v0.4.0](https://github.com/marot/ash_scenario/compare/v0.3.0...v0.4.0) (2025-10-19)
 
 
